@@ -451,7 +451,6 @@ export default function UserManagementPage() {
       )}
 
       {/* Users Table */}
-      {/* Users Table */}
       <Card>
         <CardContent className="p-0">
           <div className="w-full">
@@ -469,22 +468,20 @@ export default function UserManagementPage() {
                         className="rounded-[10px]"
                       />
                     </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>User Info</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead>Last Active</TableHead>
-                    <TableHead>isVerified</TableHead>
+                    <TableHead>Verified</TableHead>
                     <TableHead>Provider</TableHead>
                     <TableHead>Onboarding Status</TableHead>
                     <TableHead>Token Version</TableHead>
                     <TableHead>Login Attempts</TableHead>
-                    <TableHead>isLocked</TableHead>
+                    <TableHead>Acc Locked</TableHead>
                     <TableHead>Lock Expires At</TableHead>
-                    <TableHead>isPasswordResetPending</TableHead>
+                    <TableHead>Password Reset Pending</TableHead>
                     <TableHead>Updated At</TableHead>
                     <TableHead>Last Login IP</TableHead>
                     <TableHead className="w-20">Actions</TableHead>
@@ -501,9 +498,19 @@ export default function UserManagementPage() {
                           }
                         />
                       </TableCell>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-[#011F72]">
+                            {user.name}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {user.email}
+                          </span>
+                          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit mt-1">
+                            {user.role}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(user.status)}>
                           {user.status}

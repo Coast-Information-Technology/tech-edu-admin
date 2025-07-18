@@ -108,7 +108,7 @@ const LoginPage = () => {
    * Always returns the dashboard route and sets userId cookie if present.
    */
   const getRedirectRoute = useCallback((userData: any) => {
-    const { id } = userData;
+    const { id, role } = userData;
     if (id) {
       setCookie("userId", id, {
         maxAge: 60 * 60 * 24 * 7,
@@ -116,7 +116,12 @@ const LoginPage = () => {
         sameSite: "strict",
       });
     }
-    return "/dashboard/admin";
+    // Map backend roles to dashboard route names
+    let dashboardRole = role;
+    if (role === "support") dashboardRole = "customerCare";
+    // Add more mappings if needed
+
+    return `/dashboard/${dashboardRole}`;
   }, []);
 
   /**

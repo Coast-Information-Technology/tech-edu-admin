@@ -61,6 +61,7 @@ export default function SidebarLayout({
 }) {
   const pathname = usePathname();
   const { userRole, userData, logout } = useRole();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Remove Team/Profile Switcher and related logic
   // Remove canHaveTeams, teams, currentProfile, setCurrentProfile, TeamContext, and all dropdown/profile switcher JSX
@@ -134,74 +135,100 @@ export default function SidebarLayout({
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-white">
-        <Sidebar>
-          <SidebarHeader className="border-b border-border p-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#011F72]">
-                <Image
-                  src="/assets/techedusolution.jpg"
-                  alt="Tech Edu Solution Logo"
-                  width={80}
-                  height={80}
-                  className="rounded-[5px]"
-                />
+        {/* Sidebar for desktop and mobile */}
+        {/* Overlay for mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        <div
+          className={`
+            fixed z-50 inset-y-0 left-0 w-64 bg-white border-r border-border transition-transform duration-300
+            md:static md:translate-x-0 md:w-64
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          `}
+        >
+          <Sidebar className="w-64 h-full">
+            <SidebarHeader className="border-b border-border p-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#011F72]">
+                  <Image
+                    src="/assets/techedusolution.jpg"
+                    alt="Tech Edu Solution Logo"
+                    width={80}
+                    height={80}
+                    className="rounded-[5px]"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">
+                    TechEdu Solution
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {dashboardData.displayName}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">TechEdu Solution</span>
-                <span className="text-xs text-muted-foreground">
-                  {dashboardData.displayName}
-                </span>
+            </SidebarHeader>
+            <SidebarContent>
+              {dashboardData.sections.map(renderSection)}
+            </SidebarContent>
+            <SidebarFooter className="border-t border-border py-4 flex flex-col gap-2">
+              <Link href="/dashboard/settings">
+                <Button
+                  variant="ghost"
+                  className="w-full flex items-center gap-2 justify-start"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2 mt-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage
+                    src={userData?.avatar}
+                    alt={userData?.fullName || "User"}
+                  />
+                  <AvatarFallback>
+                    {userData?.fullName
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("") || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-1 flex-col w-[10vw] ">
+                  <span className="text-sm font-medium truncate">
+                    {userData?.fullName}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {userData?.email}
+                  </span>
+                </div>
               </div>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            {dashboardData.sections.map(renderSection)}
-          </SidebarContent>
-          <SidebarFooter className="border-t border-border py-4 flex flex-col gap-2">
-            <Link href="/dashboard/settings">
               <Button
                 variant="ghost"
-                className="w-full flex items-center gap-2 justify-start"
+                className="w-full flex items-center bg-blue-600 hover:bg-blue-400 text-white hover:text-white rounded-[10px] gap-2 justify-start"
+                onClick={logout}
               >
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
+                <LogOut className="h-4 w-4" />
+                Logout
               </Button>
-            </Link>
-            <div className="flex items-center gap-2 mt-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage
-                  src={userData?.avatar}
-                  alt={userData?.fullName || "User"}
-                />
-                <AvatarFallback>
-                  {userData?.fullName
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("") || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-1 flex-col w-[10vw] ">
-                <span className="text-sm font-medium truncate">
-                  {userData?.fullName}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {userData?.email}
-                </span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full flex items-center bg-blue-600 hover:bg-blue-400 text-white hover:text-white rounded-[10px] gap-2 justify-start"
-              onClick={logout}
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </SidebarFooter>
-        </Sidebar>
-        <SidebarInset>
+            </SidebarFooter>
+          </Sidebar>
+        </div>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0">
           <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg shadow-md flex h-16 items-center gap-2 px-4 border-b rounded-[10px]">
-            <SidebarTrigger className="-ml-1" />
+            {/* Sidebar trigger for mobile */}
+            <button
+              className="md:hidden p-2 rounded hover:bg-gray-100 focus:outline-none"
+              onClick={() => setSidebarOpen((open) => !open)}
+              aria-label="Open sidebar"
+            >
+              <SidebarTrigger className="-ml-1" />
+            </button>
             <div className="flex items-center gap-2 px-4">
               <h1 className="text-lg font-semibold">
                 {dashboardData.displayName}
@@ -212,10 +239,10 @@ export default function SidebarLayout({
               <UserNav />
             </div>
           </header>
-          <main className="p-6 w-full min-h-[calc(100vh-4rem)]">
+          <main className="p-6 flex-1 min-h-[calc(100vh-4rem)]">
             {children}
           </main>
-        </SidebarInset>
+        </div>
       </div>
     </SidebarProvider>
   );

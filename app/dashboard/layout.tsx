@@ -11,7 +11,7 @@ export default function DashboardPagesLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
+      <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-white overflow-hidden">
         <SidebarLayout>{children}</SidebarLayout>
       </div>
     </AuthGuard>

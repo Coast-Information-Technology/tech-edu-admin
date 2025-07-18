@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,61 +70,56 @@ interface User {
   }>;
 }
 
-const mockUser: User = {
-  id: "1",
-  name: "Sarah Johnson",
-  email: "sarah.johnson@email.com",
-  role: "student",
-  status: "active",
-  avatar: "/assets/placeholder-avatar.jpg",
-  location: "Lagos, Nigeria",
-  phone: "+234 801 234 5678",
-  joinDate: "2024-01-15",
-  lastActive: "2024-01-20",
-  coursesEnrolled: 5,
-  coursesCompleted: 3,
-  certifications: 2,
-  bio: "Passionate student pursuing a career in technology and data science. Currently enrolled in multiple courses to enhance my skills and knowledge.",
-  skills: [
-    "JavaScript",
-    "Python",
-    "Data Analysis",
-    "Project Management",
-    "Communication",
-  ],
-  education: ["BSc Computer Science - University of Lagos (2020-2024)"],
-  experience: ["Intern - TechCorp Solutions (2023)"],
-  activityHistory: [
-    {
-      id: "1",
-      action: "Course Completed",
-      timestamp: "2024-01-20 14:30",
-      details: "Completed 'Strategic Thinking for Teams' course",
-    },
-    {
-      id: "2",
-      action: "Course Enrolled",
-      timestamp: "2024-01-18 09:15",
-      details: "Enrolled in 'Excel & Dashboards Essentials'",
-    },
-    {
-      id: "3",
-      action: "Profile Updated",
-      timestamp: "2024-01-15 16:45",
-      details: "Updated profile information",
-    },
-    {
-      id: "4",
-      action: "Account Created",
-      timestamp: "2024-01-15 10:00",
-      details: "User account created",
-    },
-  ],
-};
-
 export default function UserDetailPage({ params }: { params: { id: string } }) {
-  const [user, setUser] = useState<User>(mockUser);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("overview");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/users/${params.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const u = data.data.data;
+        const profile = u.profile || {};
+        setUser({
+          id: u._id,
+          name: profile.fullName || u.fullName,
+          email: profile.email || u.email,
+          role: profile.role || u.role,
+          status: profile.status || "active",
+          avatar:
+            profile.avatarUrl ||
+            u.profileImageUrl ||
+            "/assets/placeholder-avatar.jpg",
+          location: profile.assignedRegions?.[0] || "Unknown",
+          phone: profile.phoneNumber || "",
+          joinDate: u.createdAt
+            ? new Date(u.createdAt).toLocaleDateString()
+            : "",
+          lastActive: u.updatedAt
+            ? new Date(u.updatedAt).toLocaleDateString()
+            : "",
+          coursesEnrolled: 0,
+          coursesCompleted: 0,
+          certifications: 0,
+          department: profile.departments?.[0] || "",
+          company: "",
+          institution: "",
+          bio: profile.bio || "",
+          skills: [],
+          education: [],
+          experience: [],
+          activityHistory: [],
+        });
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load user");
+        setLoading(false);
+      });
+  }, [params.id]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -189,6 +184,10 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
         return <Clock className="w-4 h-4" />;
     }
   };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
+  if (!user) return <div>No user found.</div>;
 
   return (
     <div className="space-y-6">

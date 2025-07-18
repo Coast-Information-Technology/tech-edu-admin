@@ -63,7 +63,11 @@ export const dashboardSidebarConfig = {
             icon: Award,
             href: "/dashboard/academic-services",
           },
-          { label: "Bookings", icon: Calendar, href: "/dashboard/bookings" },
+          {
+            label: "Bookings",
+            icon: Calendar,
+            href: "/dashboard/booked-services",
+          },
           {
             label: "Onboarding",
             icon: ClipboardList,
