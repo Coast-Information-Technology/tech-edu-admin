@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const code = searchParams.get("code");
+  const error = searchParams.get("error");
+
+  if (error) {
+    // Handle OAuth error
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/login?error=oauth_failed`
+    );
+  }
+
+  if (!code) {
+    // No authorization code received
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_code`
+    );
+  }
+
+  try {
+    // Exchange the authorization code for tokens
+    const tokenResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/callback?code=${code}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!tokenResponse.ok) {
+      throw new Error("Failed to exchange code for tokens");
+    }
+
+    const authData = await tokenResponse.json();
+
+    // Store the token in a secure cookie
+    const response = NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`
+    );
+
+    // Set the authentication token as an HTTP-only cookie
+    response.cookies.set("token", authData.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    // Set user data in a separate cookie for frontend access
+    response.cookies.set("userData", JSON.stringify(authData.user), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Google OAuth callback error:", error);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/login?error=auth_failed`
+    );
+  }
+}

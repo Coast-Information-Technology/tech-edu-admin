@@ -1,0 +1,53 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Check if the route is a dashboard route
+  if (pathname.startsWith("/dashboard")) {
+    // Get cookies from the request
+    const cookies = request.cookies;
+    const authToken = cookies.get("token");
+    const userData = cookies.get("userData");
+
+    // If no auth token or user data, redirect to login
+    if (!authToken || !userData) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Validate user data
+    try {
+      const userDataParsed = JSON.parse(decodeURIComponent(userData.value));
+
+      // Check if user data has required fields
+      if (!userDataParsed.email || !userDataParsed.role) {
+        throw new Error("Invalid user data");
+      }
+    } catch (error) {
+      // If user data is invalid, clear cookies and redirect to login
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.set("token", "", { maxAge: 0, path: "/" });
+      response.cookies.set("userData", "", { maxAge: 0, path: "/" });
+      return response;
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+  ],
+};

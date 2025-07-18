@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'swiper/css';
+@import 'swiper/css/pagination';
+@import 'swiper/css/navigation';
+
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+
+* {
+  @apply m-0 p-0 box-border;
+}
+html {
+  @apply h-full;
+}
+body {
+  @apply h-full text-gray-900;
+}
+
+/* Smooth width transition override for Safari */
+button, a {
+  transition: all 0.3s ease-in-out;
+}
+
+/* a {
+  @apply text-[#011F72] no-underline;
+}
+a:hover {
+  @apply text-blue-800;
+} */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold;
+}
+h1 {
+  @apply text-3xl;
+}
+h2 {
+  @apply text-2xl;
+}
+h3 {
+  @apply text-xl;
+}
+h4 {
+  @apply text-lg;
+}
+h5 {
+  @apply text-base;
+}
+h6 {
+  @apply text-sm;
+}
+p {
+  @apply text-base;
+}
+/* button {
+  @apply bg-[#011F72] text-white px-4 py-2 rounded;
+}
+button:hover {
+  @apply bg-blue-700;
+} */
+input, textarea {
+  @apply border border-gray-300 rounded px-2 py-1;
+}
+input:focus, textarea:focus {
+  @apply border-[#011F72] outline-none;
+}
+
+
+/* Add any additional global styles here */
+.primary-cta {
+  @apply bg-[#011F72];
+  @apply text-white;
+}
+.bg-primary {
+ @apply bg-[#011F72];
+}
+.text-primary {
+  @apply text-[#011F72];
+}
+.primary-cta:hover {
+  @apply bg-blue-400;
+}
+.secondary-cta {
+  @apply bg-gray-600;
+}
+.secondary-cta:hover {
+  @apply bg-gray-800;
+}
+
+.text-outline {
+  -webkit-text-stroke: 2px #011F72; /* Tailwind's blue-500 */
+}
+
+.gray-text-outline {
+  -webkit-text-stroke: 1px #ffffff; /* Tailwind's gray-900 */
+}
+
+.clip-shape {
+  clip-path: polygon(
+    74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%,
+    72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%,
+    27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%
+  );
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* globals.css or inside @layer utilities */
+@keyframes pulseDot {
+  0% {
+    r: 3;
+    opacity: 0.7;
+  }
+  50% {
+    r: 10;
+    opacity: 0.3;
+  }
+  100% {
+    r: 3;
+    opacity: 0.7;
+  }
+}
+
+.pulse {
+  fill: #003294;
+  stroke: white;
+  stroke-width: 1;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.hide-custom-scrollbar::-webkit-scrollbar {
+  width: 0px;
+}
+
+.hide-custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.hide-custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #c4c4c4;
+  border-radius: 8px;
+}
+
+.truncate {
+  white-space: nowrap;        /* Prevent the text from wrapping to a new line */
+  overflow: hidden;           /* Hide the overflow text */
+  text-overflow: ellipsis;    /* Show "..." for overflowed text */
+}
+
+
+/* Add this in your global CSS file */
+/* .hover-fill::before {
+  content: "";
+  position: absolute;
+  background: #9db7ff;
+  width: 0;
+  height: 100%;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  transition: width 0.3s ease-in-out;
+}
+
+.hover-fill:hover::before {
+  width: 100%;
+}
+
+.hover-fill {
+  position: relative;
+  transition: all 0.3s ease-in-out;
+  z-index: 1;
+}
+
+.hover-fill:hover {
+  color: #000;
+}
+
+ */

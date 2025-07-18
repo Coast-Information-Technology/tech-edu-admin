@@ -1,0 +1,21 @@
+Entity,Description
+User,"Stores user credentials and role (student, individualTechProfessional, institution, recruiter, admin)."
+Profile,"Extended user profile details including contact info, bio, and professional data."
+Institution,Registered partner institutions that can onboard and track students.
+StudentOutcome,Tracks partner institution students and their post-graduation outcomes.
+Employer,Employers who post jobs and search CVs in the talent marketplace.
+JobListing,Job openings posted by employers including filters for graduates.
+Application,Tracks applications by graduates to job listings.
+Service,"Represents various services (academic, career, corporate)."
+Package,Customized service bundles created by users.
+Estimate,Saved pricing estimates linked to a package or user.
+Inquiry,Service-related inquiries submitted by users.
+Appointment,Bookings with auto-generated Zoom/Teams links.
+CV,Generated CVs with templates and export capabilities.
+Resource,"Downloadable assets including guides, templates, and videos."
+FileUpload,"Encrypted user file uploads (CSV, XLS) for analysis."
+Report,System-generated reports from uploaded files.
+Review,Ratings and written reviews submitted by users for services.
+PromoCode,Discount or trial codes used during checkout.
+FAQ,Common questions and answers visible on public pages.
+TeamMember,Corporate team members managed under one account (for institutions or companies).

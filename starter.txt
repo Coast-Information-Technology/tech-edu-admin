@@ -1,0 +1,99 @@
+#011F72
+#f6b703
+#04959f
+#049774
+
+
+components/
+├── auth/
+│   ├── LoginForm.tsx
+│   ├── RegisterForm.tsx
+│   ├── ResetPasswordForm.tsx
+│   └── UserAvatarMenu.tsx
+│
+├── layout/
+│   ├── Navbar.tsx
+│   ├── Footer.tsx
+│   ├── Sidebar.tsx
+│   ├── DashboardLayout.tsx
+│   └── AuthLayout.tsx
+│
+├── ui/
+│   ├── Button.tsx
+│   ├── Input.tsx
+│   ├── Textarea.tsx
+│   ├── Select.tsx
+│   ├── Modal.tsx
+│   ├── Tabs.tsx
+│   ├── Accordion.tsx
+│   ├── Toast.tsx
+│   ├── Pagination.tsx
+│   ├── Badge.tsx
+│   ├── Tooltip.tsx
+│   └── Loader.tsx
+│
+├── services/
+│   ├── ServiceCard.tsx
+│   ├── ServiceFilter.tsx
+│   ├── ServiceDetails.tsx
+│   └── ServiceCompareModal.tsx
+│
+├── forms/
+│   ├── InquiryForm.tsx
+│   ├── BookingForm.tsx
+│   ├── CalendarPicker.tsx
+│   ├── PaymentForm.tsx
+│   ├── EnrollmentForm.tsx
+│   ├── ReviewForm.tsx
+│   └── ProfileForm.tsx
+│
+├── analytics/
+│   ├── FileUpload.tsx
+│   ├── DashboardWidget.tsx
+│   ├── ChartRenderer.tsx
+│   └── ReportExport.tsx
+│
+├── cv/
+│   ├── CVForm.tsx
+│   ├── CVTemplateSelector.tsx
+│   └── CVPreview.tsx
+│
+├── resources/
+│   ├── ResourceCard.tsx
+│   └── ResourceFilter.tsx
+│
+├── marketplace/
+│   ├── GraduateCard.tsx
+│   ├── GraduateFilter.tsx
+│   └── EmployerDashboard.tsx
+│
+├── institutions/
+│   ├── StudentOnboardForm.tsx
+│   └── OutcomeTracker.tsx
+│
+├── mentorship/
+│   ├── MentorCard.tsx
+│   ├── MentorDirectory.tsx
+│   └── MentorshipBooking.tsx
+│
+├── certification/
+│   ├── CourseCard.tsx
+│   ├── CourseDetails.tsx
+│   └── CertificateDownload.tsx
+│
+├── feedback/
+│   ├── StarRating.tsx
+│   └── TestimonialCarousel.tsx
+│
+├── admin/
+│   ├── UserTable.tsx
+│   ├── ServiceManager.tsx
+│   ├── MentorManager.tsx
+│   ├── CourseManager.tsx
+│   ├── GraduateManager.tsx
+│   └── FeedbackManager.tsx
+│
+└── shared/
+    ├── ProtectedRoute.tsx
+    ├── RoleBadge.tsx
+    └── ErrorFallback.tsx

@@ -1,0 +1,54 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useRole } from "@/contexts/RoleContext";
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, userData, loading } = useRole();
+
+  useEffect(() => {
+    // Check if user is authenticated
+    if (!isAuthenticated || !userData?.email) {
+      // Redirect to login with current path as redirect parameter
+      const loginUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
+      router.push(loginUrl);
+      return;
+    }
+  }, [isAuthenticated, userData, pathname, router]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  // Show loading state while checking authentication
+  if (!isAuthenticated || !userData?.email) {
+    // return (
+    //   <div className="flex h-screen w-full items-center justify-center">
+    //     <div className="text-center">
+    //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#011F72] mx-auto mb-4"></div>
+    //       <p className="text-gray-600">Loading Dashboard...</p>
+    //     </div>
+    //   </div>
+    // );
+  }
+
+  return <>{children}</>;
+}
+
+// Higher-order component for protecting pages
+export function withAuth<P extends object>(Component: React.ComponentType<P>) {
+  return function AuthenticatedComponent(props: P) {
+    return (
+      <ProtectedRoute>
+        <Component {...props} />
+      </ProtectedRoute>
+    );
+  };
+}

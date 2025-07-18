@@ -1,1 +1,1 @@
-# tech-edu-admin
+# tech-eduk

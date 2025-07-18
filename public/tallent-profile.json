@@ -1,0 +1,94 @@
+{
+  "id": "tomi-adekunle",
+  "fullName": "Tomi Adekunle",
+  "desiredRole": "Data Analyst / Research Assistant",
+  "location": "London, UK",
+  "remoteReady": true,
+  "cvInsightScore": 84,
+  "coachVerified": true,
+  "availableFrom": "Immediately",
+  "actions": {
+    "shortlist": true,
+    "message": true,
+    "downloadCV": true
+  },
+  "profileOverview": {
+    "education": [
+      {
+        "degree": "B.Sc. in Economics",
+        "institution": "University of Ibadan",
+        "year": 2023
+      },
+      {
+        "certification": "Data Analytics",
+        "provider": "Tech Edu Zoom Training",
+        "year": 2024
+      }
+    ],
+    "workInternshipHistory": [
+      {
+        "role": "Research Assistant (Internship)",
+        "organization": "EduLink NGO",
+        "location": "Remote",
+        "description": "Analyzed 1,200+ responses using Excel + SPSS"
+      },
+      {
+        "role": "Customer Analyst (Internship)",
+        "organization": "DataGrow Ltd",
+        "location": "London",
+        "description": "Reduced churn insights by 12% via survey-based clustering"
+      }
+    ],
+    "softSkills": [
+      "Analytical Thinking",
+      "Communication",
+      "Team Collaboration"
+    ],
+    "coachFeedback": "Punctual, coachable, and very articulate during mock interviews"
+  },
+  "skillsAndTools": {
+    "Analytics": ["Excel", "SPSS", "Power BI"],
+    "Research": ["Survey Design", "Data Cleaning"],
+    "Communication": ["Report Writing", "Public Speaking"],
+    "Languages": ["English (Fluent)", "Yoruba"]
+  },
+  "cvPreview": {
+    "pagesToShow": 2,
+    "downloadLink": "/cvs/tomi-adekunle.pdf",
+    "shareLink": "/share/talent/tomi-adekunle"
+  },
+  "tagsAndBadges": [
+    {
+      "label": "✅ CV Reviewed",
+      "description": "Profile was vetted by a Tech Edu career mentor"
+    },
+    {
+      "label": "🎓 Coach Verified",
+      "description": "Completed mock interviews & feedback session"
+    },
+    {
+      "label": "🔍 Skills-Matched",
+      "description": "Tagged with role-fit keywords: “Data”, “Analyst”, “Research”"
+    },
+    {
+      "label": "🧑🏽‍💼 Active Talent",
+      "description": "Logged in within last 7 days"
+    }
+  ],
+  "privateFeedback": [
+    {
+      "author": "HR Analyst",
+      "note": "Strong resume, slightly nervous on video call — recommend structured interview."
+    },
+    {
+      "author": "Hiring Manager",
+      "note": "Would be ideal for internships or analyst tracks with training."
+    }
+  ],
+  "stickyActionBar": {
+    "shortlist": true,
+    "message": true,
+    "saveToRoleFolder": true,
+    "downloadCV": true
+  }
+}
