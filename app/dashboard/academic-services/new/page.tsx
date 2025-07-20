@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// import { uploadImageToFirebase } from "@/lib/firebase"; // Uncomment if you have this util
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 const CATEGORY_OPTIONS = [
   { value: "scholarship_coaching", label: "Scholarship Coaching" },
@@ -121,9 +121,9 @@ export default function NewAcademicServicePage() {
     setLoading(true);
     try {
       let thumbnailUrl = form.thumbnailUrl;
-      // if (imageFile) {
-      //   thumbnailUrl = await uploadImageToFirebase(imageFile, "academic-services");
-      // }
+      if (imageFile) {
+        thumbnailUrl = await uploadImageToCloudinary(imageFile);
+      }
       const token = getTokenFromCookies();
       if (!token) {
         toast.error("Authentication required");
@@ -399,24 +399,6 @@ export default function NewAcademicServicePage() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <label
-                    htmlFor="thumbnailUrl"
-                    className="block mb-1 font-medium"
-                  >
-                    Or enter image URL
-                  </label>
-                  <Input
-                    id="thumbnailUrl"
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    value={form.thumbnailUrl}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, thumbnailUrl: e.target.value }))
-                    }
-                    className="rounded-[10px]"
-                  />
-                </div>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <input
@@ -443,7 +425,7 @@ export default function NewAcademicServicePage() {
                 <label className="block mb-2 font-medium">Tags</label>
                 <div className="flex gap-2 flex-wrap mb-2">
                   {form.tags.map((tag, i) => (
-                    <Badge key={i} variant="outline" className="gap-1">
+                    <Badge key={i} variant="outline" className="gap-1 rounded">
                       {tag}
                       <span
                         className="ml-1 cursor-pointer text-red-500"
@@ -468,7 +450,11 @@ export default function NewAcademicServicePage() {
                     }
                     className="rounded-[10px]"
                   />
-                  <Button onClick={addTag} size="sm" className="rounded-[10px]">
+                  <Button
+                    onClick={addTag}
+                    size="sm"
+                    className="rounded-[10px] text-white hover:text-black"
+                  >
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -479,7 +465,7 @@ export default function NewAcademicServicePage() {
                 </label>
                 <div className="flex gap-2 flex-wrap mb-2">
                   {form.learningObjectives.map((obj, i) => (
-                    <Badge key={i} variant="outline" className="gap-1">
+                    <Badge key={i} variant="outline" className="gap-1 rounded">
                       {obj}
                       <span
                         className="ml-1 cursor-pointer text-red-500"
@@ -507,7 +493,7 @@ export default function NewAcademicServicePage() {
                   <Button
                     onClick={addObjective}
                     size="sm"
-                    className="rounded-[10px]"
+                    className="rounded-[10px] text-white hover:text-black"
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
