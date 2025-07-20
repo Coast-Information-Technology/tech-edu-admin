@@ -171,7 +171,7 @@ function NotificationsPage() {
   return (
     <div className="space-y-6 px-2 sm:px-0">
       {/* Header and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <h1 className="text-3xl font-bold flex items-center gap-2">
             Notifications
@@ -297,16 +297,26 @@ function NotificationsPage() {
           variant="outline"
           onClick={handlePrevPage}
           disabled={pagination.page === 1}
+          className={`rounded-[10px] ${
+            pagination.page === 1
+              ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
+              : "hover:bg-gray-50"
+          }`}
         >
           Previous
         </Button>
-        <span>
+        <span className="text-sm text-gray-600">
           Page {pagination.page} of {pagination.pages}
         </span>
         <Button
           variant="outline"
           onClick={handleNextPage}
           disabled={pagination.page === pagination.pages}
+          className={`rounded-[10px] ${
+            pagination.page === pagination.pages
+              ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
+              : "hover:bg-gray-50"
+          }`}
         >
           Next
         </Button>

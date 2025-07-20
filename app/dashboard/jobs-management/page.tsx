@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,24 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Briefcase,
-  Plus,
   Search,
   Filter,
   MapPin,
   Calendar,
   Building2,
   Eye,
-  Edit,
+  Bookmark,
   MoreHorizontal,
   TrendingUp,
   Activity,
@@ -47,205 +39,154 @@ import {
   DollarSign,
   Target,
   AlertCircle,
+  Plus,
+  Save,
+  X,
+  BookmarkPlus,
+  BookmarkCheck,
+  ExternalLink,
+  Send,
+  FileText,
+  GraduationCap,
+  BriefcaseIcon,
+  Clock3,
+  Award,
+  Globe,
+  Zap,
+  Heart,
+  Share2,
+  Edit,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "react-toastify";
+import { Job } from "@/types/jobs";
+import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
+import { getTokenFromCookies } from "@/lib/cookies";
 
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  companyLogo: string;
-  location: string;
-  type: "full-time" | "part-time" | "contract" | "internship" | "remote";
-  status: "active" | "inactive" | "pending" | "expired" | "draft";
-  salary: {
-    min: number;
-    max: number;
-    currency: string;
+// API integration for jobs
+const useJobs = () => {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = getTokenFromCookies();
+      console.log("🔑 Token check:", token ? "Token found" : "No token");
+
+      if (!token) {
+        setError("Authentication required. Please log in.");
+        return;
+      }
+
+      console.log("📡 Making API request to:", "/api/ats/job-posts");
+      const response = await getApiRequest<{
+        success: boolean;
+        message: string;
+        data: Job[];
+        meta?: any;
+      }>("/api/ats/job-posts", token);
+
+      console.log("📥 Full API Response:", {
+        status: response.status,
+        message: response.message,
+        data: response.data,
+        responseObject: response,
+      });
+
+      if (response.status >= 200 && response.status < 300) {
+        // Handle nested data structure: response.data.data contains the actual jobs array
+        const jobsData = response.data?.data || response.data || [];
+        console.log("✅ Success! Jobs loaded:", jobsData.length);
+        console.log("📋 Jobs data structure:", jobsData);
+        setJobs(jobsData);
+      } else {
+        console.error("❌ API Error:", response.message);
+        setError(response.message || "Failed to fetch jobs");
+      }
+    } catch (error: any) {
+      console.error("💥 Network/Error Details:", {
+        message: error.message,
+        status: error.status,
+        fullError: error,
+      });
+      setError(error.message || "An error occurred while fetching jobs");
+    } finally {
+      setLoading(false);
+    }
   };
-  experience: string;
-  applications: number;
-  views: number;
-  postedDate: string;
-  expiryDate: string;
-  department: string;
-  recruiter: string;
-  isFeatured: boolean;
-  isUrgent: boolean;
-}
 
-const mockJobs: Job[] = [
-  {
-    id: "1",
-    title: "Senior Software Engineer",
-    company: "TechCorp Solutions",
-    companyLogo: "/assets/logo.png",
-    location: "London, UK",
-    type: "full-time",
-    status: "active",
-    salary: { min: 65000, max: 85000, currency: "GBP" },
-    experience: "5+ years",
-    applications: 24,
-    views: 156,
-    postedDate: "2024-01-15",
-    expiryDate: "2024-02-15",
-    department: "Engineering",
-    recruiter: "Sarah Johnson",
-    isFeatured: true,
-    isUrgent: false,
-  },
-  {
-    id: "2",
-    title: "UX/UI Designer",
-    company: "Digital Innovations Ltd",
-    companyLogo: "/assets/logo.png",
-    location: "Manchester, UK",
-    type: "full-time",
-    status: "active",
-    salary: { min: 45000, max: 60000, currency: "GBP" },
-    experience: "3+ years",
-    applications: 18,
-    views: 89,
-    postedDate: "2024-01-12",
-    expiryDate: "2024-02-12",
-    department: "Design",
-    recruiter: "Michael Chen",
-    isFeatured: false,
-    isUrgent: true,
-  },
-  {
-    id: "3",
-    title: "Data Scientist",
-    company: "Analytics Pro",
-    companyLogo: "/assets/logo.png",
-    location: "Birmingham, UK",
-    type: "contract",
-    status: "pending",
-    salary: { min: 55000, max: 75000, currency: "GBP" },
-    experience: "4+ years",
-    applications: 0,
-    views: 12,
-    postedDate: "2024-01-18",
-    expiryDate: "2024-02-18",
-    department: "Data Science",
-    recruiter: "Lisa Rodriguez",
-    isFeatured: false,
-    isUrgent: false,
-  },
-  {
-    id: "4",
-    title: "Marketing Manager",
-    company: "Growth Marketing Co",
-    companyLogo: "/assets/logo.png",
-    location: "Edinburgh, UK",
-    type: "full-time",
-    status: "active",
-    salary: { min: 40000, max: 55000, currency: "GBP" },
-    experience: "3+ years",
-    applications: 31,
-    views: 203,
-    postedDate: "2024-01-10",
-    expiryDate: "2024-02-10",
-    department: "Marketing",
-    recruiter: "David Wilson",
-    isFeatured: true,
-    isUrgent: false,
-  },
-  {
-    id: "5",
-    title: "DevOps Engineer",
-    company: "Cloud Solutions",
-    companyLogo: "/assets/logo.png",
-    location: "Leeds, UK",
-    type: "full-time",
-    status: "inactive",
-    salary: { min: 50000, max: 70000, currency: "GBP" },
-    experience: "4+ years",
-    applications: 15,
-    views: 67,
-    postedDate: "2023-12-20",
-    expiryDate: "2024-01-20",
-    department: "IT Operations",
-    recruiter: "Admin User",
-    isFeatured: false,
-    isUrgent: false,
-  },
-  {
-    id: "6",
-    title: "Frontend Developer",
-    company: "WebTech Solutions",
-    companyLogo: "/assets/logo.png",
-    location: "Liverpool, UK",
-    type: "part-time",
-    status: "active",
-    salary: { min: 30000, max: 45000, currency: "GBP" },
-    experience: "2+ years",
-    applications: 22,
-    views: 134,
-    postedDate: "2024-01-14",
-    expiryDate: "2024-02-14",
-    department: "Engineering",
-    recruiter: "Sarah Johnson",
-    isFeatured: false,
-    isUrgent: false,
-  },
-  {
-    id: "7",
-    title: "Product Manager",
-    company: "Innovation Corp",
-    companyLogo: "/assets/logo.png",
-    location: "Bristol, UK",
-    type: "full-time",
-    status: "expired",
-    salary: { min: 60000, max: 80000, currency: "GBP" },
-    experience: "5+ years",
-    applications: 28,
-    views: 178,
-    postedDate: "2023-12-01",
-    expiryDate: "2024-01-01",
-    department: "Product",
-    recruiter: "Michael Chen",
-    isFeatured: true,
-    isUrgent: false,
-  },
-  {
-    id: "8",
-    title: "Junior Developer Intern",
-    company: "Startup Inc",
-    companyLogo: "/assets/logo.png",
-    location: "Cardiff, UK",
-    type: "internship",
-    status: "draft",
-    salary: { min: 20000, max: 25000, currency: "GBP" },
-    experience: "0-1 years",
-    applications: 0,
-    views: 0,
-    postedDate: "2024-01-20",
-    expiryDate: "2024-03-20",
-    department: "Engineering",
-    recruiter: "Lisa Rodriguez",
-    isFeatured: false,
-    isUrgent: false,
-  },
-];
+  const deleteJob = async (jobId: string) => {
+    try {
+      const token = getTokenFromCookies();
+      console.log("🗑️ Deleting job:", jobId);
+      console.log("🔑 Token for delete:", token ? "Present" : "Missing");
 
-export default function JobManagementPage() {
-  const [jobs, setJobs] = useState<Job[]>(mockJobs);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
+      if (!token) {
+        return { success: false, message: "Authentication required" };
+      }
+
+      const response = await deleteApiRequest(
+        `/api/ats/job-posts/${jobId}`,
+        token
+      );
+
+      console.log("🗑️ Delete Response:", {
+        status: response.status,
+        message: response.message,
+        data: response.data,
+        fullResponse: response,
+      });
+
+      if (response.status >= 200 && response.status < 300) {
+        console.log("✅ Job deleted successfully");
+        setJobs(jobs.filter((job) => job._id !== jobId));
+        return { success: true };
+      } else {
+        console.error("❌ Delete failed:", response.message);
+        return { success: false, message: response.message };
+      }
+    } catch (error: any) {
+      console.error("💥 Delete error:", {
+        message: error.message,
+        status: error.status,
+        fullError: error,
+      });
+      return {
+        success: false,
+        message: error.message || "An error occurred while deleting the job",
+      };
+    }
+  };
+
+  return { jobs, loading, error, fetchJobs, deleteJob };
+};
+
+export default function JobsManagementPage() {
+  const { jobs, loading, error, fetchJobs, deleteJob } = useJobs();
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<keyof Job>("postedDate");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
   const getTypeColor = (type: string) => {
     switch (type) {
       case "full-time":
-        return "bg-blue-100 text-blue-800";
-      case "part-time":
         return "bg-green-100 text-green-800";
+      case "part-time":
+        return "bg-blue-100 text-blue-800";
       case "contract":
         return "bg-purple-100 text-purple-800";
       case "internship":
@@ -257,102 +198,168 @@ export default function JobManagementPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "inactive":
-        return "bg-gray-100 text-gray-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "expired":
-        return "bg-red-100 text-red-800";
-      case "draft":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
-  const handleSort = (field: keyof Job) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+  const handleSelectJob = (jobId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedJobs([...selectedJobs, jobId]);
     } else {
-      setSortField(field);
-      setSortDirection("asc");
+      setSelectedJobs(selectedJobs.filter((id) => id !== jobId));
     }
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedJobs(filteredJobs.map((job) => job.id));
+      setSelectedJobs(filteredJobs.map((job) => job._id));
     } else {
       setSelectedJobs([]);
     }
   };
 
-  const handleSelectJob = (jobId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedJobs((prev) => [...prev, jobId]);
-    } else {
-      setSelectedJobs((prev) => prev.filter((id) => id !== jobId));
+  const handleDeleteJob = async (jobId: string) => {
+    if (confirm("Are you sure you want to delete this job?")) {
+      const result = await deleteJob(jobId);
+      if (result.success) {
+        toast.success("Job deleted successfully");
+      } else {
+        toast.error(result.message || "Failed to delete job");
+      }
     }
   };
 
-  const handleBulkAction = (action: string) => {
-    // Handle bulk actions
-    console.log(`Bulk action: ${action} for jobs:`, selectedJobs);
-    setSelectedJobs([]);
-  };
-
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || job.type === typeFilter;
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    const matchesDepartment =
-      departmentFilter === "all" || job.department === departmentFilter;
-
-    return matchesSearch && matchesType && matchesStatus && matchesDepartment;
-  });
-
-  const sortedJobs = [...filteredJobs].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
-
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+  const handleBulkDelete = async () => {
+    if (selectedJobs.length === 0) {
+      toast.error("Please select jobs to delete");
+      return;
     }
 
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+    if (
+      confirm(
+        `Are you sure you want to delete ${selectedJobs.length} selected jobs?`
+      )
+    ) {
+      const deletePromises = selectedJobs.map((jobId) => deleteJob(jobId));
+      const results = await Promise.all(deletePromises);
+
+      const successCount = results.filter((result) => result.success).length;
+      const failureCount = results.length - successCount;
+
+      if (successCount > 0) {
+        toast.success(`${successCount} jobs deleted successfully`);
+      }
+      if (failureCount > 0) {
+        toast.error(`${failureCount} jobs failed to delete`);
+      }
+
+      setSelectedJobs([]);
     }
-
-    return 0;
-  });
-
-  const stats = {
-    total: jobs.length,
-    active: jobs.filter((j) => j.status === "active").length,
-    pending: jobs.filter((j) => j.status === "pending").length,
-    expired: jobs.filter((j) => j.status === "expired").length,
-    featured: jobs.filter((j) => j.isFeatured).length,
-    urgent: jobs.filter((j) => j.isUrgent).length,
   };
 
-  const formatSalary = (salary: {
-    min: number;
-    max: number;
-    currency: string;
-  }) => {
-    return `${salary.currency}${salary.min.toLocaleString()} - ${
-      salary.currency
-    }${salary.max.toLocaleString()}`;
+  // Filter and sort jobs
+  const filteredJobs = (jobs || [])
+    .filter((job) => {
+      const matchesSearch =
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.location.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesType =
+        filterType === "all" || job.employmentType === filterType;
+
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "company":
+          return (a.company || "").localeCompare(b.company || "");
+        default:
+          return 0;
+      }
+    });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedJobs = filteredJobs.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading jobs...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={fetchJobs} variant="outline">
+              Try Again
+            </Button>
+            <Button
+              onClick={() => {
+                const token = getTokenFromCookies();
+                console.log(
+                  "🔍 Manual Auth Check - Token:",
+                  token ? "Present" : "Missing"
+                );
+                if (!token) {
+                  toast.error("No authentication token found. Please log in.");
+                } else {
+                  toast.success("Token found. API should work.");
+                  console.log(
+                    "🔍 Token value (first 20 chars):",
+                    token.substring(0, 20) + "..."
+                  );
+                }
+              }}
+              variant="outline"
+            >
+              Check Auth
+            </Button>
+            <Button
+              onClick={() => {
+                console.log("🧪 Manual API Test - Triggering fetchJobs...");
+                fetchJobs();
+              }}
+              variant="outline"
+            >
+              Test API
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -361,128 +368,94 @@ export default function JobManagementPage() {
         <div>
           <h1 className="text-3xl font-bold text-[#011F72]">Job Management</h1>
           <p className="text-gray-600 mt-1">
-            Manage job postings, applications, and recruitment
+            Manage and monitor your job postings
           </p>
         </div>
         <div className="flex gap-3">
-          <Button asChild className="text-white hover:text-black">
-            <Link href="/dashboard/jobs/new">
+          <Button
+            variant="outline"
+            className="rounded-[10px]"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Button
+            className="bg-[#011F72] hover:bg-blue-700 text-white rounded-[10px]"
+            asChild
+          >
+            <Link href="/dashboard/jobs-management/new">
               <Plus className="w-4 h-4 mr-2" />
               Post New Job
             </Link>
-          </Button>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export Jobs
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-[10px]">
-                <Briefcase className="w-5 h-5 text-blue-600" />
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Jobs</p>
+                <p className="text-sm font-medium text-gray-600">Total Jobs</p>
                 <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.total}
+                  {jobs.length}
                 </p>
               </div>
+              <Briefcase className="w-8 h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-[10px]">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.active}
+                <p className="text-sm font-medium text-gray-600">Active Jobs</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {jobs.filter((job) => !job.isDeleted).length}
                 </p>
               </div>
+              <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-[10px]">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.pending}
+                <p className="text-sm font-medium text-gray-600">
+                  Featured Jobs
+                </p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {jobs.filter((job) => job.isFeatured).length}
                 </p>
               </div>
+              <Star className="w-8 h-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-[10px]">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-              </div>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Expired</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.expired}
+                <p className="text-sm font-medium text-gray-600">Urgent Jobs</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {jobs.filter((job) => job.isUrgent).length}
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-[10px]">
-                <Star className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Featured Jobs</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.featured}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-[10px]">
-                <Target className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Urgent Positions</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.urgent}
-                </p>
-              </div>
+              <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="border-0 shadow-lg">
+        <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -491,107 +464,66 @@ export default function JobManagementPage() {
                   placeholder="Search jobs by title, company, or location..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 rounded-[10px]"
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent className="bg-white rounded-[10px]">
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="full-time">Full Time</SelectItem>
-                <SelectItem value="part-time">Part Time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
-                <SelectItem value="remote">Remote</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent className="bg-white rounded-[10px]">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={departmentFilter}
-              onValueChange={setDepartmentFilter}
-            >
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Filter by department" />
-              </SelectTrigger>
-              <SelectContent className="bg-white rounded-[10px]">
-                <SelectItem value="all">All Departments</SelectItem>
-                <SelectItem value="Engineering">Engineering</SelectItem>
-                <SelectItem value="Design">Design</SelectItem>
-                <SelectItem value="Marketing">Marketing</SelectItem>
-                <SelectItem value="Data Science">Data Science</SelectItem>
-                <SelectItem value="IT Operations">IT Operations</SelectItem>
-                <SelectItem value="Product">Product</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-4">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-40 rounded-[10px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white rounded-[10px]">
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="full-time">Full Time</SelectItem>
+                  <SelectItem value="part-time">Part Time</SelectItem>
+                  <SelectItem value="contract">Contract</SelectItem>
+                  <SelectItem value="internship">Internship</SelectItem>
+                  <SelectItem value="remote">Remote</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-40 rounded-[10px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white rounded-[10px]">
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="title">By Title</SelectItem>
+                  <SelectItem value="company">By Company</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Bulk Actions */}
       {selectedJobs.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-0 shadow-lg bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-blue-800">
-                  {selectedJobs.length} job(s) selected
-                </span>
-              </div>
+              <span className="text-sm font-medium text-blue-800">
+                {selectedJobs.length} job(s) selected
+              </span>
               <div className="flex gap-2">
                 <Button
-                  size="sm"
                   variant="outline"
-                  onClick={() => handleBulkAction("activate")}
+                  size="sm"
+                  onClick={() => setSelectedJobs([])}
+                  className="rounded-[10px]"
                 >
-                  <CheckSquare className="w-4 h-4 mr-2" />
-                  Activate
+                  <X className="w-4 h-4 mr-2" />
+                  Clear Selection
                 </Button>
                 <Button
+                  variant="destructive"
                   size="sm"
-                  variant="outline"
-                  onClick={() => handleBulkAction("deactivate")}
-                >
-                  <XSquare className="w-4 h-4 mr-2" />
-                  Deactivate
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleBulkAction("feature")}
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  Feature
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleBulkAction("export")}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleBulkAction("delete")}
+                  onClick={handleBulkDelete}
+                  className="rounded-[10px]"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
+                  Delete Selected
                 </Button>
               </div>
             </div>
@@ -599,187 +531,197 @@ export default function JobManagementPage() {
         </Card>
       )}
 
-      {/* Jobs Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={
-                        selectedJobs.length === filteredJobs.length &&
-                        filteredJobs.length > 0
-                      }
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleSort("title")}
-                      className="h-auto p-0 font-semibold"
-                    >
-                      Job Title
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleSort("type")}
-                      className="h-auto p-0 font-semibold"
-                    >
-                      Type
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleSort("status")}
-                      className="h-auto p-0 font-semibold"
-                    >
-                      Status
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Salary</TableHead>
-                  <TableHead>Applications</TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleSort("postedDate")}
-                      className="h-auto p-0 font-semibold"
-                    >
-                      Posted
-                      <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedJobs.map((job) => (
-                  <TableRow key={job.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedJobs.includes(job.id)}
-                        onCheckedChange={(checked) =>
-                          handleSelectJob(job.id, checked as boolean)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Image
-                          src={job.companyLogo}
-                          alt={job.company}
-                          width={32}
-                          height={32}
-                          className="rounded object-cover"
-                        />
-                        <div>
-                          <div className="font-medium text-[#011F72]">
-                            {job.title}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {job.department}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{job.company}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm text-gray-600">
-                        <MapPin className="w-3 h-3" />
-                        {job.location}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getTypeColor(job.type)}>
-                        {job.type.replace("-", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(job.status)}>
-                        {job.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {formatSalary(job.salary)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {job.experience}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">{job.applications}</div>
-                        <div className="text-xs text-gray-500">
-                          {job.views} views
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-600">
-                        {job.postedDate}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-600">
-                        {job.expiryDate}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/jobs/${job.id}`}>
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {sortedJobs.length === 0 && (
-            <div className="p-8 text-center">
+      {/* Jobs List */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Job Postings ({filteredJobs.length})</span>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={
+                  selectedJobs.length === paginatedJobs.length &&
+                  paginatedJobs.length > 0
+                }
+                onCheckedChange={handleSelectAll}
+              />
+              <span className="text-sm text-gray-500">Select All</span>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {paginatedJobs.length === 0 ? (
+            <div className="text-center py-12">
               <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
                 No jobs found
               </h3>
               <p className="text-gray-500 mb-4">
-                Try adjusting your search or filters
+                {searchTerm || filterType !== "all"
+                  ? "Try adjusting your search or filters"
+                  : "Get started by posting your first job"}
               </p>
-              <Button asChild>
-                <Link href="/dashboard/jobs/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Post New Job
-                </Link>
-              </Button>
+              {!searchTerm && filterType === "all" && (
+                <Button asChild className="rounded-[10px]">
+                  <Link href="/dashboard/jobs-management/new">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Post New Job
+                  </Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {paginatedJobs.map((job) => (
+                <div
+                  key={job._id}
+                  className="border border-gray-200 rounded-[10px] p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-start gap-4">
+                        <Checkbox
+                          checked={selectedJobs.includes(job._id)}
+                          onCheckedChange={(checked) =>
+                            handleSelectJob(job._id, checked as boolean)
+                          }
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {job.title}
+                            </h3>
+                            {job.isFeatured && (
+                              <Star className="w-4 h-4 text-yellow-500" />
+                            )}
+                            {job.isUrgent && (
+                              <AlertCircle className="w-4 h-4 text-red-500" />
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                            {job.company && (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="w-4 h-4" />
+                                {job.company}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {job.location}
+                            </span>
+                            <Badge className={getTypeColor(job.employmentType)}>
+                              {job.employmentType.replace("-", " ")}
+                            </Badge>
+                            {job.salaryRange && (
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                {job.salaryRange}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                            {job.description}
+                          </p>
+
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {job.requiredSkills
+                              .slice(0, 3)
+                              .map((skill, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {skill}
+                                </Badge>
+                              ))}
+                            {job.requiredSkills.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{job.requiredSkills.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>Posted: {formatDate(job.createdAt)}</span>
+                            {job.expiryDate && (
+                              <span>Expires: {formatDate(job.expiryDate)}</span>
+                            )}
+                            {job.department && (
+                              <span>Dept: {job.department}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="rounded-[10px]"
+                      >
+                        <Link href={`/dashboard/jobs-management/${job._id}`}>
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="rounded-[10px]"
+                      >
+                        <Link
+                          href={`/dashboard/jobs-management/${job._id}/edit`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteJob(job._id)}
+                        className="rounded-[10px] text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="rounded-[10px]"
+            >
+              Previous
+            </Button>
+            <span className="px-4 py-2 text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="rounded-[10px]"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

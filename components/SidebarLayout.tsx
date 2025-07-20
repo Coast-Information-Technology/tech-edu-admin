@@ -23,10 +23,8 @@ export default function SidebarLayout({
     sections: [],
   };
 
-  // Flatten all items from all sections for the menu
-  const menuItems = dashboardData.sections.flatMap(
-    (section: any) => section.items
-  );
+  // Keep sections structure for proper rendering
+  const sections = dashboardData.sections;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -75,29 +73,43 @@ export default function SidebarLayout({
         </div>
         {/* Menu */}
         <nav className="flex-1 py-4 max-h-screen overflow-y-auto">
-          <ul className="space-y-1">
-            {menuItems.map((item: any) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
-              const Icon = item.icon;
-              return (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-2 px-4 py-2 rounded transition ${
-                      isActive
-                        ? "bg-blue-100 text-blue-800 font-semibold"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-6">
+            {sections.map((section: any, sectionIndex: number) => (
+              <div key={sectionIndex} className="space-y-2">
+                {/* Section Title */}
+                <div className="px-4 py-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {section.title}
+                  </h3>
+                </div>
+                {/* Section Items */}
+                <ul className="space-y-1">
+                  {section.items.map((item: any) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/dashboard" &&
+                        pathname.startsWith(item.href));
+                    const Icon = item.icon;
+                    return (
+                      <li key={item.label}>
+                        <Link
+                          href={item.href}
+                          className={`flex items-center gap-2 px-4 py-2 rounded transition ${
+                            isActive
+                              ? "bg-blue-100 text-blue-800 font-semibold"
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </nav>
         {/* Footer */}
         <div className="border-t border-border py-4 flex flex-col gap-2 mx-3">

@@ -116,6 +116,11 @@ export const dashboardSidebarConfig = {
         title: "System",
         items: [
           {
+            label: "Notifications",
+            icon: Settings,
+            href: "/dashboard/notifications",
+          },
+          {
             label: "Site Settings",
             icon: Settings,
             href: "/dashboard/settings",
@@ -194,12 +199,12 @@ export const dashboardSidebarConfig = {
         ],
       },
       {
-        title: "Profile",
+        title: "System",
         items: [
           {
-            label: "Edit Profile",
+            label: "Notifications",
             icon: User,
-            href: "/dashboard/profile",
+            href: "/dashboard/notifications",
           },
         ],
       },
@@ -250,17 +255,12 @@ export const dashboardSidebarConfig = {
         ],
       },
       {
-        title: "Resources",
+        title: "System",
         items: [
           {
-            label: "Knowledge Base",
-            icon: HelpCircle,
-            href: "/dashboard/resources",
-          },
-          {
-            label: "Announcements",
-            icon: Bell,
-            href: "/dashboard/announcements",
+            label: "Notifications",
+            icon: User,
+            href: "/dashboard/notifications",
           },
         ],
       },
@@ -302,6 +302,16 @@ export const dashboardSidebarConfig = {
             label: "User Behavior",
             icon: Users,
             href: "/dashboard/user-behavior",
+          },
+        ],
+      },
+      {
+        title: "System",
+        items: [
+          {
+            label: "Notifications",
+            icon: User,
+            href: "/dashboard/notifications",
           },
         ],
       },

@@ -19,13 +19,11 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         const token = getTokenFromCookies();
 
         if (!token) {
-          console.log("No authentication token found, redirecting to login");
           setIsAuthenticated(false);
           router.push("/login");
           return;
         }
 
-        console.log("Authentication token found");
         setIsAuthenticated(true);
       } catch (error) {
         console.error("Error checking authentication:", error);
