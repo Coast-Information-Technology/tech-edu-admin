@@ -54,7 +54,7 @@ const VerifyEmailPage = () => {
         // if (onboardingPath) {
         //   setTimeout(() => router.push(onboardingPath!), 3000);
         // } else {
-        setTimeout(() => router.push("/login"), 3000);
+        setTimeout(() => router.push("/reset-password"), 3000);
         // }
       } catch (error: any) {
         setStatus("error");

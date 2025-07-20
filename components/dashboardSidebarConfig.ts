@@ -30,7 +30,11 @@ export const dashboardSidebarConfig = {
       {
         title: "Management",
         items: [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+          {
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            href: "/dashboard/admin",
+          },
           { label: "User Management", icon: Users, href: "/dashboard/users" },
           {
             label: "Course Management",
@@ -132,7 +136,11 @@ export const dashboardSidebarConfig = {
       {
         title: "Course Management",
         items: [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+          {
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            href: "/dashboard/instructor",
+          },
           {
             label: "My Courses",
             icon: BookOpen,
@@ -204,7 +212,11 @@ export const dashboardSidebarConfig = {
       {
         title: "Support Center",
         items: [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+          {
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            href: "/dashboard/customerRepresentative",
+          },
           {
             label: "User Queries",
             icon: MessageCircle,
@@ -261,7 +273,11 @@ export const dashboardSidebarConfig = {
       {
         title: "Content Moderation",
         items: [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+          {
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            href: "/dashboard/moderator",
+          },
           {
             label: "Review Submissions",
             icon: ClipboardList,

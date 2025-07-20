@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getApiRequest } from "@/lib/apiFetch";
+import { getTokenFromCookies } from "@/lib/cookies";
 import {
   ChevronLeft,
   Mail,
@@ -32,43 +34,18 @@ import {
   AlertTriangle,
   UserCheck,
   UserX,
+  Globe,
+  Linkedin,
+  Star,
+  Users2,
+  Target,
+  FileText,
+  Building,
+  User as UserIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role:
-    | "student"
-    | "individualTechProfessional"
-    | "company"
-    | "institution"
-    | "admin";
-  status: "active" | "inactive" | "pending" | "suspended";
-  avatar: string;
-  location: string;
-  phone: string;
-  joinDate: string;
-  lastActive: string;
-  coursesEnrolled: number;
-  coursesCompleted: number;
-  certifications: number;
-  department?: string;
-  company?: string;
-  institution?: string;
-  bio?: string;
-  skills?: string[];
-  education?: string[];
-  experience?: string[];
-  activityHistory?: Array<{
-    id: string;
-    action: string;
-    timestamp: string;
-    details: string;
-  }>;
-}
+import { User } from "@/types/users";
 
 export default function UserDetailPage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<User | null>(null);
@@ -77,48 +54,166 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
   const [selectedTab, setSelectedTab] = useState("overview");
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/users/${params.id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const u = data.data.data;
-        const profile = u.profile || {};
-        setUser({
-          id: u._id,
-          name: profile.fullName || u.fullName,
-          email: profile.email || u.email,
-          role: profile.role || u.role,
+    const fetchUser = async () => {
+      setLoading(true);
+
+      try {
+        const accessToken = getTokenFromCookies();
+
+        if (!accessToken) {
+          setError("No access token found. Please log in again.");
+          setLoading(false);
+          return;
+        }
+
+        const response = await getApiRequest(
+          `/api/users/admin/${params.id}`,
+          accessToken
+        );
+        const data = response.data;
+
+        if (!data.success) {
+          throw new Error(data.message || "Failed to load user");
+        }
+
+        const userData = data.data.data || data.data; // Handle nested structure for admin
+        const profile = userData.profile || {};
+
+        // Map common fields
+        const mappedUser: User = {
+          id: userData._id,
+          name: profile.fullName || userData.fullName,
+          email: profile.email || userData.email,
+          role: profile.role || userData.role,
           status: profile.status || "active",
           avatar:
             profile.avatarUrl ||
-            u.profileImageUrl ||
+            userData.profileImageUrl ||
             "/assets/placeholder-avatar.jpg",
-          location: profile.assignedRegions?.[0] || "Unknown",
+          location: "",
           phone: profile.phoneNumber || "",
-          joinDate: u.createdAt
-            ? new Date(u.createdAt).toLocaleDateString()
+          joinDate: userData.createdAt
+            ? new Date(userData.createdAt).toLocaleDateString()
             : "",
-          lastActive: u.updatedAt
-            ? new Date(u.updatedAt).toLocaleDateString()
+          lastActive: userData.updatedAt
+            ? new Date(userData.updatedAt).toLocaleDateString()
             : "",
           coursesEnrolled: 0,
           coursesCompleted: 0,
-          certifications: 0,
-          department: profile.departments?.[0] || "",
-          company: "",
-          institution: "",
-          bio: profile.bio || "",
+          certifications: profile.certifications?.length || 0,
+          isVerified: userData.isVerified,
+          onboardingStatus: userData.onboardingStatus,
+          bio: profile.bio || profile.experienceDetails || "",
           skills: [],
           education: [],
           experience: [],
           activityHistory: [],
-        });
+        };
+
+        // Role-specific mapping
+        switch (userData.role) {
+          case "individualTechProfessional":
+            mappedUser.location = profile.currentLocation || "";
+            mappedUser.currentJobTitle = profile.currentJobTitle;
+            mappedUser.employmentStatus = profile.employmentStatus;
+            mappedUser.industryFocus = profile.industryFocus;
+            mappedUser.yearsOfExperience = profile.yearsOfExperience;
+            mappedUser.programmingLanguages = profile.programmingLanguages;
+            mappedUser.softSkills = profile.softSkills;
+            mappedUser.skills = [
+              ...(profile.programmingLanguages || []),
+              ...(profile.frameworksAndTools || []),
+              ...(profile.softSkills || []),
+            ];
+            mappedUser.education = [
+              `${profile.highestQualification} in ${profile.fieldOfStudy}`,
+              `Graduated: ${profile.graduationYear}`,
+            ];
+            mappedUser.experience = [
+              `${profile.currentJobTitle} at ${profile.industryFocus}`,
+              `${profile.yearsOfExperience} years of experience`,
+            ];
+            break;
+
+          case "instructor":
+            mappedUser.location = "";
+            mappedUser.title = profile.title;
+            mappedUser.specializationAreas = profile.specializationAreas;
+            mappedUser.yearsOfExperience = profile.experience;
+            mappedUser.experienceDetails = profile.experienceDetails;
+            mappedUser.linkedIn = profile.linkedIn;
+            mappedUser.totalStudents = profile.totalStudents;
+            mappedUser.rating = profile.rating;
+            mappedUser.skills = [
+              ...(profile.specializationAreas || []),
+              ...(profile.certifications || []),
+            ];
+            mappedUser.experience = [
+              `${profile.title} with ${mappedUser.yearsOfExperience} years experience`,
+              profile.experienceDetails,
+            ];
+            break;
+
+          case "admin":
+            mappedUser.location = profile.assignedRegions?.[0] || "";
+            mappedUser.department = profile.departments?.[0] || "";
+            mappedUser.skills = profile.permissions || [];
+            mappedUser.experience = [
+              `Role: ${profile.role}`,
+              `Department: ${profile.departments?.join(", ")}`,
+            ];
+            break;
+
+          case "teamTechProfessional":
+            mappedUser.location = profile.location
+              ? `${profile.location.city}, ${profile.location.state}, ${profile.location.country}`
+              : "";
+            mappedUser.teamName = profile.teamName;
+            mappedUser.teamSize = profile.teamSize;
+            mappedUser.companyInfo = profile.company;
+            mappedUser.members = profile.members;
+            mappedUser.skills = [
+              ...(profile.preferredTechStack || []),
+              ...(profile.programmingLanguages || []),
+            ];
+            mappedUser.experience = [
+              `Team Lead: ${profile.teamName}`,
+              `Team Size: ${profile.teamSize} members`,
+              `Company: ${profile.company?.name}`,
+            ];
+            break;
+
+          case "recruiter":
+            mappedUser.location = "";
+            mappedUser.skills = [];
+            mappedUser.experience = [];
+            break;
+
+          case "student":
+            mappedUser.location = profile.countryOfResidence || "";
+            mappedUser.academicLevel = profile.academicLevel;
+            mappedUser.currentInstitution = profile.currentInstitution;
+            mappedUser.fieldOfStudy = profile.fieldOfStudy;
+            mappedUser.graduationYear = profile.graduationYear;
+            mappedUser.interestAreas = profile.interestAreas;
+            mappedUser.skills = profile.interestAreas || [];
+            mappedUser.education = [
+              `${profile.academicLevel} at ${profile.currentInstitution}`,
+              `Field: ${profile.fieldOfStudy}`,
+              `Expected Graduation: ${profile.graduationYear}`,
+            ];
+            break;
+        }
+
+        setUser(mappedUser);
         setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load user");
+      } catch (err: any) {
+        setError(err.message || "Failed to load user");
         setLoading(false);
-      });
+      }
+    };
+
+    fetchUser();
   }, [params.id]);
 
   const getRoleIcon = (role: string) => {
@@ -127,10 +222,12 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
         return <GraduationCap className="w-4 h-4" />;
       case "individualTechProfessional":
         return <Briefcase className="w-4 h-4" />;
-      case "company":
-        return <Building2 className="w-4 h-4" />;
-      case "institution":
-        return <Building2 className="w-4 h-4" />;
+      case "instructor":
+        return <UserIcon className="w-4 h-4" />;
+      case "teamTechProfessional":
+        return <Users2 className="w-4 h-4" />;
+      case "recruiter":
+        return <Target className="w-4 h-4" />;
       case "admin":
         return <Shield className="w-4 h-4" />;
       default:
@@ -144,9 +241,11 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
         return "bg-blue-100 text-blue-800";
       case "individualTechProfessional":
         return "bg-green-100 text-green-800";
-      case "company":
+      case "instructor":
         return "bg-purple-100 text-purple-800";
-      case "institution":
+      case "teamTechProfessional":
+        return "bg-indigo-100 text-indigo-800";
+      case "recruiter":
         return "bg-orange-100 text-orange-800";
       case "admin":
         return "bg-red-100 text-red-800";
@@ -185,6 +284,21 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const getOnboardingStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "in_progress":
+        return "bg-yellow-100 text-yellow-800";
+      case "submitted":
+        return "bg-blue-100 text-blue-800";
+      case "not_started":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!user) return <div>No user found.</div>;
@@ -193,7 +307,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     <div className="space-y-6">
       {/* Back to Users Button */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" asChild>
+        <Button variant="outline" className="rounded-[10px]" asChild>
           <Link href="/dashboard/users">
             <ChevronLeft className="w-4 h-4 mr-2" />
             Back to Users
@@ -238,27 +352,44 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                     {getStatusIcon(user.status)}
                     <span className="ml-1 capitalize">{user.status}</span>
                   </Badge>
+                  {user.isVerified && (
+                    <Badge className="bg-green-100 text-green-800">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="ml-1">Verified</span>
+                    </Badge>
+                  )}
+                  {user.onboardingStatus && (
+                    <Badge
+                      className={getOnboardingStatusColor(
+                        user.onboardingStatus
+                      )}
+                    >
+                      <span className="capitalize">
+                        {user.onboardingStatus.replace("_", " ")}
+                      </span>
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-[#011F72]"
+                className="border-white text-white hover:bg-white hover:text-[#011F72] rounded-[10px]"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit User
               </Button>
               <Button
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-[#011F72]"
+                className="border-white text-white hover:bg-white hover:text-[#011F72] rounded-[10px]"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Send Message
               </Button>
               <Button
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-[#011F72]"
+                className="border-white text-white hover:bg-white hover:text-[#011F72] rounded-[10px]"
               >
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
@@ -364,18 +495,22 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                         {user.email}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {user.phone}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {user.location}
-                      </span>
-                    </div>
+                    {user.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          {user.phone}
+                        </span>
+                      </div>
+                    )}
+                    {user.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          {user.location}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-600">
@@ -390,6 +525,151 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                       <p className="text-sm text-gray-600">{user.bio}</p>
                     </div>
                   )}
+
+                  {/* Role-specific information */}
+                  {user.role === "individualTechProfessional" && (
+                    <>
+                      {user.currentJobTitle && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Current Position
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.currentJobTitle}
+                          </p>
+                        </div>
+                      )}
+                      {user.employmentStatus && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Employment Status
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.employmentStatus}
+                          </p>
+                        </div>
+                      )}
+                      {user.industryFocus && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Industry Focus
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.industryFocus}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {user.role === "instructor" && (
+                    <>
+                      {user.title && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Title
+                          </h4>
+                          <p className="text-sm text-gray-600">{user.title}</p>
+                        </div>
+                      )}
+                      {user.yearsOfExperience && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Years of Experience
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.yearsOfExperience} years
+                          </p>
+                        </div>
+                      )}
+                      {user.linkedIn && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            LinkedIn
+                          </h4>
+                          <a
+                            href={user.linkedIn}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <Linkedin className="w-4 h-4" />
+                            View Profile
+                          </a>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {user.role === "teamTechProfessional" && (
+                    <>
+                      {user.teamName && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Team Name
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.teamName}
+                          </p>
+                        </div>
+                      )}
+                      {user.teamSize && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Team Size
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.teamSize} members
+                          </p>
+                        </div>
+                      )}
+                      {user.companyInfo && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Company
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.companyInfo.name}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {user.role === "student" && (
+                    <>
+                      {user.academicLevel && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Academic Level
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.academicLevel}
+                          </p>
+                        </div>
+                      )}
+                      {user.currentInstitution && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Institution
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.currentInstitution}
+                          </p>
+                        </div>
+                      )}
+                      {user.fieldOfStudy && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Field of Study
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {user.fieldOfStudy}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -397,7 +677,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
               {user.skills && user.skills.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Skills</CardTitle>
+                    <CardTitle>Skills & Expertise</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
@@ -448,6 +728,40 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Team Members (for teamTechProfessional) */}
+              {user.role === "teamTechProfessional" &&
+                user.members &&
+                user.members.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Team Members</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {user.members.map((member, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Users2 className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-600">
+                                {member.role} - {member.status}
+                              </span>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="text-xs rounded-[10px]"
+                            >
+                              {member.status}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
             </TabsContent>
 
             <TabsContent value="activity" className="space-y-6">
@@ -457,25 +771,31 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {user.activityHistory?.map((activity) => (
-                      <div
-                        key={activity.id}
-                        className="flex items-start gap-3 p-3 bg-gray-50 rounded-[10px]"
-                      >
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                        <div className="flex-1">
-                          <p className="font-medium text-[#011F72]">
-                            {activity.action}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {activity.details}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {activity.timestamp}
-                          </p>
+                    {user.activityHistory && user.activityHistory.length > 0 ? (
+                      user.activityHistory.map((activity) => (
+                        <div
+                          key={activity.id}
+                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-[10px]"
+                        >
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                          <div className="flex-1">
+                            <p className="font-medium text-[#011F72]">
+                              {activity.action}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {activity.details}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {activity.timestamp}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-600 text-center py-8">
+                        No activity history available
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -508,11 +828,19 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-[10px]"
+                      >
                         <UserCheck className="w-4 h-4 mr-2" />
                         Activate
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-[10px]"
+                      >
                         <UserX className="w-4 h-4 mr-2" />
                         Suspend
                       </Button>
@@ -526,7 +854,11 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                         Change user role and permissions
                       </p>
                     </div>
-                    <Button size="sm" variant="outline">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-[10px]"
+                    >
                       <Settings className="w-4 h-4 mr-2" />
                       Change Role
                     </Button>
@@ -539,7 +871,11 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                         Export user data and activity
                       </p>
                     </div>
-                    <Button size="sm" variant="outline">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-[10px]"
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Export Data
                     </Button>
@@ -558,19 +894,31 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start rounded-[10px]"
+                variant="outline"
+              >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Send Message
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start rounded-[10px]"
+                variant="outline"
+              >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Profile
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start rounded-[10px]"
+                variant="outline"
+              >
                 <Eye className="w-4 h-4 mr-2" />
                 View Courses
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start rounded-[10px]"
+                variant="outline"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Export Data
               </Button>
@@ -597,6 +945,32 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   <span className="ml-1 capitalize">{user.role}</span>
                 </Badge>
               </div>
+              {user.isVerified !== undefined && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Verification</span>
+                  <Badge
+                    className={
+                      user.isVerified
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }
+                  >
+                    {user.isVerified ? "Verified" : "Not Verified"}
+                  </Badge>
+                </div>
+              )}
+              {user.onboardingStatus && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Onboarding</span>
+                  <Badge
+                    className={getOnboardingStatusColor(user.onboardingStatus)}
+                  >
+                    <span className="capitalize">
+                      {user.onboardingStatus.replace("_", " ")}
+                    </span>
+                  </Badge>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Member Since</span>
                 <span className="text-sm font-medium">{user.joinDate}</span>
@@ -615,7 +989,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
             </CardHeader>
             <CardContent className="space-y-2">
               <Button
-                className="w-full justify-start"
+                className="w-full justify-start rounded-[10px]"
                 variant="outline"
                 size="sm"
               >
@@ -623,7 +997,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                 Suspend Account
               </Button>
               <Button
-                className="w-full justify-start"
+                className="w-full justify-start rounded-[10px]"
                 variant="outline"
                 size="sm"
               >

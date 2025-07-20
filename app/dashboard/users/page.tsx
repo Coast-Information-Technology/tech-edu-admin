@@ -47,6 +47,12 @@ import {
   Trash2,
   UserCheck,
   UserX,
+  Check,
+  X,
+  Lock,
+  Unlock,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -58,9 +64,26 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { getApiRequest } from "@/lib/apiFetch";
+import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
 import { useTokenManagement } from "@/hooks/useTokenManagement";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface User {
   id: string;
@@ -109,13 +132,17 @@ export default function UserManagementPage() {
   const [sortField, setSortField] = useState<keyof User>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [viewUser, setViewUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
-    getApiRequest("/api/users", accessToken)
+    setLoading(true);
+    getApiRequest("/api/users/admin/", accessToken)
       .then((res) => {
-        const apiUsers = res?.data?.data?.data?.users || [];
-        console.log("Response All Users", apiUsers);
+        const apiUsers = res?.data?.data?.users || [];
         setUsers(
           apiUsers.map((u: any) => ({
             id: u._id,
@@ -152,7 +179,8 @@ export default function UserManagementPage() {
           }))
         );
       })
-      .catch(() => setUsers([]));
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
   }, [accessToken]);
 
   const getRoleIcon = (role: string) => {
@@ -247,6 +275,52 @@ export default function UserManagementPage() {
     );
   };
 
+  // Delete user handlers
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete || !accessToken) return;
+
+    try {
+      setDeletingUser(true);
+
+      const response = await deleteApiRequest(
+        `/api/users/${userToDelete.id}`,
+        accessToken
+      );
+
+      if (response.status === 200) {
+        // Remove user from local state
+        setUsers((prevUsers) =>
+          prevUsers.filter((user) => user.id !== userToDelete.id)
+        );
+
+        toast.success(
+          `User ${userToDelete.name} has been deactivated successfully`
+        );
+
+        // Show the response reason if available
+        if (response.data?.reason) {
+          toast.info(`Reason: ${response.data.reason}`);
+        }
+      } else {
+        toast.error(response.message || "Failed to deactivate user");
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(
+        error.message || "An error occurred while deactivating the user"
+      );
+    } finally {
+      setDeletingUser(false);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -284,7 +358,7 @@ export default function UserManagementPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -294,13 +368,16 @@ export default function UserManagementPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button asChild className="text-white hover:text-black">
+          <Button
+            asChild
+            className="text-white hover:text-black rounded-[10px]"
+          >
             <Link href="/dashboard/users/new">
               <UserPlus className="w-4 h-4 mr-2" />
               Add User
             </Link>
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" className="rounded-[10px]">
             <Download className="w-4 h-4 mr-2" />
             Export Users
           </Button>
@@ -310,7 +387,7 @@ export default function UserManagementPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 border border-blue-200 bg-blue-50 rounded-[10px]">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-[10px]">
                 <Users className="w-5 h-5 text-blue-600" />
@@ -326,7 +403,7 @@ export default function UserManagementPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 border border-green-200 bg-green-50 rounded-[10px]">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-[10px]">
                 <CheckCircle className="w-5 h-5 text-green-600" />
@@ -342,7 +419,7 @@ export default function UserManagementPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 border border-yellow-200 bg-yellow-50 rounded-[10px]">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-100 rounded-[10px]">
                 <Clock className="w-5 h-5 text-yellow-600" />
@@ -358,7 +435,7 @@ export default function UserManagementPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 border border-red-200 bg-red-50 rounded-[10px]">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 rounded-[10px]">
                 <Ban className="w-5 h-5 text-red-600" />
@@ -430,6 +507,7 @@ export default function UserManagementPage() {
             size="sm"
             variant="outline"
             onClick={() => handleBulkAction("Suspend")}
+            className="rounded-[5px] bg-amber-600 text-white"
           >
             Suspend
           </Button>
@@ -437,6 +515,7 @@ export default function UserManagementPage() {
             size="sm"
             variant="outline"
             onClick={() => handleBulkAction("Activate")}
+            className="rounded-[5px] bg-green-600 text-white"
           >
             Activate
           </Button>
@@ -444,6 +523,7 @@ export default function UserManagementPage() {
             size="sm"
             variant="destructive"
             onClick={() => handleBulkAction("Delete")}
+            className="rounded-[5px] bg-red-600 text-white hover:text-black"
           >
             Delete
           </Button>
@@ -453,42 +533,52 @@ export default function UserManagementPage() {
       {/* Users Table */}
       <Card>
         <CardContent className="p-0">
-          <div className="w-full">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={
+                        selectedUsers.length === filteredUsers.length &&
+                        filteredUsers.length > 0
+                      }
+                      onCheckedChange={handleSelectAll}
+                      className="rounded-[5px]"
+                    />
+                  </TableHead>
+                  <TableHead>User Info</TableHead>
+                  <TableHead>Onboarding Status</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Join Date</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead>Verified</TableHead>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Token Version</TableHead>
+                  <TableHead>Login Attempts</TableHead>
+                  <TableHead>Acc Locked</TableHead>
+                  <TableHead>Lock Expires At</TableHead>
+                  <TableHead>Password Reset Pending</TableHead>
+                  <TableHead>Updated At</TableHead>
+                  <TableHead>Last Login IP</TableHead>
+                  <TableHead className="w-20">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
                   <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={
-                          selectedUsers.length === filteredUsers.length &&
-                          filteredUsers.length > 0
-                        }
-                        onCheckedChange={handleSelectAll}
-                        className="rounded-[10px]"
-                      />
-                    </TableHead>
-                    <TableHead>User Info</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Join Date</TableHead>
-                    <TableHead>Last Active</TableHead>
-                    <TableHead>Verified</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Onboarding Status</TableHead>
-                    <TableHead>Token Version</TableHead>
-                    <TableHead>Login Attempts</TableHead>
-                    <TableHead>Acc Locked</TableHead>
-                    <TableHead>Lock Expires At</TableHead>
-                    <TableHead>Password Reset Pending</TableHead>
-                    <TableHead>Updated At</TableHead>
-                    <TableHead>Last Login IP</TableHead>
-                    <TableHead className="w-20">Actions</TableHead>
+                    <TableCell colSpan={18} className="text-center py-8">
+                      Loading users...
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedUsers.map((user) => (
+                ) : sortedUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={18} className="text-center py-8">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sortedUsers.map((user) => (
                     <TableRow key={user.id} className="hover:bg-gray-50">
                       <TableCell>
                         <Checkbox
@@ -496,6 +586,7 @@ export default function UserManagementPage() {
                           onCheckedChange={(checked) =>
                             handleSelectUser(user.id, checked as boolean)
                           }
+                          className="rounded-[5px]"
                         />
                       </TableCell>
                       <TableCell>
@@ -512,19 +603,34 @@ export default function UserManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status}
-                        </Badge>
+                        {/* onboardingStatus badge */}
+                        {user.onboardingStatus === "in_progress" && (
+                          <span className="bg-yellow-100 text-yellow-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                            In Progress
+                          </span>
+                        )}
+                        {user.onboardingStatus === "completed" && (
+                          <span className="bg-green-100 text-green-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                            Completed
+                          </span>
+                        )}
+                        {user.onboardingStatus === "submitted" && (
+                          <span className="bg-blue-100 text-blue-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                            Submitted
+                          </span>
+                        )}
+                        {!["in_progress", "completed", "submitted"].includes(
+                          user.onboardingStatus || ""
+                        ) && (
+                          <span className="bg-gray-100 text-gray-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                            {user.onboardingStatus || "-"}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm text-gray-600">
                           <MapPin className="w-3 h-3" />
                           {user.location}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-600">
-                          {user.phone}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -537,12 +643,25 @@ export default function UserManagementPage() {
                           {user.lastActive}
                         </div>
                       </TableCell>
-                      <TableCell>{user.isVerified ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        {/* isVerified icon */}
+                        {user.isVerified ? (
+                          <Check className="text-green-600 w-5 h-5 mx-auto" />
+                        ) : (
+                          <X className="text-red-500 w-5 h-5 mx-auto" />
+                        )}
+                      </TableCell>
                       <TableCell>{user.provider}</TableCell>
-                      <TableCell>{user.onboardingStatus}</TableCell>
                       <TableCell>{user.tokenVersion}</TableCell>
                       <TableCell>{user.loginAttempts}</TableCell>
-                      <TableCell>{user.isLocked ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        {/* isLocked icon */}
+                        {user.isLocked ? (
+                          <Lock className="text-red-500 w-5 h-5 mx-auto" />
+                        ) : (
+                          <Unlock className="text-green-600 w-5 h-5 mx-auto" />
+                        )}
+                      </TableCell>
                       <TableCell>
                         {user.lockExpiresAt
                           ? new Date(user.lockExpiresAt).toLocaleString()
@@ -558,121 +677,120 @@ export default function UserManagementPage() {
                       </TableCell>
                       <TableCell>{user.lastLoginIP}</TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/dashboard/users/${user.id}`}>
-                              <Eye className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                          {/* <Button variant="ghost" size="sm">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button> */}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label="Edit user"
-                            onClick={() => handleEditUser(user)}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label="More actions"
+                            >
+                              <MoreHorizontal className="w-5 h-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="bg-white rounded-[5px]"
                           >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={
-                              user.status === "suspended"
-                                ? "Activate user"
-                                : "Suspend user"
-                            }
-                            onClick={() => handleToggleSuspend(user)}
-                          >
-                            {user.status === "suspended" ? (
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Ban className="w-4 h-4 text-red-600" />
-                            )}
-                          </Button>
-                        </div>
+                            <DropdownMenuItem
+                              onClick={() => handleEditUser(user)}
+                              className="cursor-pointer"
+                            >
+                              <Edit className="w-4 h-4 mr-1" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleToggleSuspend(user)}
+                              className="cursor-pointer"
+                            >
+                              {user.status === "suspended" ? (
+                                <UserCheck className="w-4 h-4 mr-1 text-green-600" />
+                              ) : (
+                                <UserX className="w-4 h-4 mr-1 text-red-600" />
+                              )}
+                              {user.status === "suspended"
+                                ? "Activate"
+                                : "Suspend"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              asChild
+                              className="cursor-pointer"
+                            >
+                              <Link href={`/dashboard/users/${user.id}`}>
+                                <Eye className="w-4 h-4 mr-1" /> View
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteUser(user)}
+                              className="cursor-pointer text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-
-          {sortedUsers.length === 0 && (
-            <div className="p-8 text-center">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                No users found
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Try adjusting your search or filters
-              </p>
-              <Button asChild>
-                <Link href="/dashboard/users/new">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add New User
-                </Link>
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* User Details Modal */}
-      <Dialog open={!!viewUser} onOpenChange={() => setViewUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-            <DialogClose asChild>
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                onClick={() => setViewUser(null)}
-              >
-                Close
-              </Button>
-            </DialogClose>
-          </DialogHeader>
-          {viewUser && (
-            <div className="space-y-2 mt-4">
-              <div className="flex items-center gap-3">
-                <img
-                  src={viewUser.avatar}
-                  alt={viewUser.name}
-                  className="w-14 h-14 rounded-full border"
-                />
-                <div>
-                  <div className="font-semibold text-lg">{viewUser.name}</div>
-                  <div className="text-sm text-gray-500">{viewUser.email}</div>
-                  <div className="text-xs text-gray-400">{viewUser.role}</div>
-                </div>
-              </div>
-              <div>
-                Status: <Badge>{viewUser.status}</Badge>
-              </div>
-              <div>Location: {viewUser.location}</div>
-              <div>Phone: {viewUser.phone}</div>
-              <div>Joined: {viewUser.joinDate}</div>
-              <div>Last Active: {viewUser.lastActive}</div>
-              <div>Courses Enrolled: {viewUser.coursesEnrolled}</div>
-              <div>Courses Completed: {viewUser.coursesCompleted}</div>
-              <div>Certifications: {viewUser.certifications}</div>
-              {viewUser.company && <div>Company: {viewUser.company}</div>}
-              {viewUser.institution && (
-                <div>Institution: {viewUser.institution}</div>
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-white rounded-[10px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Deactivate User Account
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              Are you sure you want to deactivate the account for{" "}
+              <span className="font-semibold text-[#011F72]">
+                {userToDelete?.name}
+              </span>
+              ? This action will:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Deactivate the user's account immediately</li>
+                <li>Prevent the user from logging in</li>
+                <li>Preserve all user data for potential reactivation</li>
+                <li>
+                  Send a notification to the user about account deactivation
+                </li>
+              </ul>
+              <p className="mt-3 text-sm text-gray-500">
+                <strong>Note:</strong> This action can be reversed by an
+                administrator if needed.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="rounded-[10px]"
+              disabled={deletingUser}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-[10px]"
+              disabled={deletingUser}
+            >
+              {deletingUser ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deactivating...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Deactivate User
+                </>
               )}
-              {viewUser.department && (
-                <div>Department: {viewUser.department}</div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

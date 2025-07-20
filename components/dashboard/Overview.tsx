@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import {
@@ -121,6 +122,7 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState<string>("");
   const { accessToken, isLoading: tokenLoading } = useTokenManagement();
+  const router = useRouter();
 
   // Fetch user fullName
   useEffect(() => {
@@ -138,6 +140,7 @@ export default function DashboardOverview() {
     setTimeout(() => {
       setUserRole(role);
       setLoading(false);
+      router.push(`/dashboard/${role}`);
     }, 700);
   };
 

@@ -125,10 +125,10 @@ export const getApiRequest = async <T = any>(
 
 export const postApiRequest = async <T = any>(
   endpoint: string,
-  body: any,
-  headers: Record<string, string> = {}
+  token: string,
+  body: any
 ): Promise<ApiResponse<T>> => {
-  return apiRequest<T>(endpoint, "POST", body, undefined, headers);
+  return apiRequest<T>(endpoint, "POST", body, token);
 };
 
 export const updateApiRequest = async <T = any>(
@@ -160,14 +160,14 @@ export const patchApiRequest = async <T = any>(
 export const registerUser = async (
   formData: UserRegistrationData
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/register", formData);
+  return apiRequest("/api/auth/register", "POST", formData);
 };
 
 /**
  * Verify email with token
  */
 export const verifyEmail = async (token: string): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/verify-email", { token });
+  return apiRequest("/api/auth/verify-email", "POST", { token });
 };
 
 /**
@@ -176,7 +176,7 @@ export const verifyEmail = async (token: string): Promise<ApiResponse<any>> => {
 export const loginUser = async (
   formData: UserLoginData
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/login", formData);
+  return apiRequest("/api/auth/login", "POST", formData);
 };
 
 /**
@@ -215,7 +215,7 @@ export const getAllApiRequestWithPagination = async <T = any>(
 export const forgotPassword = async (
   email: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/forgot-password", { email });
+  return apiRequest("/api/auth/forgot-password", "POST", { email });
 };
 
 /**
@@ -224,7 +224,7 @@ export const forgotPassword = async (
 export const resetPassword = async (
   password: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/reset-password", { password });
+  return apiRequest("/api/auth/reset-password", "POST", { password });
 };
 
 /**
@@ -238,7 +238,7 @@ export const getUserMe = async (token: string): Promise<ApiResponse<any>> => {
  * Logout user
  */
 export const logoutUser = async (): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/logout", {});
+  return apiRequest("/api/auth/logout", "POST", {});
 };
 
 /**
@@ -248,7 +248,7 @@ export const changePassword = async (
   oldPassword: string,
   newPassword: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/user/change-password", {
+  return apiRequest("/api/user/change-password", "POST", {
     oldPassword,
     newPassword,
   });
@@ -277,7 +277,7 @@ export const updateOnboardingStatus = async (
 export const resendVerificationEmail = async (
   email: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/resend-verification", { email });
+  return apiRequest("/api/auth/resend-verification", "POST", { email });
 };
 
 /**
@@ -295,7 +295,7 @@ export const checkTokenValidity = async (
 export const refreshAccessToken = async (
   refreshToken: string
 ): Promise<ApiResponse<any>> => {
-  return postApiRequest("/api/auth/refresh-token", { refreshToken });
+  return apiRequest("/api/auth/refresh-token", "POST", { refreshToken });
 };
 
 /**

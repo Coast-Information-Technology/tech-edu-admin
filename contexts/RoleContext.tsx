@@ -3,7 +3,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { UserRole } from "@/lib/dashboardData";
 import {
   getTokenFromCookies,
   saveTokenToCookies,
@@ -14,6 +13,13 @@ import {
 import { loginUser, logoutUser } from "@/lib/apiFetch";
 import { useRouter } from "next/navigation";
 
+// Simplified UserRole type with only the four main roles
+export type UserRole =
+  | "admin"
+  | "moderator"
+  | "instructor"
+  | "customerRepresentative";
+
 interface RoleContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
@@ -22,6 +28,9 @@ interface RoleContextType {
     email: string;
     avatar?: string;
     role?: UserRole;
+    _id?: string;
+    isVerified?: boolean;
+    onboardingStatus?: string;
   };
   setUserData: (data: any) => void;
   isAuthenticated: boolean;
@@ -31,9 +40,39 @@ interface RoleContextType {
   redirectToRoleDashboard: (role?: UserRole) => void;
   loading: boolean;
   refreshAuth: () => Promise<boolean>;
+  getRoleDisplayName: (role: UserRole) => string;
+  getRoleDescription: (role: UserRole) => string;
+  isProfileRole: (role: UserRole) => boolean;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
+
+// Simplified role configuration
+const roleConfig: Record<
+  UserRole,
+  { displayName: string; description: string; isProfileRole: boolean }
+> = {
+  admin: {
+    displayName: "System Administrator",
+    description: "Full system access and user management",
+    isProfileRole: true,
+  },
+  moderator: {
+    displayName: "Moderator",
+    description: "Content moderation and user management",
+    isProfileRole: true,
+  },
+  instructor: {
+    displayName: "Instructor",
+    description: "Course management and student support",
+    isProfileRole: true,
+  },
+  customerRepresentative: {
+    displayName: "Customer Representative",
+    description: "Customer support and inquiry handling",
+    isProfileRole: true,
+  },
+};
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -43,6 +82,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     email: "",
     avatar: "",
     role: "admin" as UserRole,
+    _id: "",
+    isVerified: false,
+    onboardingStatus: "not_started",
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -172,7 +214,15 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     } finally {
       // Clear local state regardless of API call result
       setUserRole("admin");
-      setUserData({ fullName: "", email: "", avatar: "", role: "admin" });
+      setUserData({
+        fullName: "",
+        email: "",
+        avatar: "",
+        role: "admin",
+        _id: "",
+        isVerified: false,
+        onboardingStatus: "not_started",
+      });
       setIsAuthenticated(false);
 
       // Clear ALL cookies using the new comprehensive function
@@ -183,6 +233,19 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         window.location.href = "/";
       }
     }
+  };
+
+  // Helper functions for role information
+  const getRoleDisplayName = (role: UserRole): string => {
+    return roleConfig[role]?.displayName || role;
+  };
+
+  const getRoleDescription = (role: UserRole): string => {
+    return roleConfig[role]?.description || "User role";
+  };
+
+  const isProfileRole = (role: UserRole): boolean => {
+    return roleConfig[role]?.isProfileRole || false;
   };
 
   const value = {
@@ -197,6 +260,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     redirectToRoleDashboard,
     loading,
     refreshAuth,
+    getRoleDisplayName,
+    getRoleDescription,
+    isProfileRole,
   };
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
