@@ -25,6 +25,13 @@ import {
   BookOpen,
   Globe,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function AcademicServiceViewPage() {
   const params = useParams();
@@ -33,6 +40,7 @@ export default function AcademicServiceViewPage() {
   const [service, setService] = useState<AcademicService | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const token = getTokenFromCookies() || undefined;
 
   useEffect(() => {
@@ -61,8 +69,12 @@ export default function AcademicServiceViewPage() {
 
   const handleDelete = async () => {
     if (!service) return;
-    if (!confirm("Are you sure you want to delete this service?")) return;
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!service) return;
+    const token = getTokenFromCookies() || undefined;
     if (!token) {
       toast.error("Authentication required");
       return;
@@ -80,6 +92,8 @@ export default function AcademicServiceViewPage() {
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to delete service");
+    } finally {
+      setShowDeleteModal(false);
     }
   };
 
@@ -138,7 +152,7 @@ export default function AcademicServiceViewPage() {
           </Button>
           <Button
             variant="destructive"
-            className="rounded-[10px]"
+            className="rounded-[10px] bg-red-600 text-white hover:bg-red-400"
             onClick={handleDelete}
           >
             <Trash2 className="w-4 h-4 mr-2" /> Delete
@@ -247,6 +261,33 @@ export default function AcademicServiceViewPage() {
           </Card>
         </div>
       </div>
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="bg-white rounded-[10px]">
+          <DialogHeader>
+            <DialogTitle>Delete Academic Service</DialogTitle>
+          </DialogHeader>
+          <p>
+            Are you sure you want to delete this service? This action cannot be
+            undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              className="rounde-[5px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="rounde-[5px] bg-red-600 text-white hover:bg-red-400"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

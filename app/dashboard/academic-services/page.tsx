@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { Loader2, Eye, Edit, Trash2, Plus, GraduationCap } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const CATEGORY_OPTIONS = [
   { value: "", label: "All Categories" },
@@ -41,6 +48,8 @@ export default function AcademicServicesPage() {
   const [services, setServices] = useState<AcademicService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("");
   const [search, setSearch] = useState("");
@@ -81,25 +90,32 @@ export default function AcademicServicesPage() {
   }, [category, level]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this service?")) return;
+    setServiceToDelete(id);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!serviceToDelete) return;
     if (!token) {
       toast.error("Authentication required");
       return;
     }
     try {
       const response = await deleteApiRequest(
-        `/api/academic-services/${id}`,
+        `/api/academic-services/${serviceToDelete}`,
         token
       );
       if (response.status >= 200 && response.status < 300) {
         toast.success("Service deleted successfully");
-        setServices((prev) => prev.filter((s) => s.id !== id));
+        setServices((prev) => prev.filter((s) => s.id !== serviceToDelete));
       } else {
         toast.error(response.message || "Failed to delete service");
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to delete service");
+    } finally {
+      setShowDeleteModal(false);
+      setServiceToDelete(null);
     }
   };
 
@@ -354,6 +370,34 @@ export default function AcademicServicesPage() {
           )}
         </>
       )}
+
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="bg-white rounded-[10px]">
+          <DialogHeader>
+            <DialogTitle>Delete Academic Service</DialogTitle>
+          </DialogHeader>
+          <p>
+            Are you sure you want to delete this service? This action cannot be
+            undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              className="rounde-[5px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="rounde-[5px] bg-red-600 text-white hover:bg-red-400"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
