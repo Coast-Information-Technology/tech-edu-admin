@@ -158,8 +158,8 @@ export default function AcademicServicesPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-wrap gap-4 items-center">
-        <div className="relative w-full md:w-64">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 md:gap-4 items-stretch mb-4">
+        <div className="relative w-full">
           <input
             type="text"
             value={search}
@@ -187,34 +187,38 @@ export default function AcademicServicesPage() {
             </svg>
           </span>
         </div>
-        <select
-          value={category}
-          onChange={(e) => {
-            setCategory(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="rounded-[10px] border px-3 py-2"
-        >
-          {CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={level}
-          onChange={(e) => {
-            setLevel(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="rounded-[10px] border px-3 py-2"
-        >
-          {LEVEL_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div>
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="rounded-[10px] border px-3 py-2 w-full"
+          >
+            {CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <select
+            value={level}
+            onChange={(e) => {
+              setLevel(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="rounded-[10px] border px-3 py-2 w-full"
+          >
+            {LEVEL_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* List */}

@@ -21,6 +21,7 @@ import {
   BarChart3,
   Calendar,
   LayoutDashboard,
+  Package,
 } from "lucide-react";
 
 export const dashboardSidebarConfig = {
@@ -36,6 +37,11 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/admin",
           },
           { label: "User Management", icon: Users, href: "/dashboard/users" },
+          {
+            label: "Products Management",
+            icon: Package,
+            href: "/dashboard/products",
+          },
           {
             label: "Course Management",
             icon: BookOpen,
@@ -94,9 +100,14 @@ export const dashboardSidebarConfig = {
         title: "Commerce",
         items: [
           {
-            label: "Orders / Payments",
+            label: "Orders",
             icon: ShoppingCart,
             href: "/dashboard/orders",
+          },
+          {
+            label: "Payments",
+            icon: ShoppingCart,
+            href: "/dashboard/payments",
           },
           { label: "Promo Codes", icon: Tag, href: "/dashboard/promo-codes" },
         ],
@@ -226,6 +237,11 @@ export const dashboardSidebarConfig = {
             label: "User Queries",
             icon: MessageCircle,
             href: "/dashboard/queries",
+          },
+          {
+            label: "Products Management",
+            icon: Package,
+            href: "/dashboard/products",
           },
           {
             label: "Live Chat",

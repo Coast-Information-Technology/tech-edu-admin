@@ -6,25 +6,11 @@ import {
   User,
   Users,
   BookOpen,
-  Briefcase,
-  Award,
   BarChart3,
-  Calendar,
-  FileText,
   ClipboardList,
-  MessageCircle,
-  Tag,
-  Bell,
   ShieldCheck,
   Layers,
-  Video,
-  HelpCircle,
-  ShoppingCart,
-  Building2,
-  Settings,
-  Home,
   DollarSign,
-  Star,
   AlertTriangle,
   CheckCircle,
   TrendingUp,
@@ -32,7 +18,7 @@ import {
   Flag,
   Inbox,
   Bug,
-  ArrowUpRight,
+  Award,
 } from "lucide-react";
 import {
   adminDashboardMock,
@@ -58,6 +44,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { useTokenManagement } from "@/hooks/useTokenManagement";
 import { getUserMe } from "@/lib/apiFetch";
+import { useRole } from "@/contexts/RoleContext";
 
 const roleOptions = [
   { value: "admin", label: "Admin" },
@@ -152,7 +139,7 @@ export default function DashboardOverview() {
       : userRole === "instructor"
       ? "Instructor"
       : "Customer Care";
-  const welcomeMsg = `Welcome, ${fullName || roleDisplay}!`;
+  const welcomeMsg = `Welcome, ${fullName || useRole.name}!`;
 
   return (
     <TooltipProvider>

@@ -10,12 +10,12 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
-import { loginUser } from "@/lib/apiFetch";
 import {
   saveTokenToCookies,
   setCookie,
   saveTokensToCookies,
 } from "@/lib/cookies";
+import { loginUser } from "@/lib/apiFetch";
 
 /**
  * Extracts a user-friendly error message from various error shapes.

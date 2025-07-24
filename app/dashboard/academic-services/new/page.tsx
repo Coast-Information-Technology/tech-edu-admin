@@ -40,7 +40,7 @@ const CATEGORY_OPTIONS = [
 ];
 const LEVEL_OPTIONS = ["basic", "standard", "premium", "elite"];
 const DELIVERY_OPTIONS = ["online", "offline", "hybrid"];
-const SESSION_OPTIONS = ["1-on-1", "group", "workshop"];
+const SESSION_OPTIONS = ["1-on-1", "group", "classroom"];
 
 const initialForm = {
   title: "",

@@ -246,3 +246,13 @@ export const deleteCookie = (name: string) => {
 
   document.cookie = expiredCookie;
 };
+
+// Delete userId cookie
+export function deleteUserIdFromCookies() {
+  document.cookie = "userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+// Delete userData cookie
+export function deleteUserDataFromCookies() {
+  document.cookie = "userData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}

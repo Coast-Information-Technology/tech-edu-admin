@@ -350,6 +350,15 @@ export default function UserManagementPage() {
     return 0;
   });
 
+  // Pagination logic
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
+  const paginatedUsers = sortedUsers.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
+
   const stats = {
     total: users.length,
     active: users.filter((u) => u.status === "active").length,
@@ -531,210 +540,254 @@ export default function UserManagementPage() {
       )}
 
       {/* Users Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
+      <div className="overflow-x-auto border rounded-[10px]">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 w-12">
+                <Checkbox
+                  checked={
+                    selectedUsers.length === filteredUsers.length &&
+                    filteredUsers.length > 0
+                  }
+                  onCheckedChange={handleSelectAll}
+                  className="rounded-[5px]"
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                User Info
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Onboarding Status
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Location
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Join Date
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Last Active
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Verified
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Provider
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Token Version
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Login Attempts
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Acc Locked
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Lock Expires At
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Password Reset Pending
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Updated At
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Last Login IP
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {loading ? (
+              <tr>
+                <td colSpan={18} className="text-center py-8">
+                  Loading users...
+                </td>
+              </tr>
+            ) : paginatedUsers.length === 0 ? (
+              <tr>
+                <td colSpan={18} className="text-center py-8">
+                  No users found
+                </td>
+              </tr>
+            ) : (
+              paginatedUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
                     <Checkbox
-                      checked={
-                        selectedUsers.length === filteredUsers.length &&
-                        filteredUsers.length > 0
+                      checked={selectedUsers.includes(user.id)}
+                      onCheckedChange={(checked) =>
+                        handleSelectUser(user.id, checked as boolean)
                       }
-                      onCheckedChange={handleSelectAll}
                       className="rounded-[5px]"
                     />
-                  </TableHead>
-                  <TableHead>User Info</TableHead>
-                  <TableHead>Onboarding Status</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Join Date</TableHead>
-                  <TableHead>Last Active</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Token Version</TableHead>
-                  <TableHead>Login Attempts</TableHead>
-                  <TableHead>Acc Locked</TableHead>
-                  <TableHead>Lock Expires At</TableHead>
-                  <TableHead>Password Reset Pending</TableHead>
-                  <TableHead>Updated At</TableHead>
-                  <TableHead>Last Login IP</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8">
-                      Loading users...
-                    </TableCell>
-                  </TableRow>
-                ) : sortedUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={18} className="text-center py-8">
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sortedUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-gray-50">
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedUsers.includes(user.id)}
-                          onCheckedChange={(checked) =>
-                            handleSelectUser(user.id, checked as boolean)
-                          }
-                          className="rounded-[5px]"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="font-semibold text-[#011F72]">
-                            {user.name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {user.email}
-                          </span>
-                          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit mt-1">
-                            {user.role}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {/* onboardingStatus badge */}
-                        {user.onboardingStatus === "in_progress" && (
-                          <span className="bg-yellow-100 text-yellow-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                            In Progress
-                          </span>
-                        )}
-                        {user.onboardingStatus === "completed" && (
-                          <span className="bg-green-100 text-green-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                            Completed
-                          </span>
-                        )}
-                        {user.onboardingStatus === "submitted" && (
-                          <span className="bg-blue-100 text-blue-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                            Submitted
-                          </span>
-                        )}
-                        {!["in_progress", "completed", "submitted"].includes(
-                          user.onboardingStatus || ""
-                        ) && (
-                          <span className="bg-gray-100 text-gray-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                            {user.onboardingStatus || "-"}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <MapPin className="w-3 h-3" />
-                          {user.location}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-600">
-                          {user.joinDate}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-600">
-                          {user.lastActive}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {/* isVerified icon */}
-                        {user.isVerified ? (
-                          <Check className="text-green-600 w-5 h-5 mx-auto" />
-                        ) : (
-                          <X className="text-red-500 w-5 h-5 mx-auto" />
-                        )}
-                      </TableCell>
-                      <TableCell>{user.provider}</TableCell>
-                      <TableCell>{user.tokenVersion}</TableCell>
-                      <TableCell>{user.loginAttempts}</TableCell>
-                      <TableCell>
-                        {/* isLocked icon */}
-                        {user.isLocked ? (
-                          <Lock className="text-red-500 w-5 h-5 mx-auto" />
-                        ) : (
-                          <Unlock className="text-green-600 w-5 h-5 mx-auto" />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {user.lockExpiresAt
-                          ? new Date(user.lockExpiresAt).toLocaleString()
-                          : ""}
-                      </TableCell>
-                      <TableCell>
-                        {user.isPasswordResetPending ? "Yes" : "No"}
-                      </TableCell>
-                      <TableCell>
-                        {user.updatedAt
-                          ? new Date(user.updatedAt).toLocaleString()
-                          : ""}
-                      </TableCell>
-                      <TableCell>{user.lastLoginIP}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label="More actions"
-                            >
-                              <MoreHorizontal className="w-5 h-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="bg-white rounded-[5px]"
-                          >
-                            <DropdownMenuItem
-                              onClick={() => handleEditUser(user)}
-                              className="cursor-pointer"
-                            >
-                              <Edit className="w-4 h-4 mr-1" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleToggleSuspend(user)}
-                              className="cursor-pointer"
-                            >
-                              {user.status === "suspended" ? (
-                                <UserCheck className="w-4 h-4 mr-1 text-green-600" />
-                              ) : (
-                                <UserX className="w-4 h-4 mr-1 text-red-600" />
-                              )}
-                              {user.status === "suspended"
-                                ? "Activate"
-                                : "Suspend"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              asChild
-                              className="cursor-pointer"
-                            >
-                              <Link href={`/dashboard/users/${user.id}`}>
-                                <Eye className="w-4 h-4 mr-1" /> View
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteUser(user)}
-                              className="cursor-pointer text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold text-[#011F72]">
+                        {user.name}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {user.email}
+                      </span>
+                      <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit mt-1">
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {/* onboardingStatus badge */}
+                    {user.onboardingStatus === "in_progress" && (
+                      <span className="bg-yellow-100 text-yellow-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                        In Progress
+                      </span>
+                    )}
+                    {user.onboardingStatus === "completed" && (
+                      <span className="bg-green-100 text-green-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                        Completed
+                      </span>
+                    )}
+                    {user.onboardingStatus === "submitted" && (
+                      <span className="bg-blue-100 text-blue-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                        Submitted
+                      </span>
+                    )}
+                    {!["in_progress", "completed", "submitted"].includes(
+                      user.onboardingStatus || ""
+                    ) && (
+                      <span className="bg-gray-100 text-gray-800 rounded-[4px] px-2 py-1 text-xs font-medium">
+                        {user.onboardingStatus || "-"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <MapPin className="w-3 h-3" />
+                      {user.location}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="text-sm text-gray-600">{user.joinDate}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="text-sm text-gray-600">
+                      {user.lastActive}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {/* isVerified icon */}
+                    {user.isVerified ? (
+                      <Check className="text-green-600 w-5 h-5 mx-auto" />
+                    ) : (
+                      <X className="text-red-500 w-5 h-5 mx-auto" />
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{user.provider}</td>
+                  <td className="px-4 py-3">{user.tokenVersion}</td>
+                  <td className="px-4 py-3">{user.loginAttempts}</td>
+                  <td className="px-4 py-3 text-center">
+                    {/* isLocked icon */}
+                    {user.isLocked ? (
+                      <Lock className="text-red-500 w-5 h-5 mx-auto" />
+                    ) : (
+                      <Unlock className="text-green-600 w-5 h-5 mx-auto" />
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.lockExpiresAt
+                      ? new Date(user.lockExpiresAt).toLocaleString()
+                      : ""}
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.isPasswordResetPending ? "Yes" : "No"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.updatedAt
+                      ? new Date(user.updatedAt).toLocaleString()
+                      : ""}
+                  </td>
+                  <td className="px-4 py-3">{user.lastLoginIP}</td>
+                  <td className="px-4 py-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="p-2 rounded-full hover:bg-gray-200 focus:outline-none"
+                          aria-label="Open actions menu"
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-white rounded-[5px]"
+                      >
+                        <DropdownMenuItem
+                          onClick={() => handleEditUser(user)}
+                          className="cursor-pointer"
+                        >
+                          <Edit className="w-4 h-4 mr-1" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleToggleSuspend(user)}
+                          className="cursor-pointer"
+                        >
+                          {user.status === "suspended" ? (
+                            <UserCheck className="w-4 h-4 mr-1 text-green-600" />
+                          ) : (
+                            <UserX className="w-4 h-4 mr-1 text-red-600" />
+                          )}
+                          {user.status === "suspended" ? "Activate" : "Suspend"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                          <Link href={`/dashboard/users/${user.id}`}>
+                            <Eye className="w-4 h-4 mr-1" /> View
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteUser(user)}
+                          className="cursor-pointer text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {/* Pagination Bar */}
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-sm text-gray-700">
+          Showing {Math.min((page - 1) * itemsPerPage + 1, sortedUsers.length)}{" "}
+          to {Math.min(page * itemsPerPage, sortedUsers.length)} of{" "}
+          {sortedUsers.length} users
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+            aria-label="Previous page"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+            aria-label="Next page"
+          >
+            Next
+          </button>
+        </div>
+      </div>
 
       {/* Delete User Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

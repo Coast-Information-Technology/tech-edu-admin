@@ -4,7 +4,10 @@ import {
   saveTokenToCookies,
   getCookie,
   setCookie,
+  deleteRefreshTokenFromCookies,
+  deleteTokenFromCookies,
 } from "@/lib/cookies";
+import { getDeviceInfo } from "@/utils/getDeviceInfo";
 
 /**
  * Base URL for API requests. For Next.js API routes, we use relative URLs
@@ -180,6 +183,38 @@ export const loginUser = async (
 };
 
 /**
+ * Logout user (with metadata)
+ */
+export const logoutUser = async (): Promise<ApiResponse<any>> => {
+  const accessToken = getCookie("accessToken");
+  const refreshToken = getCookie("refreshToken");
+
+  const requestBody = {
+    reason: "user_initiated",
+    deviceInfo: getDeviceInfo(),
+    location: "New York, NY, USA", // Replace with real location if you implement IP-based lookup
+    accessToken,
+    refreshToken,
+  };
+
+  try {
+    const response = await postApiRequest(
+      "/api/auth/logout",
+      accessToken || "",
+      requestBody
+    );
+    return response;
+  } catch (error) {
+    throw error;
+  } finally {
+    deleteTokenFromCookies(); // Always clear cookies on logout
+    deleteRefreshTokenFromCookies();
+    deleteUserDataFromCookies();
+    deleteUserIdFromCookies();
+  }
+};
+
+/**
  * Update user profile
  */
 export const updateUser = async (
@@ -232,13 +267,6 @@ export const resetPassword = async (
  */
 export const getUserMe = async (token: string): Promise<ApiResponse<any>> => {
   return getApiRequest("/api/user/me", token);
-};
-
-/**
- * Logout user
- */
-export const logoutUser = async (): Promise<ApiResponse<any>> => {
-  return apiRequest("/api/auth/logout", "POST", {});
 };
 
 /**

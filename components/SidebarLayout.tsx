@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +10,11 @@ import { UserNav } from "./UserNav";
 import { useRole } from "@/contexts/RoleContext";
 import { dashboardSidebarConfig } from "./dashboardSidebarConfig";
 import Image from "next/image";
+import {
+  deleteRefreshTokenFromCookies,
+  deleteTokenFromCookies,
+} from "@/lib/cookies";
+import { logoutUser } from "@/lib/apiFetch";
 
 export default function SidebarLayout({
   children,
@@ -17,6 +22,7 @@ export default function SidebarLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { userRole, userData, logout } = useRole();
   const dashboardData = dashboardSidebarConfig[userRole] || {
     displayName: "Dashboard",
@@ -26,6 +32,18 @@ export default function SidebarLayout({
   // Keep sections structure for proper rendering
   const sections = dashboardData.sections;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const logoutHandler = async () => {
+    try {
+      await logoutUser(); // Your existing helper
+    } catch (error) {
+      console.error("Logout failed", error);
+    } finally {
+      deleteTokenFromCookies();
+      deleteRefreshTokenFromCookies();
+      router.push("/login");
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-white">
@@ -67,7 +85,7 @@ export default function SidebarLayout({
           <div className="flex flex-col">
             <span className="text-sm font-semibold">TechEdu Solution</span>
             <span className="text-xs text-muted-foreground">
-              {dashboardData.displayName}
+              {dashboardData?.displayName || "Dashboard"}
             </span>
           </div>
         </div>
@@ -147,7 +165,7 @@ export default function SidebarLayout({
           <Button
             variant="ghost"
             className="w-full flex items-center bg-blue-600 hover:bg-blue-400 text-white rounded-[10px] gap-2 justify-start"
-            onClick={logout}
+            onClick={logoutHandler}
           >
             {/* You can use an icon here if you want */}
             Logout
