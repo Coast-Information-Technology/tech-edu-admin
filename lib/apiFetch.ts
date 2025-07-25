@@ -4,8 +4,10 @@ import {
   saveTokenToCookies,
   getCookie,
   setCookie,
-  deleteRefreshTokenFromCookies,
   deleteTokenFromCookies,
+  deleteRefreshTokenFromCookies,
+  deleteUserDataFromCookies,
+  deleteUserIdFromCookies,
 } from "@/lib/cookies";
 import { getDeviceInfo } from "@/utils/getDeviceInfo";
 

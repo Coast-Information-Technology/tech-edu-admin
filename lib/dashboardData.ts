@@ -113,7 +113,7 @@ export const dashboardData: Record<UserRole, RoleDashboardData> = {
 };
 
 export const getUserDashboardData = (role: UserRole): RoleDashboardData => {
-  return dashboardData[role] || dashboardData.student;
+  return dashboardData[role] || dashboardData.moderator;
 };
 
 export const getAllRoles = (): UserRole[] => {

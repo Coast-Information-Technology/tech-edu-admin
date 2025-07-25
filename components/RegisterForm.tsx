@@ -11,6 +11,7 @@ import {
   registerUser,
   UserRegistrationData,
   postApiRequest,
+  resendVerificationEmail,
 } from "@/lib/apiFetch";
 import { toast } from "react-toastify";
 
@@ -187,9 +188,7 @@ const Page = () => {
   const handleResendVerification = async () => {
     setIsResending(true);
     try {
-      const response = await postApiRequest("/api/auth/resend-verification", {
-        email: formData.email,
-      });
+      const response = await resendVerificationEmail(formData.email);
 
       if (response.status >= 400) {
         throw new Error("Failed to resend verification email");

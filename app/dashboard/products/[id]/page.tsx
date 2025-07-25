@@ -45,18 +45,11 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="flex gap-2 mb-4">
-        <Link href="/dashboard/products">
-          <button className="px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700">
-            &larr; Back to Products
-          </button>
-        </Link>
-        <Link href={`/dashboard/products/${id}/edit`}>
-          <button className="px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700">
-            Edit
-          </button>
-        </Link>
-      </div>
+      <Link href="/dashboard/products">
+        <button className="mb-4 px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700">
+          &larr; Back to Products
+        </button>
+      </Link>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
@@ -83,35 +76,23 @@ export default function ProductDetailPage() {
         </div>
         <div className="flex gap-4 items-center">
           {product.iconUrl && (
-            <div className="bg-purple-50 p-2 rounded-[10px] shadow flex items-center justify-center">
-              <img
-                src={
-                  product.iconUrl?.startsWith("https://res.cloudinary.com")
-                    ? product.iconUrl
-                    : "/placeholder.png"
-                }
-                alt="Icon"
-                className="w-16 h-16 rounded-[10px] object-cover"
-              />
-            </div>
+            <img
+              src={product.iconUrl}
+              alt="Icon"
+              className="w-16 h-16 rounded-[10px] shadow object-cover"
+            />
           )}
           {product.thumbnailUrl && (
-            <div className="bg-purple-50 p-2 rounded-[10px] shadow flex items-center justify-center">
-              <img
-                src={
-                  product.thumbnailUrl?.startsWith("https://res.cloudinary.com")
-                    ? product.thumbnailUrl
-                    : "/placeholder.png"
-                }
-                alt="Thumbnail"
-                className="w-24 h-24 rounded-[10px] object-cover"
-              />
-            </div>
+            <img
+              src={product.thumbnailUrl}
+              alt="Thumbnail"
+              className="w-24 h-24 rounded-[10px] shadow object-cover"
+            />
           )}
         </div>
       </div>
       {/* Pricing */}
-      <div className="flex gap-4 items-center mb-6 bg-green-50 p-4 rounded-[10px] shadow border">
+      <div className="flex gap-4 items-center mb-6">
         <span className="text-2xl font-bold text-green-700">
           ${product.price?.toFixed(2)}
         </span>
@@ -123,7 +104,7 @@ export default function ProductDetailPage() {
       </div>
       {/* Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="p-4 bg-blue-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Created By</div>
           <div className="text-base text-gray-800 font-semibold">
             {product.createdBy?.fullName}
@@ -132,39 +113,39 @@ export default function ProductDetailPage() {
             {product.createdBy?.email}
           </div>
         </div>
-        <div className="p-4 bg-yellow-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Slug</div>
           <div className="text-base text-gray-800">
             {product.metadata?.slug}
           </div>
         </div>
-        <div className="p-4 bg-yellow-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">SEO Title</div>
           <div className="text-base text-gray-800">
             {product.metadata?.seoTitle}
           </div>
         </div>
-        <div className="p-4 bg-blue-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Difficulty Level</div>
           <div className="text-base text-gray-800">
             {product.difficultyLevel}
           </div>
         </div>
-        <div className="p-4 bg-blue-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Session Type</div>
           <div className="text-base text-gray-800">{product.sessionType}</div>
         </div>
-        <div className="p-4 bg-blue-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Delivery Mode</div>
           <div className="text-base text-gray-800">{product.deliveryMode}</div>
         </div>
-        <div className="p-4 bg-purple-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Subcategories</div>
           <div className="text-base text-gray-800">
             {product.subcategories?.join(", ")}
           </div>
         </div>
-        <div className="p-4 bg-purple-50 rounded-[10px] shadow border">
+        <div className="p-4 bg-white rounded-[10px] shadow border">
           <div className="text-xs text-gray-500 mb-1">Tags</div>
           <div className="text-base text-gray-800">
             {product.tags?.join(", ")}
@@ -172,7 +153,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
       {/* Description */}
-      <div className="p-4 bg-gray-50 rounded-[10px] shadow border mb-6">
+      <div className="p-4 bg-white rounded-[10px] shadow border mb-6">
         <div className="text-xs text-gray-500 mb-1">Description</div>
         <div className="text-base text-gray-800 whitespace-pre-line">
           {product.description}
@@ -180,7 +161,7 @@ export default function ProductDetailPage() {
       </div>
       {/* Metadata SEO Description */}
       {product.metadata?.seoDescription && (
-        <div className="p-4 bg-yellow-50 rounded-[10px] shadow border mb-6">
+        <div className="p-4 bg-white rounded-[10px] shadow border mb-6">
           <div className="text-xs text-gray-500 mb-1">SEO Description</div>
           <div className="text-base text-gray-800 whitespace-pre-line">
             {product.metadata.seoDescription}
