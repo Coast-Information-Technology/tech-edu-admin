@@ -166,17 +166,17 @@ const LoginPage = () => {
     <section className="min-h-screen flex flex-col lg:flex-row items-center justify-between bg-[url('/assets/authImg.jpg')] bg-cover bg-no-repeat bg-center text-gray-900 py-10 px-4 md:px-20">
       {/* Left Side */}
       <div className="w-full max-w-[35rem] bg-white/90 backdrop-blur-md py-8 md:py-14 px-6 md:px-16 rounded-[15px] rounded-br-[8rem] shadow-2xl mt-10 lg:mt-0">
-        <button
+        {/* <button
           type="button"
           onClick={() => router.back()}
           className="mt-4 bg-[#003294] hover:bg-blue-500 text-white text-left p-2 mb-6 rounded-[10px] block min-[1240px]:hidden"
         >
           ← Go Back
-        </button>
-        <h2 className="text-2xl font-bold mb-1 text-[#003294] max-w-[80%]">
+        </button> */}
+        <h2 className="text-2xl font-bold mb-1 text-[#003294] max-w-[80%] hidden min-[1240px]:text-center">
           Welcome Back to Tech Edu Admin Portal
         </h2>
-        <p className="text-sm text-gray-600 mb-6 max-w-[75%]">
+        <p className="text-sm text-gray-600 mb-6 max-w-[75%] hidden min-[1240px]:text-center">
           Sign in to manage users, products, analytics, and more. Unified access
           for admins, instructors, moderators, and customer care
           representatives.
