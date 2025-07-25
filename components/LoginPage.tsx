@@ -286,12 +286,12 @@ const LoginPage = () => {
           Login with LinkedIn
         </button>
 
-        <p className="text-[1rem] text-center mt-4">
+        {/* <p className="text-[1rem] text-center mt-4">
           Don't have an account?{" "}
           <Link href="/register" className="text-[#003294] font-bold underline">
             Create One
           </Link>
-        </p>
+        </p> */}
       </div>
 
       {/* Right Side */}
