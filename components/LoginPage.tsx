@@ -174,11 +174,12 @@ const LoginPage = () => {
           ← Go Back
         </button>
         <h2 className="text-2xl font-bold mb-1 text-[#003294] max-w-[80%]">
-          Welcome Back to Tech Edu Solution
+          Welcome Back to Tech Edu Admin Portal
         </h2>
         <p className="text-sm text-gray-600 mb-6 max-w-[75%]">
-          Whether you're returning to edit your CV, track a scholarship
-          application, or manage your training — you're just one step away
+          Sign in to manage users, products, analytics, and more. Unified access
+          for admins, instructors, moderators, and customer care
+          representatives.
         </p>
 
         {/* OAuth Error Alert */}
@@ -303,7 +304,7 @@ const LoginPage = () => {
           ← Go Back
         </button>
         <h2 className="text-xl font-bold max-w-md">
-          Access all tools with one secure account.
+          Access all admin and management tools with one secure account.
         </h2>
 
         <div className="relative max-w-md rounded-md h-[250px] overflow-hidden">
@@ -319,18 +320,19 @@ const LoginPage = () => {
         <h3 className="text-lg font-semibold mt-6">Quick Benefits Reminder</h3>
         <div className="max-w-md bg-white/10 backdrop-blur-md p-6 rounded-[10px] border border-white/20">
           <ul className="list-disc list-inside text-sm text-white">
-            <li>Resume Builder access</li>
-            <li>Scholarship coaching progress</li>
-            <li>Build and save support packages</li>
-            <li>Saved training sessions</li>
-            <li>Download certificates</li>
-            <li>Booking history with coaches</li>
-            <li>CareerConnect profile management</li>
+            <li>Manage users, products, and company data</li>
+            <li>Oversee platform analytics and reports</li>
+            <li>Moderate content and user activity</li>
+            <li>Provide customer support and resolve issues</li>
+            <li>Assign roles and permissions</li>
+            <li>Access advanced dashboard features</li>
+            <li>Track and manage payments and orders</li>
+            <li>Collaborate with other team members</li>
           </ul>
         </div>
 
         <p className="text-sm font-medium pt-6">
-          One login. All tools. Seamless experience.
+          One login. All admin tools. Seamless experience.
         </p>
       </div>
     </section>

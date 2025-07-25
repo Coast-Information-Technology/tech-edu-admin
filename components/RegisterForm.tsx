@@ -314,7 +314,7 @@ const Page = () => {
           ← Go Back
         </button>
         <h2 className="text-lg md:text-xl font-bold max-w-md">
-          Access all tools with one secure account.
+          Access all admin and management tools with one secure account.
         </h2>
 
         <div className="relative max-w-md rounded-[10px] h-[250px]">
@@ -327,18 +327,20 @@ const Page = () => {
           />
         </div>
 
-        <h3 className="text-lg font-semibold text-white mt-8">Why Register?</h3>
+        <h3 className="text-lg font-semibold text-white mt-8">
+          Why Register as Admin, Instructor, Moderator, or Customer Care?
+        </h3>
         <div className="w-full max-w-md bg-white/10 backdrop-blur-sm p-6 rounded-[15px]">
           <h3 className="text-md font-semibold mb-2 text-white">Benefits</h3>
           <ul className="list-disc list-inside text-sm text-white font-normal">
-            <li>Save and export your CVs</li>
-            <li>Access scholarship coaching tools</li>
-            <li>Build and save support packages</li>
-            <li>Enroll in training and track progress</li>
-            <li>Manage cart, purchases, and downloads</li>
-            <li>Book expert coaching sessions</li>
-            <li>Post jobs & manage talent (if employer)</li>
-            <li>Join CareerConnect to be discovered by recruiters</li>
+            <li>Manage users, products, and company data</li>
+            <li>Oversee platform analytics and reports</li>
+            <li>Moderate content and user activity</li>
+            <li>Provide customer support and resolve issues</li>
+            <li>Assign roles and permissions</li>
+            <li>Access advanced dashboard features</li>
+            <li>Track and manage payments and orders</li>
+            <li>Collaborate with other team members</li>
           </ul>
         </div>
 
@@ -357,11 +359,12 @@ const Page = () => {
           ← Go Back
         </button>
         <h2 className="text-2xl font-bold mb-1 text-[#003294]">
-          Start Your Journey with Tech Edu Solution
+          Start Your Journey as a Tech Edu Admin or Team Member
         </h2>
         <p className="text-sm text-gray-600 mb-6">
-          Build your CV, join trainings, access scholarships, or post jobs — all
-          from a single, unified account. No credit card required.
+          Register to manage users, products, analytics, and more. Unified
+          access for admins, instructors, moderators, and customer care
+          representatives.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -514,15 +517,10 @@ const Page = () => {
               aria-required
             >
               <option value="">Select Role</option>
-              <option value="student">Student</option>
-              <option value="individualTechProfessional">
-                Individual Tech Professional
-              </option>
-              <option value="teamTechProfessional">
-                Team Tech Professional
-              </option>
-              <option value="recruiter">Employer/Recruiter</option>
-              <option value="institution">Institution</option>
+              <option value="admin">Admin</option>
+              <option value="instructor">Instructor</option>
+              <option value="moderator">Moderator</option>
+              <option value="customerCare">Customer Care Representative</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg
