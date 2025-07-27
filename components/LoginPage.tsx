@@ -296,13 +296,13 @@ const LoginPage = () => {
 
       {/* Right Side */}
       <div className="hidden min-[1240px]:block w-full lg:w-1/2 text-white space-y-6 mt-12 lg:mt-0 lg:pl-20">
-        <button
+        {/* <button
           type="button"
           onClick={() => router.back()}
           className="mt-4 bg-white hover:bg-blue-500 text-[#003294] text-left p-2 mb-6 rounded-[10px] hidden min-[1240px]:block"
         >
           ← Go Back
-        </button>
+        </button> */}
         <h2 className="text-xl font-bold max-w-md">
           Access all admin and management tools with one secure account.
         </h2>
