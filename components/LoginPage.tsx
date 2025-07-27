@@ -165,7 +165,7 @@ const LoginPage = () => {
   return (
     <section className="min-h-screen flex flex-col lg:flex-row items-center justify-between bg-[url('/assets/authImg.jpg')] bg-cover bg-no-repeat bg-center text-gray-900 py-10 px-4 md:px-20">
       {/* Left Side */}
-      <div className="w-full max-w-[35rem] bg-white/90 backdrop-blur-md py-8 md:py-14 px-6 md:px-16 rounded-[15px] rounded-br-[8rem] shadow-2xl mt-10 lg:mt-0">
+      <div className="w-full max-w-[35rem] mx-auto bg-white/90 backdrop-blur-md py-8 md:py-14 px-6 md:px-16 rounded-[15px] min-[1240px]:rounded-br-[8rem] shadow-2xl mt-10 lg:mt-0">
         {/* <button
           type="button"
           onClick={() => router.back()}
