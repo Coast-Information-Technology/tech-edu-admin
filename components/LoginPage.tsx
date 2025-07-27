@@ -173,10 +173,10 @@ const LoginPage = () => {
         >
           ← Go Back
         </button> */}
-        <h2 className="text-2xl font-bold mb-1 text-[#003294] max-w-[80%] min-[1240px]:text-center">
+        <h2 className="text-2xl font-bold mb-1 text-[#003294] min-[1240px]:max-w-[80%] min-[1240px]:text-left text-center">
           Welcome Back to Tech Edu Admin Portal
         </h2>
-        <p className="text-sm text-gray-600 mb-6 max-w-[75%] min-[1240px]:text-center">
+        <p className="text-sm text-gray-600 mb-6 min-[1240px]:max-w-[75%] min-[1240px]:text-left text-center">
           Sign in to manage users, products, analytics, and more. Unified access
           for admins, instructors, moderators, and customer care
           representatives.
