@@ -54,6 +54,7 @@ const PRODUCT_TYPE_OPTIONS = [
   "Corporate Consultancy",
   "Career Development",
 ];
+
 const SERVICE_OPTIONS: Record<string, string[]> = {
   "Academic Services": [
     "PhD Mentoring",
@@ -79,6 +80,7 @@ const SERVICE_OPTIONS: Record<string, string[]> = {
     "Enterprise AI Governance",
   ],
 };
+
 const SUBCATEGORY_OPTIONS = ["NLP", "ChatGPT", "AI"];
 const DIFFICULTY_LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
