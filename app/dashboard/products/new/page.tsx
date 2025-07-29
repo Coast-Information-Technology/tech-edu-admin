@@ -50,37 +50,19 @@ const steps = [
 ];
 
 const PRODUCT_TYPE_OPTIONS = [
-  "Academic Services",
-  "Corporate Consultancy",
-  "Career Development",
+  "AcademicService",
+  "TrainingProgram",
+  "Consultancy",
+  "Inquiry",
+  "AI/ML Service",
+  "Marketing",
+  "Free Support",
+  "Demo Session",
+  "Career Connect",
+  "Cv Builder",
 ];
 
-const SERVICE_OPTIONS: Record<string, string[]> = {
-  "Academic Services": [
-    "PhD Mentoring",
-    "PhD Admission and Scholarship",
-    "General Mentoring and Pastoral Care",
-    "Academic Transition Training",
-    "Master's Project Supervision",
-    "Thesis Review & Editing",
-    "Academic Research Publication Support",
-  ],
-  "Career Development": [
-    "CV Revamp ",
-    "Interview Preparation",
-    "Career Coaching",
-  ],
-  "Corporate Consultancy": [
-    "Business Analysis Training",
-    "Professional Consultancy",
-    "Leadership and management consultancy",
-    "Academic Data Analysis",
-    "AI Ethics Consultation",
-    "AI Governance Framework",
-    "Enterprise AI Governance",
-  ],
-};
-
+// Remove static SERVICE_OPTIONS since we'll fetch dynamically
 const SUBCATEGORY_OPTIONS = ["NLP", "ChatGPT", "AI"];
 const DIFFICULTY_LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
@@ -98,17 +80,116 @@ export default function CreateProductPage() {
   const [customService, setCustomService] = useState("");
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [serviceOptions, setServiceOptions] = useState<string[]>([]);
-  const [subcategoryOptions, setSubcategoryOptions] =
-    useState<string[]>(SUBCATEGORY_OPTIONS);
+  const [subcategoryOptions, setSubcategoryOptions] = useState<string[]>([]);
+  const [subcategoryLoading, setSubcategoryLoading] = useState(false);
+  const [subcategoryError, setSubcategoryError] = useState<string | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<
+    { _id: string; title: string }[]
+  >([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
-  // Update service options when productType changes
+  // Fetch categories and services when productType changes
   React.useEffect(() => {
-    if (form.productType && SERVICE_OPTIONS[form.productType]) {
-      setServiceOptions(SERVICE_OPTIONS[form.productType]);
-    } else {
+    if (!form.productType) {
+      setCategoryOptions([]);
       setServiceOptions([]);
+      setForm((prev: any) => ({ ...prev, category: "", service: "" }));
+      return;
     }
+    const fetchCategoriesAndServices = async () => {
+      setCategoryLoading(true);
+      setCategoryError(null);
+      try {
+        let token = getTokenFromCookies() || "";
+        const apiFetch = await import("@/lib/apiFetch");
+        const res = await apiFetch.getApiRequest(
+          `/api/product-categories/type/${encodeURIComponent(
+            form.productType
+          )}`,
+          token
+        );
+        const data = res?.data?.data || res?.data || [];
+        const activeCategories = data.filter((cat: any) => !cat.isDeleted);
+        setCategoryOptions(activeCategories);
+
+        // Extract service titles from categories
+        const services = activeCategories.map((cat: any) => cat.title);
+        setServiceOptions(services);
+
+        // Reset form if current service/category is not in new options
+        setForm((prev: any) => {
+          let updates: any = {};
+          if (!services.includes(prev.service)) {
+            updates.service = "";
+          }
+          if (
+            !activeCategories.some((cat: any) => cat.title === prev.category)
+          ) {
+            updates.category = "";
+          }
+          return { ...prev, ...updates };
+        });
+      } catch (err: any) {
+        setCategoryError(err.message || "Failed to fetch categories");
+        setCategoryOptions([]);
+        setServiceOptions([]);
+      } finally {
+        setCategoryLoading(false);
+      }
+    };
+    fetchCategoriesAndServices();
   }, [form.productType]);
+
+  // Fetch subcategories when category changes
+  React.useEffect(() => {
+    if (!form.category) {
+      setSubcategoryOptions([]);
+      setForm((prev: any) => ({ ...prev, subcategories: [] }));
+      return;
+    }
+
+    const selectedCategory = categoryOptions.find(
+      (cat) => cat.title === form.category
+    );
+    if (!selectedCategory) {
+      setSubcategoryOptions([]);
+      return;
+    }
+
+    const fetchSubcategories = async () => {
+      setSubcategoryLoading(true);
+      setSubcategoryError(null);
+      try {
+        let token = getTokenFromCookies() || "";
+        const apiFetch = await import("@/lib/apiFetch");
+        const res = await apiFetch.getApiRequest(
+          `/api/product-subcategories/category/${selectedCategory._id}`,
+          token
+        );
+        const data = res?.data?.data || res?.data || [];
+        const activeSubcategories = data.filter((sub: any) => !sub.isDeleted);
+        const subcategoryNames = activeSubcategories.map(
+          (sub: any) => sub.name
+        );
+        setSubcategoryOptions(subcategoryNames);
+
+        // Reset subcategories if current ones are not in new options
+        setForm((prev: any) => ({
+          ...prev,
+          subcategories: prev.subcategories.filter((sub: string) =>
+            subcategoryNames.includes(sub)
+          ),
+        }));
+      } catch (err: any) {
+        setSubcategoryError(err.message || "Failed to fetch subcategories");
+        setSubcategoryOptions([]);
+      } finally {
+        setSubcategoryLoading(false);
+      }
+    };
+    fetchSubcategories();
+  }, [form.category, categoryOptions]);
 
   const nextStep = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
@@ -233,7 +314,7 @@ export default function CreateProductPage() {
                 onChange={handleChange}
                 className="w-full border rounded-[10px] p-2"
                 required
-                disabled={!form.productType}
+                disabled={!form.productType || categoryLoading}
               >
                 <option value="">Select Service</option>
                 {serviceOptions.map((service) => (
@@ -273,13 +354,26 @@ export default function CreateProductPage() {
               </button>
             </div>
             <label className="block text-sm font-medium mb-1">Category</label>
-            <Input
+            <select
               name="category"
               value={form.category}
               onChange={handleChange}
-              placeholder="Category"
-              className="rounded-[10px]"
-            />
+              className="w-full border rounded-[10px] p-2"
+              required
+              disabled={!form.productType || categoryLoading}
+            >
+              <option value="">
+                {categoryLoading ? "Loading..." : "Select Category"}
+              </option>
+              {categoryOptions.map((cat) => (
+                <option key={cat._id} value={cat.title}>
+                  {cat.title}
+                </option>
+              ))}
+            </select>
+            {categoryError && (
+              <div className="text-red-600 text-xs mt-1">{categoryError}</div>
+            )}
             <label className="block text-sm font-medium mb-1">
               Subcategories
             </label>
@@ -297,12 +391,17 @@ export default function CreateProductPage() {
                   }));
                 }}
                 className="border rounded-[10px] p-2 w-full"
+                disabled={!form.category || subcategoryLoading}
               >
-                {subcategoryOptions.map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
-                  </option>
-                ))}
+                {subcategoryLoading ? (
+                  <option>Loading subcategories...</option>
+                ) : (
+                  subcategoryOptions.map((sub) => (
+                    <option key={sub} value={sub}>
+                      {sub}
+                    </option>
+                  ))
+                )}
               </select>
               <input
                 type="text"
@@ -334,6 +433,11 @@ export default function CreateProductPage() {
                 Add
               </button>
             </div>
+            {subcategoryError && (
+              <div className="text-red-600 text-xs mt-1">
+                {subcategoryError}
+              </div>
+            )}
             <label className="block text-sm font-medium mb-1">
               Difficulty Level
             </label>
@@ -354,26 +458,36 @@ export default function CreateProductPage() {
             <label className="block text-sm font-medium mb-1">
               Target Audience
             </label>
-            <select
-              multiple
-              name="targetAudience"
-              value={form.targetAudience}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions).map(
-                  (opt) => opt.value
-                );
-                setForm((prev: any) => ({ ...prev, targetAudience: selected }));
-              }}
-              className="w-full border rounded-[10px] p-2"
-            >
+            <div className="flex gap-4 flex-wrap">
               {TARGET_AUDIENCE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
+                <label key={opt} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="targetAudience"
+                    value={opt}
+                    checked={form.targetAudience.includes(opt)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setForm((prev: any) => {
+                        let newAudience = Array.isArray(prev.targetAudience)
+                          ? [...prev.targetAudience]
+                          : [];
+                        if (checked) {
+                          if (!newAudience.includes(opt)) newAudience.push(opt);
+                        } else {
+                          newAudience = newAudience.filter((a) => a !== opt);
+                        }
+                        return { ...prev, targetAudience: newAudience };
+                      });
+                    }}
+                    className="accent-blue-600 rounded-[10px]"
+                  />
                   {opt
                     .replace(/_/g, " ")
                     .replace(/\b\w/g, (l) => l.toUpperCase())}
-                </option>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
         )}
         {step === 1 && (

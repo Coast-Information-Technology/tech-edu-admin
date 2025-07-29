@@ -165,7 +165,7 @@ const LoginPage = () => {
   return (
     <section className="min-h-screen flex flex-col lg:flex-row items-center justify-between bg-[url('/assets/authImg.jpg')] bg-cover bg-no-repeat bg-center text-gray-900 py-10 px-4 md:px-20">
       {/* Left Side */}
-      <div className="w-full max-w-[35rem] mx-auto bg-white/90 backdrop-blur-md py-8 md:py-14 px-6 md:px-16 rounded-[15px] min-[1240px]:rounded-br-[8rem] shadow-2xl mt-10 lg:mt-0">
+      <div className="w-full max-w-[35rem] mx-auto bg-white/90 backdrop-blur-md py-8 md:py-24 px-6 md:px-16 rounded-[15px] min-[1240px]:rounded-br-[8rem] shadow-2xl mt-10 lg:mt-0">
         {/* <button
           type="button"
           onClick={() => router.back()}
@@ -176,7 +176,7 @@ const LoginPage = () => {
         <h2 className="text-2xl font-bold mb-1 text-[#003294] min-[1240px]:max-w-[80%] min-[1240px]:text-left text-center">
           Welcome Back to Tech Edu Admin Portal
         </h2>
-        <p className="text-sm text-gray-600 mb-6 min-[1240px]:max-w-[75%] min-[1240px]:text-left text-center">
+        <p className="text-sm text-gray-600 mb-6 min-[1240px]:mb-10 min-[1240px]:max-w-[75%] min-[1240px]:text-left text-center">
           Sign in to manage users, products, analytics, and more. Unified access
           for admins, instructors, moderators, and customer care
           representatives.
@@ -252,7 +252,7 @@ const LoginPage = () => {
           </Link>
         </div>
 
-        <div className="w-full flex items-center justify-center gap-4">
+        {/* <div className="w-full flex items-center justify-center gap-4">
           <span className="w-28 h-[2px] rounded-[10px] bg-gray-600"></span>
           <div className="text-center text-sm text-gray-600 py-2">
             or continue with
@@ -284,7 +284,7 @@ const LoginPage = () => {
             alt="LinkedIn"
           />
           Login with LinkedIn
-        </button>
+        </button> */}
 
         {/* <p className="text-[1rem] text-center mt-4">
           Don't have an account?{" "}
@@ -317,7 +317,7 @@ const LoginPage = () => {
           />
         </div>
 
-        <h3 className="text-lg font-semibold mt-6">Quick Benefits Reminder</h3>
+        <h3 className="text-lg font-semibold mt-3">Quick Benefits Reminder</h3>
         <div className="max-w-md bg-white/10 backdrop-blur-md p-6 rounded-[10px] border border-white/20">
           <ul className="list-disc list-inside text-sm text-white">
             <li>Manage users, products, and company data</li>
@@ -331,7 +331,7 @@ const LoginPage = () => {
           </ul>
         </div>
 
-        <p className="text-sm font-medium pt-6">
+        <p className="text-sm font-medium pt-3">
           One login. All admin tools. Seamless experience.
         </p>
       </div>

@@ -38,9 +38,14 @@ export const dashboardSidebarConfig = {
           },
           { label: "User Management", icon: Users, href: "/dashboard/users" },
           {
-            label: "Products Management",
+            label: "Products",
             icon: Package,
             href: "/dashboard/products",
+          },
+          {
+            label: "Products Management",
+            icon: Package,
+            href: "/dashboard/products-management",
           },
           {
             label: "Course Management",
