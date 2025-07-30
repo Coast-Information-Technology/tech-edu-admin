@@ -11,6 +11,7 @@ import CookieConsent from "@/components/CookieConsent";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ThemeProvider } from "next-themes";
+import InternetCheck from "@/utils/internetCheck";
 
 const rubik = Rubik({
   subsets: ["latin"],
@@ -129,6 +130,7 @@ export default function RootLayout({
                 />
               </ProfileProvider>
             </CookieConsentProvider>
+            <InternetCheck />
           </CartProvider>
         </RoleProvider>
         {/* </ThemeProvider> */}

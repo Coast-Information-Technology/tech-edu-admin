@@ -10,7 +10,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { MoreVertical, Eye, Pencil, Trash } from "lucide-react";
+import {
+  MoreVertical,
+  Eye,
+  Pencil,
+  Trash,
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -115,279 +124,312 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex gap-2 flex-1">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search products..."
-            className="max-w-xs w-full border rounded-[10px] p-2"
-          />
-          <select
-            value={filterType}
-            onChange={(e) => {
-              setFilterType(e.target.value);
-              setPage(1);
-            }}
-            className="border rounded-[10px] p-2"
-          >
-            <option value="all">All Types</option>
-            {PRODUCT_TYPE_OPTIONS.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterEnabled}
-            onChange={(e) => {
-              setFilterEnabled(e.target.value);
-              setPage(1);
-            }}
-            className="border rounded-[10px] p-2"
-          >
-            <option value="all">All Status</option>
-            <option value="enabled">Enabled</option>
-            <option value="disabled">Disabled</option>
-          </select>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                Product Management
+              </h1>
+              <p className="text-slate-600 text-lg">
+                Manage and organize your products efficiently
+              </p>
+            </div>
+            <Link href="/dashboard/products/new">
+              <button className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:-translate-y-1">
+                <span className="flex items-center gap-3">
+                  <svg
+                    className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  Create Product
+                </span>
+              </button>
+            </Link>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value)}
-            className="border rounded-[10px] p-2"
-          >
-            <option value="service">Sort by Service</option>
-            <option value="price">Sort by Price</option>
-            <option value="productCategoryTitle">Sort by Category</option>
-          </select>
-          <select
-            value={sortDirection}
-            onChange={(e) => setSortDirection(e.target.value)}
-            className="border rounded-[10px] p-2"
-          >
-            <option value="asc">Asc</option>
-            <option value="desc">Desc</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Product Management</h1>
-        <Link href="/dashboard/products/new">
-          <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-            + Create Product
-          </button>
-        </Link>
-      </div>
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
-      {loading ? (
-        <div className="overflow-x-auto border rounded-[10px]">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3" colSpan={11}>
-                  <Skeleton className="h-6 w-1/2 mx-auto rounded" />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...Array(5)].map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 11 }).map((_, j) => (
-                    <td key={j} className="px-6 py-4">
-                      <Skeleton className="h-4 w-full rounded" />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="overflow-x-auto border rounded-[10px]">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Product Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Service
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Subcategory
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Discount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Enabled
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Delivery Mode
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Slug
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedProducts.length > 0 ? (
-                paginatedProducts.map((product) => (
-                  <tr key={product._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.productType}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.service}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.productCategoryTitle}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.productSubcategoryName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      ${product.price?.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.discountPercentage}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${
-                          product.enabled
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {product.enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.deliveryMode}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.slug}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className="p-2 rounded-full hover:bg-gray-200 focus:outline-none"
-                            aria-label="Open actions menu"
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="bg-white rounded-[10px]"
-                        >
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/dashboard/products/${product._id}`}
-                              className="cursor-pointer"
-                            >
-                              <Eye className="w-4 h-4 mr-2" /> View
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/dashboard/products/${product._id}/edit`}
-                              className="cursor-pointer"
-                            >
-                              <Pencil className="w-4 h-4 mr-2 text-gray-500" />{" "}
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteDialogOpen(product._id)}
-                          >
-                            <Trash className="w-4 h-4 mr-2 text-red-500" />{" "}
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      {/* Delete Confirmation Dialog */}
-                      {deleteDialogOpen === product._id && (
-                        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
-                          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
-                            {/* Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                  <svg
-                                    className="w-5 h-5 text-red-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                                    />
-                                  </svg>
-                                </div>
-                                <div>
-                                  <h2 className="text-xl font-bold text-gray-900">
-                                    Delete Product
-                                  </h2>
-                                  <p className="text-sm text-gray-500">
-                                    This action cannot be undone
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => setDeleteDialogOpen(null)}
-                                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors duration-200"
-                                disabled={deleteLoading === product._id}
-                              >
-                                <svg
-                                  className="w-5 h-5 text-gray-400"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
 
-                            {/* Content */}
-                            <div className="p-6">
-                              <div className="mb-6">
-                                <p className="text-gray-700 mb-3">
-                                  Are you sure you want to delete this product?
-                                </p>
-                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+        {/* Filters Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+            <div className="flex flex-col lg:flex-row gap-4 flex-1">
+              {/* Search Input */}
+              <div className="relative flex-1 max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Search products..."
+                  className="w-full pl-12 pr-4 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 placeholder-slate-400"
+                />
+              </div>
+
+              {/* Filter Controls */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select
+                    value={filterType}
+                    onChange={(e) => {
+                      setFilterType(e.target.value);
+                      setPage(1);
+                    }}
+                    className="pl-10 pr-8 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                  >
+                    <option value="all">All Types</option>
+                    {PRODUCT_TYPE_OPTIONS.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={filterEnabled}
+                    onChange={(e) => {
+                      setFilterEnabled(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex gap-3">
+              <div className="relative">
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                >
+                  <option value="service">Sort by Service</option>
+                  <option value="price">Sort by Price</option>
+                  <option value="productCategoryTitle">Sort by Category</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() =>
+                  setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+                }
+                className="px-4 py-4 bg-white/50 border border-slate-200 rounded-2xl hover:bg-white/80 transition-all duration-300 flex items-center justify-center"
+              >
+                {sortDirection === "asc" ? (
+                  <SortAsc className="h-5 w-5 text-slate-600" />
+                ) : (
+                  <SortDesc className="h-5 w-5 text-slate-600" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-8 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl p-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-red-800">Error</h3>
+              <p className="text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Products Table */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-flex items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-slate-600 text-lg">Loading products...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
+                  <tr>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Product Type
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Service
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Subcategory
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Discount
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Delivery Mode
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Slug
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white/50 divide-y divide-slate-200">
+                  {paginatedProducts.length > 0 ? (
+                    paginatedProducts.map((product) => (
+                      <tr
+                        key={product._id}
+                        className="hover:bg-blue-50/50 transition-all duration-300 group"
+                      >
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                            {product.productType}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
+                            {product.service}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-700">
+                            {product.productCategoryTitle}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-700">
+                            {product.productSubcategoryName}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm font-bold text-green-600">
+                            ${product.price?.toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200">
+                            {product.discountPercentage}%
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${
+                              product.enabled
+                                ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200"
+                                : "bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-200"
+                            }`}
+                          >
+                            {product.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-700">
+                            {product.deliveryMode}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-lg">
+                            {product.slug}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className="p-3 rounded-full hover:bg-slate-100 focus:outline-none transition-all duration-300 group-hover:bg-blue-100"
+                                aria-label="Open actions menu"
+                              >
+                                <MoreVertical className="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors duration-300" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200 p-2"
+                            >
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/products/${product._id}`}
+                                  className="cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-blue-50 rounded-xl transition-all duration-300"
+                                >
+                                  <Eye className="w-4 h-4 text-blue-600" />
+                                  <span className="font-medium">View</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/products/${product._id}/edit`}
+                                  className="cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 rounded-xl transition-all duration-300"
+                                >
+                                  <Pencil className="w-4 h-4 text-yellow-600" />
+                                  <span className="font-medium">Edit</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteDialogOpen(product._id)}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl transition-all duration-300 text-red-600 cursor-pointer"
+                              >
+                                <Trash className="w-4 h-4" />
+                                <span className="font-medium">Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
+                          {/* Delete Confirmation Dialog */}
+                          {deleteDialogOpen === product._id && (
+                            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
+                              <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
+                                {/* Header */}
+                                <div className="flex items-center justify-between p-8 border-b border-slate-100">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                                       <svg
-                                        className="w-6 h-6 text-blue-600"
+                                        className="w-6 h-6 text-red-600"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -396,28 +438,26 @@ export default function ProductsPage() {
                                           strokeLinecap="round"
                                           strokeLinejoin="round"
                                           strokeWidth={2}
-                                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                         />
                                       </svg>
                                     </div>
                                     <div>
-                                      <h3 className="font-semibold text-gray-900">
-                                        {product.service}
-                                      </h3>
-                                      <p className="text-sm text-gray-500">
-                                        {product.productType} •{" "}
-                                        {product.productCategoryTitle}
+                                      <h2 className="text-2xl font-bold text-slate-900">
+                                        Delete Product
+                                      </h2>
+                                      <p className="text-slate-500">
+                                        This action cannot be undone
                                       </p>
                                     </div>
                                   </div>
-                                </div>
-                              </div>
-
-                              {deleteError && (
-                                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                                  <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setDeleteDialogOpen(null)}
+                                    className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-all duration-300"
+                                    disabled={deleteLoading === product._id}
+                                  >
                                     <svg
-                                      className="w-5 h-5 text-red-500"
+                                      className="w-5 h-5 text-slate-400"
                                       fill="none"
                                       stroke="currentColor"
                                       viewBox="0 0 24 24"
@@ -426,149 +466,240 @@ export default function ProductsPage() {
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
                                         strokeWidth={2}
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        d="M6 18L18 6M6 6l12 12"
                                       />
                                     </svg>
-                                    <span className="text-red-700 text-sm font-medium">
-                                      {deleteError}
-                                    </span>
+                                  </button>
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-8">
+                                  <div className="mb-8">
+                                    <p className="text-slate-700 mb-6 text-lg">
+                                      Are you sure you want to delete this
+                                      product?
+                                    </p>
+                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200">
+                                      <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center">
+                                          <svg
+                                            className="w-8 h-8 text-blue-600"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                            />
+                                          </svg>
+                                        </div>
+                                        <div>
+                                          <h3 className="text-xl font-bold text-slate-900">
+                                            {product.service}
+                                          </h3>
+                                          <p className="text-slate-600">
+                                            {product.productType} •{" "}
+                                            {product.productCategoryTitle}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {deleteError && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                                      <div className="flex items-center gap-3">
+                                        <svg
+                                          className="w-5 h-5 text-red-500"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                          />
+                                        </svg>
+                                        <span className="text-red-700 font-medium">
+                                          {deleteError}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Actions */}
+                                  <div className="flex gap-4">
+                                    <button
+                                      className="flex-1 px-6 py-4 text-slate-700 bg-slate-100 hover:bg-slate-200 font-semibold rounded-2xl transition-all duration-300 hover:shadow-lg"
+                                      onClick={() => setDeleteDialogOpen(null)}
+                                      disabled={deleteLoading === product._id}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-2xl hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
+                                      onClick={async () => {
+                                        setDeleteLoading(product._id);
+                                        setDeleteError(null);
+                                        const token = getTokenFromCookies();
+                                        if (!token) {
+                                          setDeleteError(
+                                            "Authentication required. Please log in."
+                                          );
+                                          setDeleteLoading(null);
+                                          return;
+                                        }
+                                        try {
+                                          await deleteApiRequest(
+                                            `/api/products/${product._id}`,
+                                            token
+                                          );
+                                          setProducts((prev) =>
+                                            prev.filter(
+                                              (p) => p._id !== product._id
+                                            )
+                                          );
+                                          setDeleteDialogOpen(null);
+                                        } catch (err: any) {
+                                          setDeleteError(
+                                            err.message ||
+                                              "Failed to delete product"
+                                          );
+                                        } finally {
+                                          setDeleteLoading(null);
+                                        }
+                                      }}
+                                      disabled={deleteLoading === product._id}
+                                    >
+                                      {deleteLoading === product._id ? (
+                                        <span className="flex items-center justify-center gap-3">
+                                          <svg
+                                            className="w-5 h-5 animate-spin"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <circle
+                                              className="opacity-25"
+                                              cx="12"
+                                              cy="12"
+                                              r="10"
+                                              stroke="currentColor"
+                                              strokeWidth="4"
+                                            ></circle>
+                                            <path
+                                              className="opacity-75"
+                                              fill="currentColor"
+                                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                            ></path>
+                                          </svg>
+                                          Deleting...
+                                        </span>
+                                      ) : (
+                                        <span className="flex items-center justify-center gap-3">
+                                          <svg
+                                            className="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                            />
+                                          </svg>
+                                          Delete Product
+                                        </span>
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
-                              )}
-
-                              {/* Actions */}
-                              <div className="flex gap-3">
-                                <button
-                                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium rounded-xl transition-all duration-200 hover:shadow-md"
-                                  onClick={() => setDeleteDialogOpen(null)}
-                                  disabled={deleteLoading === product._id}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
-                                  onClick={async () => {
-                                    setDeleteLoading(product._id);
-                                    setDeleteError(null);
-                                    const token = getTokenFromCookies();
-                                    if (!token) {
-                                      setDeleteError(
-                                        "Authentication required. Please log in."
-                                      );
-                                      setDeleteLoading(null);
-                                      return;
-                                    }
-                                    try {
-                                      await deleteApiRequest(
-                                        `/api/products/${product._id}`,
-                                        token
-                                      );
-                                      setProducts((prev) =>
-                                        prev.filter(
-                                          (p) => p._id !== product._id
-                                        )
-                                      );
-                                      setDeleteDialogOpen(null);
-                                    } catch (err: any) {
-                                      setDeleteError(
-                                        err.message ||
-                                          "Failed to delete product"
-                                      );
-                                    } finally {
-                                      setDeleteLoading(null);
-                                    }
-                                  }}
-                                  disabled={deleteLoading === product._id}
-                                >
-                                  {deleteLoading === product._id ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                      <svg
-                                        className="w-4 h-4 animate-spin"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <circle
-                                          className="opacity-25"
-                                          cx="12"
-                                          cy="12"
-                                          r="10"
-                                          stroke="currentColor"
-                                          strokeWidth="4"
-                                        ></circle>
-                                        <path
-                                          className="opacity-75"
-                                          fill="currentColor"
-                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        ></path>
-                                      </svg>
-                                      Deleting...
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center justify-center gap-2">
-                                      <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                        />
-                                      </svg>
-                                      Delete Product
-                                    </span>
-                                  )}
-                                </button>
                               </div>
                             </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={10} className="px-8 py-16 text-center">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
+                            <svg
+                              className="w-10 h-10 text-slate-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                              No products found
+                            </h3>
+                            <p className="text-slate-600">
+                              Get started by creating your first product
+                            </p>
                           </div>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={11}
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    No products found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
-      {/* Pagination Bar */}
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-sm text-gray-700">
-          Showing{" "}
-          {Math.min((page - 1) * itemsPerPage + 1, sortedProducts.length)} to{" "}
-          {Math.min(page * itemsPerPage, sortedProducts.length)} of{" "}
-          {sortedProducts.length} products
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            aria-label="Previous page"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            aria-label="Next page"
-          >
-            Next
-          </button>
+
+        {/* Pagination Bar */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mt-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="text-sm text-slate-600">
+              Showing{" "}
+              <span className="font-semibold text-slate-900">
+                {Math.min((page - 1) * itemsPerPage + 1, sortedProducts.length)}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-slate-900">
+                {Math.min(page * itemsPerPage, sortedProducts.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-slate-900">
+                {sortedProducts.length}
+              </span>{" "}
+              products
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+                aria-label="Previous page"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+                aria-label="Next page"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
