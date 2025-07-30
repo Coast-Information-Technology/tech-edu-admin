@@ -38,7 +38,7 @@ export const dashboardSidebarConfig = {
           },
           { label: "User Management", icon: Users, href: "/dashboard/users" },
           {
-            label: "Products",
+            label: "Products & Services",
             icon: Package,
             href: "/dashboard/products",
           },
@@ -63,21 +63,21 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/staffs",
           },
           { label: "Companies", icon: Building2, href: "/dashboard/companies" },
-          {
-            label: "Services Management",
-            icon: Layers,
-            href: "/dashboard/services",
-          },
-          {
-            label: "Career Connect",
-            icon: Users,
-            href: "/dashboard/career-connect",
-          },
-          {
-            label: "Academic Services",
-            icon: Award,
-            href: "/dashboard/academic-services",
-          },
+          // {
+          //   label: "Services Management",
+          //   icon: Layers,
+          //   href: "/dashboard/services",
+          // },
+          // {
+          //   label: "Career Connect",
+          //   icon: Users,
+          //   href: "/dashboard/career-connect",
+          // },
+          // {
+          //   label: "Academic Services",
+          //   icon: Award,
+          //   href: "/dashboard/academic-services",
+          // },
           {
             label: "Bookings",
             icon: Calendar,

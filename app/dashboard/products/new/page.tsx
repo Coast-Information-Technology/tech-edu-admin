@@ -12,33 +12,34 @@ const initialForm = {
   productType: "",
   service: "",
   category: "",
-  subcategories: [],
-  difficultyLevel: "",
-  targetAudience: [],
+  subcategory: "",
   deliveryMode: "",
   sessionType: "",
   isRecurring: false,
   requiresBooking: false,
   requiresEnrollment: false,
-  requiresAttendance: false,
   hasCertificate: false,
   hasClassroom: false,
-  isBookableService: false,
+  hasSession: true,
   hasAssessment: false,
-  price: 0,
-  discountPercentage: 0,
-  durationMinutes: 0,
+  isBookableService: false,
   programLength: 0,
   mode: "",
+  durationInMinutes: 0,
+  minutesPerSession: 0,
+  price: 0,
+  discountPercentage: 0,
   description: "",
-  tags: [],
+  tags: [] as string[],
+  slug: "",
   iconUrl: "",
   thumbnailUrl: "",
   enabled: true,
-  slug: "",
-  seoTitle: "",
-  seoDescription: "",
-  pageKeywords: [],
+  // API required fields
+  productSubcategoryName: "",
+  productSubCategoryId: "",
+  productCategoryTitle: "",
+  productCategoryId: "",
 };
 
 const steps = [
@@ -66,9 +67,10 @@ const PRODUCT_TYPE_OPTIONS = [
 const SUBCATEGORY_OPTIONS = ["NLP", "ChatGPT", "AI"];
 const DIFFICULTY_LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
-const SESSION_TYPE_OPTIONS = ["1-1", "group", "classroom"];
+const SESSION_TYPE_OPTIONS = ["1-on-1", "group", "classroom"];
 const TARGET_AUDIENCE_OPTIONS = ["student", "graduate", "tech_pro", "team"];
 const PROGRAM_LENGTH_OPTIONS = ["weeks", "months", "sessions", "hours"];
+const MODE_OPTIONS = ["weeks", "days", "hours"];
 
 export default function CreateProductPage() {
   const [step, setStep] = useState(0);
@@ -80,7 +82,9 @@ export default function CreateProductPage() {
   const [customService, setCustomService] = useState("");
   const [customSubcategory, setCustomSubcategory] = useState("");
   const [serviceOptions, setServiceOptions] = useState<string[]>([]);
-  const [subcategoryOptions, setSubcategoryOptions] = useState<string[]>([]);
+  const [subcategoryOptions, setSubcategoryOptions] = useState<
+    { _id: string; name: string }[]
+  >([]);
   const [subcategoryLoading, setSubcategoryLoading] = useState(false);
   const [subcategoryError, setSubcategoryError] = useState<string | null>(null);
   const [categoryOptions, setCategoryOptions] = useState<
@@ -145,7 +149,7 @@ export default function CreateProductPage() {
   React.useEffect(() => {
     if (!form.category) {
       setSubcategoryOptions([]);
-      setForm((prev: any) => ({ ...prev, subcategories: [] }));
+      setForm((prev: any) => ({ ...prev, subcategory: "" }));
       return;
     }
 
@@ -169,17 +173,16 @@ export default function CreateProductPage() {
         );
         const data = res?.data?.data || res?.data || [];
         const activeSubcategories = data.filter((sub: any) => !sub.isDeleted);
-        const subcategoryNames = activeSubcategories.map(
-          (sub: any) => sub.name
-        );
-        setSubcategoryOptions(subcategoryNames);
+        setSubcategoryOptions(activeSubcategories);
 
-        // Reset subcategories if current ones are not in new options
+        // Reset subcategory if current one is not in new options
         setForm((prev: any) => ({
           ...prev,
-          subcategories: prev.subcategories.filter((sub: string) =>
-            subcategoryNames.includes(sub)
-          ),
+          subcategory: activeSubcategories.some(
+            (subcat: any) => subcat.name === prev.subcategory
+          )
+            ? prev.subcategory
+            : "",
         }));
       } catch (err: any) {
         setSubcategoryError(err.message || "Failed to fetch subcategories");
@@ -213,6 +216,81 @@ export default function CreateProductPage() {
     }));
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step < steps.length - 1) return;
+
+    // Basic validation
+    if (
+      !form.productType ||
+      !form.service ||
+      !form.category ||
+      !form.subcategory ||
+      !form.price
+    ) {
+      setError("Please fill all required fields.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const token = getTokenFromCookies();
+    if (!token) {
+      setError("Authentication required. Please log in.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Find the selected category and subcategory objects
+      const selectedCategory = categoryOptions.find(
+        (cat) => cat.title === form.category
+      );
+
+      // Find the selected subcategory object by name
+      const selectedSubcategory = subcategoryOptions.find(
+        (sub) => sub.name === form.subcategory
+      );
+
+      // Prepare the API payload with all required fields
+      const payload = {
+        ...form,
+        // Map form fields to API required fields
+        productCategoryId: selectedCategory?._id || "",
+        productCategoryTitle: form.category || "",
+        productSubCategoryId: selectedSubcategory?._id || "",
+        productSubcategoryName: form.subcategory || "",
+        durationInMinutes: Number(form.durationMinutes) || 0,
+        minutesPerSession: Number(form.minutesPerSession) || 0,
+        // Ensure mode is a valid value - use one of the valid enum values
+        mode: form.mode || "weeks",
+        // Sanitize number fields
+        price: Number(form.price) || 0,
+        discountPercentage: Number(form.discountPercentage) || 0,
+        programLength: Number(form.programLength) || 0,
+        // Convert arrays to strings if needed
+        tags: Array.isArray(form.tags) ? form.tags : [],
+      };
+
+      const response = await postApiRequest("/api/products", token, payload);
+
+      if (response?.data?.success) {
+        setSuccess("Product created successfully!");
+        setTimeout(() => {
+          router.push("/dashboard/products");
+        }, 2000);
+      } else {
+        setError(response?.data?.message || "Failed to create product");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to create product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Create Product</h1>
@@ -243,48 +321,7 @@ export default function CreateProductPage() {
       </div>
       <form
         className="space-y-6 bg-white rounded-[10px] shadow p-6"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (step < steps.length - 1) return;
-          // Basic validation
-          if (
-            !form.productType ||
-            !form.service ||
-            !form.category ||
-            !form.price
-          ) {
-            setError("Please fill all required fields.");
-            return;
-          }
-          setLoading(true);
-          setError(null);
-          setSuccess(null);
-          const token = getTokenFromCookies();
-          if (!token) {
-            setError("Authentication required. Please log in.");
-            setLoading(false);
-            return;
-          }
-          // Sanitize number fields
-          const sanitizedForm = {
-            ...form,
-            price: Number(form.price) || 0,
-            discountPercentage: Number(form.discountPercentage) || 0,
-            durationMinutes: Number(form.durationMinutes) || 0,
-            programLength: Number(form.programLength) || 0,
-          };
-          try {
-            await postApiRequest("/api/products", token, sanitizedForm);
-            setSuccess("Product created successfully.");
-            setTimeout(() => {
-              router.push("/dashboard/products");
-            }, 1200);
-          } catch (err: any) {
-            setError(err.message || "Failed to create product");
-          } finally {
-            setLoading(false);
-          }
-        }}
+        onSubmit={handleSubmit}
       >
         {step === 0 && (
           <div className="space-y-4">
@@ -307,52 +344,14 @@ export default function CreateProductPage() {
               ))}
             </select>
             <label className="block text-sm font-medium mb-1">Service</label>
-            <div className="flex gap-2">
-              <select
-                name="service"
-                value={form.service}
-                onChange={handleChange}
-                className="w-full border rounded-[10px] p-2"
-                required
-                disabled={!form.productType || categoryLoading}
-              >
-                <option value="">Select Service</option>
-                {serviceOptions.map((service) => (
-                  <option key={service} value={service}>
-                    {service}
-                  </option>
-                ))}
-                {form.service && !serviceOptions.includes(form.service) && (
-                  <option value={form.service}>{form.service}</option>
-                )}
-              </select>
-              <input
-                type="text"
-                value={customService}
-                onChange={(e) => setCustomService(e.target.value)}
-                placeholder="Add custom service"
-                className="border rounded-[10px] p-2 w-40"
-              />
-              <button
-                type="button"
-                className="px-3 py-2 rounded-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200"
-                onClick={() => {
-                  if (
-                    customService &&
-                    !serviceOptions.includes(customService)
-                  ) {
-                    setServiceOptions((prev) => [...prev, customService]);
-                    setForm((prev: any) => ({
-                      ...prev,
-                      service: customService,
-                    }));
-                    setCustomService("");
-                  }
-                }}
-              >
-                Add
-              </button>
-            </div>
+            <Input
+              name="service"
+              value={form.service}
+              onChange={handleChange}
+              placeholder="Enter service name (e.g., Data Science for Beginners)"
+              className="rounded-[10px]"
+              required
+            />
             <label className="block text-sm font-medium mb-1">Category</label>
             <select
               name="category"
@@ -375,119 +374,45 @@ export default function CreateProductPage() {
               <div className="text-red-600 text-xs mt-1">{categoryError}</div>
             )}
             <label className="block text-sm font-medium mb-1">
-              Subcategories
+              Subcategory
             </label>
-            <div className="flex gap-2 flex-wrap">
-              <select
-                multiple
-                value={form.subcategories}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions).map(
-                    (opt) => opt.value
-                  );
-                  setForm((prev: any) => ({
-                    ...prev,
-                    subcategories: selected,
-                  }));
-                }}
-                className="border rounded-[10px] p-2 w-full"
-                disabled={!form.category || subcategoryLoading}
-              >
-                {subcategoryLoading ? (
-                  <option>Loading subcategories...</option>
-                ) : (
-                  subcategoryOptions.map((sub) => (
-                    <option key={sub} value={sub}>
-                      {sub}
-                    </option>
-                  ))
-                )}
-              </select>
-              <input
-                type="text"
-                value={customSubcategory}
-                onChange={(e) => setCustomSubcategory(e.target.value)}
-                placeholder="Add subcategory"
-                className="border rounded-[10px] p-2 w-40"
-              />
-              <button
-                type="button"
-                className="px-3 py-2 rounded-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200"
-                onClick={() => {
-                  if (
-                    customSubcategory &&
-                    !subcategoryOptions.includes(customSubcategory)
-                  ) {
-                    setSubcategoryOptions((prev) => [
-                      ...prev,
-                      customSubcategory,
-                    ]);
-                    setForm((prev: any) => ({
-                      ...prev,
-                      subcategories: [...prev.subcategories, customSubcategory],
-                    }));
-                    setCustomSubcategory("");
-                  }
-                }}
-              >
-                Add
-              </button>
-            </div>
+            <select
+              name="subcategory"
+              value={form.subcategory}
+              onChange={handleChange}
+              className="w-full border rounded-[10px] p-2"
+              disabled={!form.category || subcategoryLoading}
+              required
+            >
+              <option value="">Select Subcategory</option>
+              {subcategoryOptions.map((sub) => (
+                <option key={sub._id} value={sub.name}>
+                  {sub.name}
+                </option>
+              ))}
+            </select>
+            {subcategoryLoading && (
+              <div className="text-gray-500 text-sm">
+                Loading subcategories...
+              </div>
+            )}
+            {!form.category && subcategoryOptions.length === 0 && (
+              <div className="text-gray-500 text-sm">
+                Select a category first
+              </div>
+            )}
+            {form.category &&
+              subcategoryOptions.length === 0 &&
+              !subcategoryLoading && (
+                <div className="text-gray-500 text-sm">
+                  No subcategories available for this category
+                </div>
+              )}
             {subcategoryError && (
               <div className="text-red-600 text-xs mt-1">
                 {subcategoryError}
               </div>
             )}
-            <label className="block text-sm font-medium mb-1">
-              Difficulty Level
-            </label>
-            <select
-              name="difficultyLevel"
-              value={form.difficultyLevel}
-              onChange={handleChange}
-              className="w-full border rounded-[10px] p-2"
-              required
-            >
-              <option value="">Select Difficulty Level</option>
-              {DIFFICULTY_LEVEL_OPTIONS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-            <label className="block text-sm font-medium mb-1">
-              Target Audience
-            </label>
-            <div className="flex gap-4 flex-wrap">
-              {TARGET_AUDIENCE_OPTIONS.map((opt) => (
-                <label key={opt} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="targetAudience"
-                    value={opt}
-                    checked={form.targetAudience.includes(opt)}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setForm((prev: any) => {
-                        let newAudience = Array.isArray(prev.targetAudience)
-                          ? [...prev.targetAudience]
-                          : [];
-                        if (checked) {
-                          if (!newAudience.includes(opt)) newAudience.push(opt);
-                        } else {
-                          newAudience = newAudience.filter((a) => a !== opt);
-                        }
-                        return { ...prev, targetAudience: newAudience };
-                      });
-                    }}
-                    className="accent-blue-600 rounded-[10px]"
-                  />
-                  {opt
-                    .replace(/_/g, " ")
-                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                </label>
-              ))}
-            </div>
           </div>
         )}
         {step === 1 && (
@@ -532,9 +457,9 @@ export default function CreateProductPage() {
                 { key: "isRecurring", label: "Recurring" },
                 { key: "requiresBooking", label: "Requires Booking" },
                 { key: "requiresEnrollment", label: "Requires Enrollment" },
-                { key: "requiresAttendance", label: "Requires Attendance" },
                 { key: "hasCertificate", label: "Has Certificate" },
                 { key: "hasClassroom", label: "Has Classroom" },
+                { key: "hasSession", label: "Has Session" },
                 { key: "isBookableService", label: "Bookable Service" },
                 { key: "hasAssessment", label: "Has Assessment" },
               ].map(({ key, label }) => (
@@ -560,7 +485,7 @@ export default function CreateProductPage() {
               name="price"
               value={form.price}
               onChange={handleChange}
-              placeholder="Price"
+              placeholder="Enter price in dollars (e.g., 99.99)"
               type="number"
               min={0}
               className="rounded-[10px]"
@@ -572,7 +497,7 @@ export default function CreateProductPage() {
               name="discountPercentage"
               value={form.discountPercentage}
               onChange={handleChange}
-              placeholder="Discount %"
+              placeholder="Enter discount percentage (e.g., 10 for 10%)"
               type="number"
               className="rounded-[10px]"
             />
@@ -580,10 +505,22 @@ export default function CreateProductPage() {
               Duration (minutes)
             </label>
             <Input
-              name="durationMinutes"
-              value={form.durationMinutes}
+              name="durationInMinutes"
+              value={form.durationInMinutes}
               onChange={handleChange}
-              placeholder="Duration (minutes)"
+              placeholder="Enter total duration in minutes (e.g., 360)"
+              type="number"
+              min={0}
+              className="rounded-[10px]"
+            />
+            <label className="block text-sm font-medium mb-1">
+              Minutes Per Session
+            </label>
+            <Input
+              name="minutesPerSession"
+              value={form.minutesPerSession}
+              onChange={handleChange}
+              placeholder="Enter minutes per individual session (e.g., 60)"
               type="number"
               min={0}
               className="rounded-[10px]"
@@ -595,7 +532,7 @@ export default function CreateProductPage() {
               name="programLength"
               value={form.programLength}
               onChange={handleChange}
-              placeholder="Program Length"
+              placeholder="Enter program length (e.g., 8 for 8 weeks)"
               type="number"
               min={0}
               className="rounded-[10px]"
@@ -608,7 +545,7 @@ export default function CreateProductPage() {
               className="w-full border rounded-[10px] p-2"
             >
               <option value="">Select Mode</option>
-              {PROGRAM_LENGTH_OPTIONS.map((opt) => (
+              {MODE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt.charAt(0).toUpperCase() + opt.slice(1)}
                 </option>
@@ -626,7 +563,7 @@ export default function CreateProductPage() {
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Description"
+              placeholder="Enter a detailed description of your product or service..."
               className="w-full border rounded-[10px] p-2"
             />
             <label className="block text-sm font-medium mb-1">
@@ -644,7 +581,7 @@ export default function CreateProductPage() {
                     .filter(Boolean),
                 }))
               }
-              placeholder="e.g. Python, AI, NLP"
+              placeholder="Enter tags separated by commas (e.g., Python, AI, Machine Learning, Data Science)"
               className="rounded-[10px]"
             />
             <label className="block text-sm font-medium mb-1">Icon Image</label>
@@ -716,43 +653,7 @@ export default function CreateProductPage() {
               name="slug"
               value={form.slug}
               onChange={handleChange}
-              placeholder="Slug"
-              className="rounded-[10px]"
-            />
-            <label className="block text-sm font-medium mb-1">SEO Title</label>
-            <Input
-              name="seoTitle"
-              value={form.seoTitle}
-              onChange={handleChange}
-              placeholder="SEO Title"
-              className="rounded-[10px]"
-            />
-            <label className="block text-sm font-medium mb-1">
-              SEO Description
-            </label>
-            <Input
-              name="seoDescription"
-              value={form.seoDescription}
-              onChange={handleChange}
-              placeholder="SEO Description"
-              className="rounded-[10px]"
-            />
-            <label className="block text-sm font-medium mb-1">
-              Page Keywords (comma separated)
-            </label>
-            <Input
-              name="pageKeywords"
-              value={form.pageKeywords.join(", ")}
-              onChange={(e) =>
-                setForm((prev: any) => ({
-                  ...prev,
-                  pageKeywords: e.target.value
-                    .split(",")
-                    .map((s: string) => s.trim())
-                    .filter(Boolean),
-                }))
-              }
-              placeholder="e.g. data science, python, machine learning"
+              placeholder="Enter URL-friendly slug (e.g., data-science-for-beginners)"
               className="rounded-[10px]"
             />
           </div>
@@ -775,22 +676,8 @@ export default function CreateProductPage() {
                   <span className="font-medium">Category:</span> {form.category}
                 </div>
                 <div>
-                  <span className="font-medium">Subcategories:</span>{" "}
-                  {form.subcategories.join(", ")}
-                </div>
-                <div>
-                  <span className="font-medium">Difficulty Level:</span>{" "}
-                  {form.difficultyLevel}
-                </div>
-                <div>
-                  <span className="font-medium">Target Audience:</span>{" "}
-                  {form.targetAudience
-                    .map((opt: string) =>
-                      opt
-                        .replace(/_/g, " ")
-                        .replace(/\b\w/g, (l) => l.toUpperCase())
-                    )
-                    .join(", ")}
+                  <span className="font-medium">Subcategory:</span>{" "}
+                  {form.subcategory}
                 </div>
               </div>
             </div>
@@ -820,10 +707,7 @@ export default function CreateProductPage() {
                   <span className="font-medium">Requires Enrollment:</span>{" "}
                   {form.requiresEnrollment ? "Yes" : "No"}
                 </div>
-                <div>
-                  <span className="font-medium">Requires Attendance:</span>{" "}
-                  {form.requiresAttendance ? "Yes" : "No"}
-                </div>
+
                 <div>
                   <span className="font-medium">Has Certificate:</span>{" "}
                   {form.hasCertificate ? "Yes" : "No"}
@@ -857,7 +741,7 @@ export default function CreateProductPage() {
                 </div>
                 <div>
                   <span className="font-medium">Duration (minutes):</span>{" "}
-                  {form.durationMinutes}
+                  {form.durationInMinutes}
                 </div>
                 <div>
                   <span className="font-medium">Program Length:</span>{" "}
@@ -883,18 +767,7 @@ export default function CreateProductPage() {
                 <div>
                   <span className="font-medium">Slug:</span> {form.slug}
                 </div>
-                <div>
-                  <span className="font-medium">SEO Title:</span>{" "}
-                  {form.seoTitle}
-                </div>
-                <div>
-                  <span className="font-medium">SEO Description:</span>{" "}
-                  {form.seoDescription}
-                </div>
-                <div>
-                  <span className="font-medium">Page Keywords:</span>{" "}
-                  {form.pageKeywords.join(", ")}
-                </div>
+
                 <div>
                   <span className="font-medium">Enabled:</span>{" "}
                   {form.enabled ? "Yes" : "No"}
@@ -941,7 +814,15 @@ export default function CreateProductPage() {
           >
             Back
           </button>
-          {step < steps.length - 1 ? (
+          {step === steps.length - 1 ? (
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-[10px] bg-green-600 text-white hover:bg-green-700"
+              disabled={loading}
+            >
+              {loading ? "Submitting..." : "Submit"}
+            </button>
+          ) : (
             <button
               type="button"
               className="px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700"
@@ -949,14 +830,6 @@ export default function CreateProductPage() {
               disabled={loading}
             >
               Next
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-[10px] bg-green-600 text-white hover:bg-green-700"
-              disabled={loading}
-            >
-              {loading ? "Submitting..." : "Submit"}
             </button>
           )}
         </DialogFooter>
