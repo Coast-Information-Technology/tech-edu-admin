@@ -33,16 +33,13 @@ const initialSubcategoryForm = {
 };
 
 const PRODUCT_TYPE_OPTIONS = [
-  "AcademicService",
-  "TrainingProgram",
-  "Consultancy",
-  "Inquiry",
-  "AI/ML Service",
-  "Marketing",
-  "Free Support",
-  "Demo Session",
-  "Career Connect",
-  "Cv Builder",
+  "Training & Certification",
+  "Academic Support Services",
+  "Career Development & Mentorship",
+  "Institutional & Team Services",
+  "AI-Powered or Automation Services",
+  "Recruitment & Job Matching",
+  "Marketing, Consultation & Free Services",
 ];
 
 export default function ProductCategoriesManagement() {
