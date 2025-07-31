@@ -48,9 +48,9 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/products-management",
           },
           {
-            label: "Course Management",
+            label: "Attendance Management",
             icon: BookOpen,
-            href: "/dashboard/courses-management",
+            href: "/dashboard/attendance-management",
           },
           {
             label: "Job Management",

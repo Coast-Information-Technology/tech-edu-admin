@@ -7,6 +7,7 @@ import { RoleProvider } from "@/contexts/RoleContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { CookieConsentProvider } from "@/contexts/CookieConsentContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
+import { ProductProvider } from "@/contexts/ProductContext";
 import CookieConsent from "@/components/CookieConsent";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -112,22 +113,24 @@ export default function RootLayout({
           <CartProvider>
             <CookieConsentProvider>
               <ProfileProvider>
-                {/* <Header /> */}
-                {children}
-                {/* <Footer /> */}
-                <CookieConsent />
-                <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop={false}
-                  closeOnClick
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                  theme="light"
-                />
+                <ProductProvider>
+                  {/* <Header /> */}
+                  {children}
+                  {/* <Footer /> */}
+                  <CookieConsent />
+                  <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="light"
+                  />
+                </ProductProvider>
               </ProfileProvider>
             </CookieConsentProvider>
             <InternetCheck />

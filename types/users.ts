@@ -87,3 +87,118 @@ export interface AdminProfile {
     updatedAt: string;
   };
 }
+
+export interface UserProfile {
+  _id: string;
+  fullName: string;
+  email: string;
+  role:
+    | "student"
+    | "individualTechProfessional"
+    | "teamTechProfessional"
+    | "recruiter"
+    | "institution"
+    | "customerCareRepresentative"
+    | "instructor"
+    | "admin";
+  isVerified: boolean;
+  isLocked?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  profileImageUrl?: string;
+  lastLoginAt?: string;
+  lastLoginIP?: string;
+  lastLoginLocation?: string;
+  onboardingStatus?: string;
+  provider?: string;
+  isPasswordResetPending?: boolean;
+  lockExpiresAt?: string | null;
+  loginAttempts?: number;
+  tokenVersion?: number;
+  profile?: {
+    _id?: string;
+    userId?: string;
+    phoneNumber?: string;
+    currentLocation?: string;
+    currentJobTitle?: string;
+    industryFocus?: string;
+    yearsOfExperience?: number;
+    employmentStatus?: string;
+    academicLevel?: string;
+    currentInstitution?: string;
+    fieldOfStudy?: string;
+    teamName?: string;
+    teamSize?: number;
+    major?: string;
+    graduationYear?: number;
+    gpa?: number;
+    // Additional profile fields from the actual API response
+    additionalProjectLinks?: string[];
+    availableAsInstructor?: boolean;
+    certifications?: string[];
+    consentToTerms?: boolean;
+    createdAt?: string;
+    frameworksAndTools?: string[];
+    interestedInTraining?: boolean;
+    isActive?: boolean;
+    learningGoals?: {
+      priorityAreas?: string[];
+    };
+    lookingForJobs?: boolean;
+    members?: any[];
+    onboardingStatus?: string;
+    platformGoals?: string[];
+    preferredTechStack?: string[];
+    programmingLanguages?: string[];
+    registeredTrainings?: string[];
+    remoteWorkExperience?: boolean;
+    skillAssessmentInterested?: boolean;
+    softSkills?: string[];
+    teamAcknowledged?: boolean;
+    trainingAvailability?: string;
+    updatedAt?: string;
+    // Recruiter-specific fields
+    agreeToTerms?: boolean;
+    companyId?: string;
+    contactEmail?: string;
+    hiringRegions?: string[];
+    positionAtCompany?: string;
+    preferredContactMethod?: string;
+    preferredHiringModel?: string;
+    recruiterAdminId?: string;
+    recruitingName?: string;
+    recruitmentFocusAreas?: string[];
+    referralCodeOrName?: string;
+    referralSource?: string;
+    verificationStatus?: string;
+    company?: {
+      _id?: string;
+      associatedUsers?: Array<{
+        role: string;
+        userId: string;
+        _id: string;
+      }>;
+      contactPerson?: {
+        email: string;
+        phone: string;
+      };
+      createdAt?: string;
+      industry?: string;
+      isActive?: boolean;
+      isVerified?: boolean;
+      location?: {
+        country: string;
+        state: string;
+        city: string;
+      };
+      logoUrl?: string;
+      name: string;
+      rcNumber?: string;
+      type?: string;
+      updatedAt?: string;
+      website?: string;
+      __v?: number;
+    };
+    [key: string]: any;
+  };
+}

@@ -27,6 +27,28 @@ import {
   Share2,
   Copy,
   Loader2,
+  ExternalLink,
+  Eye,
+  Bookmark,
+  BookmarkPlus,
+  BookmarkCheck,
+  FileText,
+  Award,
+  Target,
+  Zap,
+  Sparkles,
+  AlertTriangle,
+  Info,
+  TrendingUp,
+  Users2,
+  BriefcaseBusiness,
+  CalendarDays,
+  Clock3,
+  MapPinIcon,
+  Building,
+  GraduationCap,
+  Heart,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-toastify";
@@ -42,6 +64,9 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -94,6 +119,9 @@ export default function JobDetailPage() {
       )
     ) {
       try {
+        setDeleteLoading(true);
+        setDeleteError(null);
+
         const token = getTokenFromCookies();
         if (!token) {
           toast.error("Authentication required");
@@ -101,7 +129,7 @@ export default function JobDetailPage() {
         }
 
         const response = await deleteApiRequest(
-          `/api/ats/job-posts/${job._id}`,
+          `/api/ats/job-posts/${jobId}`,
           token
         );
 
@@ -109,13 +137,16 @@ export default function JobDetailPage() {
           toast.success("Job deleted successfully");
           router.push("/dashboard/jobs-management");
         } else {
-          toast.error(response.message || "Failed to delete job");
+          setDeleteError(response.message || "Failed to delete job");
+          toast.error("Failed to delete job");
         }
       } catch (error: any) {
-        console.error("Error deleting job:", error);
-        toast.error(
+        setDeleteError(
           error.message || "An error occurred while deleting the job"
         );
+        toast.error("An error occurred while deleting the job");
+      } finally {
+        setDeleteLoading(false);
       }
     }
   };
@@ -128,8 +159,8 @@ export default function JobDetailPage() {
   const shareJob = () => {
     if (navigator.share) {
       navigator.share({
-        title: job?.title,
-        text: job?.description,
+        title: job?.title || "Job Posting",
+        text: `Check out this job: ${job?.title} at ${job?.company}`,
         url: window.location.href,
       });
     } else {
@@ -140,387 +171,524 @@ export default function JobDetailPage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "full-time":
-        return "bg-green-100 text-green-800";
+        return "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200";
       case "part-time":
-        return "bg-blue-100 text-blue-800";
+        return "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200";
       case "contract":
-        return "bg-purple-100 text-purple-800";
+        return "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border-purple-200";
       case "internship":
-        return "bg-orange-100 text-orange-800";
+        return "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-200";
       case "remote":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-200";
     }
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return "Not specified";
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch (error) {
-      return "Invalid date";
-    }
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading job details...</span>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="text-lg text-slate-600">
+                Loading job details...
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error || !job) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error || "Job not found"}</p>
-          <Button
-            onClick={() => router.push("/dashboard/jobs-management")}
-            variant="outline"
-          >
-            Back to Jobs
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-10 h-10 text-red-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-red-800 mb-2">
+                Error Loading Job
+              </h3>
+              <p className="text-red-700 mb-6">{error}</p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  className="rounded-2xl"
+                >
+                  Try Again
+                </Button>
+                <Button asChild variant="outline" className="rounded-2xl">
+                  <Link href="/dashboard/jobs-management">Back to Jobs</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="w-10 h-10 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-800 mb-2">
+                Job Not Found
+              </h3>
+              <p className="text-slate-600 mb-6">
+                The job you're looking for doesn't exist or has been removed.
+              </p>
+              <Button asChild className="rounded-2xl">
+                <Link href="/dashboard/jobs-management">Back to Jobs</Link>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            className="rounded-[10px]"
-            onClick={() => router.push("/dashboard/jobs-management")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Jobs
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-[#011F72]">{job.title}</h1>
-            <p className="text-gray-600 mt-1">
-              Job Details • Posted {formatDate(job.createdAt)}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="rounded-[10px]"
-            onClick={shareJob}
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-          <Button variant="outline" className="rounded-[10px]" asChild>
-            <Link href={`/dashboard/jobs-management/${job._id}/edit`}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Job
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
+          <div className="flex items-center gap-4 mb-6">
+            <Link href="/dashboard/jobs-management">
+              <Button variant="outline" size="sm" className="rounded-2xl">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Jobs
+              </Button>
             </Link>
-          </Button>
-          <Button
-            variant="destructive"
-            className="rounded-[10px]"
-            onClick={handleDeleteJob}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Job
-          </Button>
-        </div>
-      </div>
-
-      {/* Job Status Badges */}
-      <div className="flex flex-wrap gap-2">
-        <Badge className={getTypeColor(job.employmentType || "full-time")}>
-          {(job.employmentType || "full-time").replace("-", " ")}
-        </Badge>
-        {job.isFeatured && (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Star className="w-3 h-3 mr-1" />
-            Featured
-          </Badge>
-        )}
-        {job.isUrgent && (
-          <Badge className="bg-red-100 text-red-800">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Urgent
-          </Badge>
-        )}
-        {job.isDeleted && (
-          <Badge className="bg-gray-100 text-gray-800">
-            <X className="w-3 h-3 mr-1" />
-            Deleted
-          </Badge>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Job Description */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5" />
-                Job Description
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {job.description}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Required Skills */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Required Skills
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {(job.requiredSkills || []).map((skill, index) => (
-                  <Badge key={index} variant="secondary" className="text-sm">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tags */}
-          {(job.tags || []).length > 0 && (
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />
-                  Tags
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {(job.tags || []).map((tag, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Job Overview */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Job Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {job.company && (
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Company</p>
-                    <p className="text-sm text-gray-600">{job.company}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium">Location</p>
-                  <p className="text-sm text-gray-600">{job.location}</p>
-                </div>
-              </div>
-
-              {job.salaryRange && (
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Salary Range</p>
-                    <p className="text-sm text-gray-600">{job.salaryRange}</p>
-                  </div>
-                </div>
-              )}
-
-              {job.department && (
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Department</p>
-                    <p className="text-sm text-gray-600">{job.department}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium">Posted</p>
-                  <p className="text-sm text-gray-600">
-                    {formatDate(job.createdAt)}
-                  </p>
-                </div>
-              </div>
-
-              {job.expiryDate && (
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Expires</p>
-                    <p className="text-sm text-gray-600">
-                      {formatDate(job.expiryDate)}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Contact Information */}
-          {(job.contactEmail || job.contactPhone || job.website) && (
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {job.contactEmail && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Email</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-600">
-                          {job.contactEmail}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(job.contactEmail!)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {job.title}
+                </h1>
+                {job.isFeatured && (
+                  <Star className="w-6 h-6 text-yellow-500 fill-current" />
                 )}
-
-                {job.contactPhone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Phone</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-600">
-                          {job.contactPhone}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(job.contactPhone!)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                {job.isUrgent && (
+                  <AlertCircle className="w-6 h-6 text-red-500" />
                 )}
-
-                {job.website && (
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-gray-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Website</p>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={job.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          {job.website}
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(job.website!)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {job.recruiter && (
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium">Recruiter</p>
-                      <p className="text-sm text-gray-600">{job.recruiter}</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Job Actions */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+              </div>
+              <p className="text-slate-600 text-lg">
+                {job.company && `${job.company} • `}
+                {job.location}
+              </p>
+            </div>
+            <div className="flex gap-3">
               <Button
-                className="w-full bg-[#011F72] hover:bg-blue-700 text-white rounded-[10px]"
-                asChild
+                variant="outline"
+                size="sm"
+                onClick={shareJob}
+                className="rounded-2xl"
               >
-                <Link href={`/dashboard/jobs-management/${job._id}/edit`}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="rounded-2xl"
+              >
+                <Link href={`/dashboard/jobs-management/${jobId}/edit`}>
                   <Edit className="w-4 h-4 mr-2" />
-                  Edit Job
+                  Edit
                 </Link>
               </Button>
               <Button
                 variant="outline"
-                className="w-full rounded-[10px]"
-                onClick={shareJob}
+                size="sm"
+                onClick={handleDeleteJob}
+                disabled={deleteLoading}
+                className="rounded-2xl text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200"
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Job
+                {deleteLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Delete
               </Button>
-              <Button
-                variant="outline"
-                className="w-full rounded-[10px]"
-                onClick={() => copyToClipboard(job.slug)}
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Job ID
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          {/* Job Status Badges */}
+          <div className="flex flex-wrap gap-3">
+            <Badge className={`${getTypeColor(job.employmentType)} border`}>
+              <Briefcase className="w-3 h-3 mr-1" />
+              {job.employmentType.replace("-", " ")}
+            </Badge>
+            {job.isFeatured && (
+              <Badge className="bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-yellow-200">
+                <Star className="w-3 h-3 mr-1" />
+                Featured
+              </Badge>
+            )}
+            {job.isUrgent && (
+              <Badge className="bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-200">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                Urgent
+              </Badge>
+            )}
+            {job.salaryRange && (
+              <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
+                <DollarSign className="w-3 h-3 mr-1" />
+                {job.salaryRange}
+              </Badge>
+            )}
+          </div>
         </div>
+
+        {/* Job Details Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Job Description */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">
+                      Job Description
+                    </h2>
+                    <p className="text-slate-600 text-sm">
+                      Detailed information about the role
+                    </p>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-slate max-w-none">
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {job.description}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Required Skills */}
+            {job.requiredSkills && job.requiredSkills.length > 0 && (
+              <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Target className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Required Skills
+                      </h2>
+                      <p className="text-slate-600 text-sm">
+                        Skills and qualifications needed
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-3">
+                    {job.requiredSkills.map((skill, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="rounded-full px-4 py-2 text-sm"
+                      >
+                        <Award className="w-3 h-3 mr-2" />
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tags */}
+            {job.tags && job.tags.length > 0 && (
+              <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Tags
+                      </h2>
+                      <p className="text-slate-600 text-sm">
+                        Additional keywords and categories
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-3">
+                    {job.tags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="rounded-full px-4 py-2 text-sm"
+                      >
+                        <Sparkles className="w-3 h-3 mr-2" />
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-8">
+            {/* Company Information */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Company Info
+                    </h2>
+                    <p className="text-slate-600 text-sm">
+                      About the organization
+                    </p>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {job.company && (
+                  <div className="flex items-center gap-3">
+                    <Building className="w-4 h-4 text-slate-500" />
+                    <span className="text-slate-700 font-medium">
+                      {job.company}
+                    </span>
+                  </div>
+                )}
+                {job.department && (
+                  <div className="flex items-center gap-3">
+                    <Users2 className="w-4 h-4 text-slate-500" />
+                    <span className="text-slate-700">{job.department}</span>
+                  </div>
+                )}
+                {job.location && (
+                  <div className="flex items-center gap-3">
+                    <MapPinIcon className="w-4 h-4 text-slate-500" />
+                    <span className="text-slate-700">{job.location}</span>
+                  </div>
+                )}
+                {job.website && (
+                  <div className="flex items-center gap-3">
+                    <Globe className="w-4 h-4 text-slate-500" />
+                    <a
+                      href={job.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-700 underline"
+                    >
+                      Visit Website
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Contact Information */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Contact
+                    </h2>
+                    <p className="text-slate-600 text-sm">Get in touch</p>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {job.contactEmail && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-slate-500" />
+                      <span className="text-slate-700">{job.contactEmail}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        job.contactEmail && copyToClipboard(job.contactEmail)
+                      }
+                      className="rounded-full p-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+                {job.contactPhone && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-slate-500" />
+                      <span className="text-slate-700">{job.contactPhone}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        job.contactPhone && copyToClipboard(job.contactPhone)
+                      }
+                      className="rounded-full p-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+                {job.recruiter && (
+                  <div className="flex items-center gap-3">
+                    <Users className="w-4 h-4 text-slate-500" />
+                    <span className="text-slate-700">
+                      Recruiter: {job.recruiter}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Job Details */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Info className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Job Details
+                    </h2>
+                    <p className="text-slate-600 text-sm">
+                      Additional information
+                    </p>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-slate-500" />
+                  <span className="text-slate-700">
+                    Posted: {formatDate(job.createdAt)}
+                  </span>
+                </div>
+                {job.expiryDate && (
+                  <div className="flex items-center gap-3">
+                    <Clock3 className="w-4 h-4 text-slate-500" />
+                    <span className="text-slate-700">
+                      Expires: {formatDate(job.expiryDate)}
+                    </span>
+                  </div>
+                )}
+                {job.salaryRange && (
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4 text-slate-500" />
+                    <span className="text-slate-700">{job.salaryRange}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <BriefcaseBusiness className="w-4 h-4 text-slate-500" />
+                  <span className="text-slate-700">
+                    {job.employmentType.replace("-", " ")}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Quick Actions
+                    </h2>
+                    <p className="text-slate-600 text-sm">Manage this job</p>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full rounded-2xl"
+                  asChild
+                >
+                  <Link href={`/dashboard/jobs-management/${jobId}/edit`}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Job
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-2xl"
+                  onClick={shareJob}
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Job
+                </Button>
+                <Button variant="outline" className="w-full rounded-2xl">
+                  <BookmarkPlus className="w-4 h-4 mr-2" />
+                  Save to Favorites
+                </Button>
+                <Button variant="outline" className="w-full rounded-2xl">
+                  <Send className="w-4 h-4 mr-2" />
+                  Send to Candidates
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Error Message for Delete */}
+        {deleteError && (
+          <div className="mt-8 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl p-6 flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-red-800">
+                Delete Error
+              </h3>
+              <p className="text-red-700">{deleteError}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

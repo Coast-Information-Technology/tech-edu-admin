@@ -7,6 +7,17 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { postApiRequest } from "@/lib/apiFetch";
 import { Switch } from "@/components/ui/switch";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "react-toastify";
+import { Plus, X } from "lucide-react";
 
 const initialForm = {
   productType: "",
@@ -51,25 +62,18 @@ const steps = [
 ];
 
 const PRODUCT_TYPE_OPTIONS = [
-  "AcademicService",
-  "TrainingProgram",
-  "Consultancy",
-  "Inquiry",
-  "AI/ML Service",
-  "Marketing",
-  "Free Support",
-  "Demo Session",
-  "Career Connect",
-  "Cv Builder",
+  "Training & Certification",
+  "Academic Support Services",
+  "Career Development & Mentorship",
+  "Institutional & Team Services",
+  "AI-Powered or Automation Services",
+  "Recruitment & Job Matching",
+  "Marketing, Consultation & Free Services",
 ];
 
 // Remove static SERVICE_OPTIONS since we'll fetch dynamically
-const SUBCATEGORY_OPTIONS = ["NLP", "ChatGPT", "AI"];
-const DIFFICULTY_LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
 const SESSION_TYPE_OPTIONS = ["1-on-1", "group", "classroom"];
-const TARGET_AUDIENCE_OPTIONS = ["student", "graduate", "tech_pro", "team"];
-const PROGRAM_LENGTH_OPTIONS = ["weeks", "months", "sessions", "hours"];
 const MODE_OPTIONS = ["weeks", "days", "hours"];
 
 export default function CreateProductPage() {
@@ -92,6 +96,16 @@ export default function CreateProductPage() {
   >([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  // Category creation dialog state
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [newCategoryTitle, setNewCategoryTitle] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
+  // Subcategory creation dialog state
+  const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [creatingSubcategory, setCreatingSubcategory] = useState(false);
 
   // Fetch categories and services when productType changes
   React.useEffect(() => {
@@ -197,12 +211,141 @@ export default function CreateProductPage() {
   const nextStep = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
 
+  // Create new category
+  const handleCreateCategory = async () => {
+    if (!newCategoryTitle.trim() || !form.productType) {
+      toast.error("Please enter a category title and select a product type");
+      return;
+    }
+
+    setCreatingCategory(true);
+    try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      const response = await postApiRequest("/api/product-categories", token, {
+        title: newCategoryTitle.trim(),
+        productType: form.productType,
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        toast.success("Category created successfully!");
+
+        // Add the new category to the options
+        const newCategory = {
+          _id: response.data._id,
+          title: response.data.title,
+        };
+        setCategoryOptions((prev: { _id: string; title: string }[]) => [
+          ...prev,
+          newCategory,
+        ]);
+
+        // Set the new category as selected
+        setForm((prev: any) => ({ ...prev, category: newCategory.title }));
+
+        // Reset and close dialog
+        setNewCategoryTitle("");
+        setShowCategoryDialog(false);
+      } else {
+        toast.error(response.message || "Failed to create category");
+      }
+    } catch (error: any) {
+      console.error("Error creating category:", error);
+      toast.error("Failed to create category");
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  // Create new subcategory
+  const handleCreateSubcategory = async () => {
+    if (!newSubcategoryName.trim() || !form.category || !form.productType) {
+      toast.error(
+        "Please enter a subcategory name, select a category, and ensure product type is set"
+      );
+      return;
+    }
+
+    setCreatingSubcategory(true);
+    try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      // Find the selected category to get its ID
+      const selectedCategory = categoryOptions.find(
+        (cat) => cat.title === form.category
+      );
+      if (!selectedCategory) {
+        toast.error("Selected category not found");
+        return;
+      }
+
+      const response = await postApiRequest(
+        "/api/product-subcategories",
+        token,
+        {
+          name: newSubcategoryName.trim(),
+          categoryTitle: form.category,
+          categoryId: selectedCategory._id,
+          productType: form.productType,
+        }
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        toast.success("Subcategory created successfully!");
+
+        // Add the new subcategory to the options
+        const newSubcategory = {
+          _id: response.data._id,
+          name: response.data.name,
+        };
+        setSubcategoryOptions((prev: { _id: string; name: string }[]) => [
+          ...prev,
+          newSubcategory,
+        ]);
+
+        // Set the new subcategory as selected
+        setForm((prev: any) => ({ ...prev, subcategory: newSubcategory.name }));
+
+        // Reset and close dialog
+        setNewSubcategoryName("");
+        setShowSubcategoryDialog(false);
+      } else {
+        toast.error(response.message || "Failed to create subcategory");
+      }
+    } catch (error: any) {
+      console.error("Error creating subcategory:", error);
+      toast.error("Failed to create subcategory");
+    } finally {
+      setCreatingSubcategory(false);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value, type } = e.target;
+
+    // Handle "Create New" selections
+    if (name === "category" && value === "__create_new__") {
+      setShowCategoryDialog(true);
+      return;
+    }
+
+    if (name === "subcategory" && value === "__create_new__") {
+      setShowSubcategoryDialog(true);
+      return;
+    }
+
     setForm((prev: any) => ({
       ...prev,
       [name]:
@@ -444,7 +587,11 @@ export default function CreateProductPage() {
                     >
                       <option value="">Select Product Type</option>
                       {PRODUCT_TYPE_OPTIONS.map((type) => (
-                        <option key={type} value={type}>
+                        <option
+                          key={type}
+                          value={type}
+                          className="rounded-[10px]"
+                        >
                           {type}
                         </option>
                       ))}
@@ -481,16 +628,87 @@ export default function CreateProductPage() {
                           : "Select Category"}
                       </option>
                       {categoryOptions.map((cat) => (
-                        <option key={cat._id} value={cat.title}>
+                        <option
+                          key={cat._id}
+                          value={cat.title}
+                          className="rounded-[10px]"
+                        >
                           {cat.title}
                         </option>
                       ))}
+                      {form.productType && (
+                        <option
+                          value="__create_new__"
+                          className="text-blue-600 font-semibold"
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> Create New Category
+                        </option>
+                      )}
                     </select>
                     {categoryError && (
                       <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-200">
                         {categoryError}
                       </div>
                     )}
+
+                    {/* Category Creation Dialog */}
+                    <Dialog
+                      open={showCategoryDialog}
+                      onOpenChange={setShowCategoryDialog}
+                    >
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Create New Category</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="productType">Product Type</Label>
+                            <Input
+                              id="productType"
+                              value={form.productType}
+                              disabled
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="categoryTitle">
+                              Category Title *
+                            </Label>
+                            <Input
+                              id="categoryTitle"
+                              value={newCategoryTitle}
+                              onChange={(e) =>
+                                setNewCategoryTitle(e.target.value)
+                              }
+                              placeholder="Enter category title (e.g., Academic Mentoring)"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowCategoryDialog(false)}
+                            disabled={creatingCategory}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={handleCreateCategory}
+                            disabled={
+                              creatingCategory || !newCategoryTitle.trim()
+                            }
+                          >
+                            {creatingCategory
+                              ? "Creating..."
+                              : "Create Category"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
 
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Subcategory *
@@ -505,10 +723,23 @@ export default function CreateProductPage() {
                     >
                       <option value="">Select Subcategory</option>
                       {subcategoryOptions.map((sub) => (
-                        <option key={sub._id} value={sub.name}>
+                        <option
+                          key={sub._id}
+                          value={sub.name}
+                          className="rounded-[10px]"
+                        >
                           {sub.name}
                         </option>
                       ))}
+                      {form.category && (
+                        <option
+                          value="__create_new__"
+                          className="text-blue-600 font-semibold"
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> Create New
+                          Subcategory
+                        </option>
+                      )}
                     </select>
                     {subcategoryLoading && (
                       <div className="text-blue-600 text-sm bg-blue-50 p-3 rounded-xl border border-blue-200">
@@ -532,6 +763,76 @@ export default function CreateProductPage() {
                         {subcategoryError}
                       </div>
                     )}
+
+                    {/* Subcategory Creation Dialog */}
+                    <Dialog
+                      open={showSubcategoryDialog}
+                      onOpenChange={setShowSubcategoryDialog}
+                    >
+                      <DialogContent className="sm:max-w-md bg-white">
+                        <DialogHeader>
+                          <DialogTitle>Create New Subcategory</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="dialogProductType">
+                              Product Type
+                            </Label>
+                            <Input
+                              id="dialogProductType"
+                              value={form.productType}
+                              disabled
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="dialogCategory">Category</Label>
+                            <Input
+                              id="dialogCategory"
+                              value={form.category}
+                              disabled
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="subcategoryName">
+                              Subcategory Name *
+                            </Label>
+                            <Input
+                              id="subcategoryName"
+                              value={newSubcategoryName}
+                              onChange={(e) =>
+                                setNewSubcategoryName(e.target.value)
+                              }
+                              placeholder="Enter subcategory name (e.g., Natural Language Processing)"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowSubcategoryDialog(false)}
+                            disabled={creatingSubcategory}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={handleCreateSubcategory}
+                            disabled={
+                              creatingSubcategory || !newSubcategoryName.trim()
+                            }
+                          >
+                            {creatingSubcategory
+                              ? "Creating..."
+                              : "Create Subcategory"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               </div>
@@ -553,7 +854,7 @@ export default function CreateProductPage() {
                 >
                   <option value="">Select Delivery Mode</option>
                   {DELIVERY_MODE_OPTIONS.map((mode) => (
-                    <option key={mode} value={mode}>
+                    <option key={mode} value={mode} className="rounded-[10px]">
                       {mode}
                     </option>
                   ))}
@@ -570,7 +871,7 @@ export default function CreateProductPage() {
                 >
                   <option value="">Select Session Type</option>
                   {SESSION_TYPE_OPTIONS.map((type) => (
-                    <option key={type} value={type}>
+                    <option key={type} value={type} className="rounded-[10px]">
                       {type}
                     </option>
                   ))}
@@ -674,7 +975,7 @@ export default function CreateProductPage() {
                 >
                   <option value="">Select Mode</option>
                   {MODE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
+                    <option key={opt} value={opt} className="rounded-[10px]">
                       {opt.charAt(0).toUpperCase() + opt.slice(1)}
                     </option>
                   ))}

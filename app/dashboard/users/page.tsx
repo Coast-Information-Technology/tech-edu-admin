@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { getApiRequest, patchApiRequest } from "@/lib/apiFetch";
+import { useTokenManagement } from "@/hooks/useTokenManagement";
+import { toast } from "react-toastify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,141 +50,81 @@ import {
   Trash2,
   UserCheck,
   UserX,
-  Check,
-  X,
-  Lock,
-  Unlock,
-  AlertTriangle,
-  Loader2,
+  Target,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Settings,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { toast } from "react-toastify";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { getApiRequest, deleteApiRequest } from "@/lib/apiFetch";
-import { useTokenManagement } from "@/hooks/useTokenManagement";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface User {
-  id: string;
-  name: string;
+  _id: string;
+  fullName: string;
   email: string;
   role:
     | "student"
     | "individualTechProfessional"
     | "teamTechProfessional"
+    | "recruiter"
     | "institution"
-    | "admin"
-    | string; // add string for custom roles like "instructor", "recruiter", etc.
-  status: "active" | "inactive" | "pending" | "suspended";
-  avatar: string;
-  location: string;
-  phone: string;
-  joinDate: string;
-  lastActive: string;
-  coursesEnrolled: number;
-  coursesCompleted: number;
-  certifications: number;
-  department?: string;
-  company?: string;
-  institution?: string;
-
-  // Add these properties:
-  isVerified?: boolean;
-  provider?: string;
-  onboardingStatus?: string;
-  tokenVersion?: number;
-  loginAttempts?: number;
+    | "customerCareRepresentative"
+    | "instructor"
+    | "admin";
+  isVerified: boolean;
   isLocked?: boolean;
-  lockExpiresAt?: string | null;
-  isPasswordResetPending?: boolean;
+  createdAt: string;
   updatedAt?: string;
+  profileImageUrl?: string;
+  lastLoginAt?: string;
   lastLoginIP?: string;
+  lastLoginLocation?: string;
+  onboardingStatus?: string;
+  provider?: string;
+  isPasswordResetPending?: boolean;
+  lockExpiresAt?: string | null;
+  loginAttempts?: number;
+  tokenVersion?: number;
+  profile?: {
+    phoneNumber?: string;
+    currentLocation?: string;
+    currentJobTitle?: string;
+    industryFocus?: string;
+    yearsOfExperience?: number;
+    employmentStatus?: string;
+    academicLevel?: string;
+    currentInstitution?: string;
+    fieldOfStudy?: string;
+    teamName?: string;
+    teamSize?: number;
+    company?: {
+      name: string;
+    };
+    [key: string]: any;
+  };
 }
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const { accessToken } = useTokenManagement();
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [isVerifiedFilter, setIsVerifiedFilter] = useState("all");
+  const [isLockedFilter, setIsLockedFilter] = useState("all");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<keyof User>("name");
+  const [sortField, setSortField] = useState<keyof User>("fullName");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [viewUser, setViewUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [deletingUser, setDeletingUser] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [verifiedUsers, setVerifiedUsers] = useState(0);
+  const [lockedUsers, setLockedUsers] = useState(0);
+  const [activeUsers, setActiveUsers] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [limit] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    if (!accessToken) return;
-    setLoading(true);
-    getApiRequest("/api/users/admin/", accessToken)
-      .then((res) => {
-        const apiUsers = res?.data?.data?.users || [];
-        setUsers(
-          apiUsers.map((u: any) => ({
-            id: u._id,
-            name: u.fullName,
-            email: u.email,
-            role: u.role,
-            status: u.isLocked ? "suspended" : "active",
-            avatar: u.profileImageUrl || "/assets/placeholder-avatar.jpg",
-            location: u.lastLoginLocation || "",
-            phone: u.phone || "",
-            joinDate: u.createdAt
-              ? new Date(u.createdAt).toLocaleDateString()
-              : "",
-            lastActive: u.lastLoginAt
-              ? new Date(u.lastLoginAt).toLocaleDateString()
-              : "",
-            coursesEnrolled: u.coursesEnrolled || 0,
-            coursesCompleted: u.coursesCompleted || 0,
-            certifications: u.certifications || 0,
-            department: u.department || "",
-            company: u.company || "",
-            institution: u.institution || "",
-            // Add these:
-            isVerified: u.isVerified,
-            provider: u.provider,
-            onboardingStatus: u.onboardingStatus,
-            tokenVersion: u.tokenVersion,
-            loginAttempts: u.loginAttempts,
-            isLocked: u.isLocked,
-            lockExpiresAt: u.lockExpiresAt,
-            isPasswordResetPending: u.isPasswordResetPending,
-            updatedAt: u.updatedAt,
-            lastLoginIP: u.lastLoginIP,
-          }))
-        );
-      })
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false));
-  }, [accessToken]);
+  const { accessToken } = useTokenManagement();
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -189,10 +132,16 @@ export default function UserManagementPage() {
         return <GraduationCap className="w-4 h-4" />;
       case "individualTechProfessional":
         return <Briefcase className="w-4 h-4" />;
-      case "company":
-        return <Building2 className="w-4 h-4" />;
+      case "teamTechProfessional":
+        return <Users className="w-4 h-4" />;
+      case "recruiter":
+        return <Target className="w-4 h-4" />;
       case "institution":
         return <Building2 className="w-4 h-4" />;
+      case "customerCareRepresentative":
+        return <Users className="w-4 h-4" />;
+      case "instructor":
+        return <GraduationCap className="w-4 h-4" />;
       case "admin":
         return <Shield className="w-4 h-4" />;
       default:
@@ -203,33 +152,34 @@ export default function UserManagementPage() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case "student":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "individualTechProfessional":
-        return "bg-green-100 text-green-800";
-      case "company":
-        return "bg-purple-100 text-purple-800";
+        return "bg-green-100 text-green-800 border-green-200";
+      case "teamTechProfessional":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "recruiter":
+        return "bg-orange-100 text-orange-800 border-orange-200";
       case "institution":
-        return "bg-orange-100 text-orange-800";
+        return "bg-indigo-100 text-indigo-800 border-indigo-200";
+      case "customerCareRepresentative":
+        return "bg-pink-100 text-pink-800 border-pink-200";
+      case "instructor":
+        return "bg-teal-100 text-teal-800 border-teal-200";
       case "admin":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border-red-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "inactive":
-        return "bg-gray-100 text-gray-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "suspended":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const getStatusColor = (isLocked?: boolean) => {
+    return isLocked
+      ? "bg-red-100 text-red-800 border-red-200"
+      : "bg-green-100 text-green-800 border-green-200";
+  };
+
+  const getStatusLabel = (isLocked?: boolean) => {
+    return isLocked ? "Locked" : "Active";
   };
 
   const handleSort = (field: keyof User) => {
@@ -241,99 +191,209 @@ export default function UserManagementPage() {
     }
   };
 
-  // Bulk actions handlers
+  // Fetch users from API
+  const fetchUsers = async (page: number = 1, reset: boolean = false) => {
+    if (!accessToken) {
+      console.log("No access token available");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("Fetching users with params:", { page, limit });
+
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        skip: ((page - 1) * limit).toString(),
+      });
+
+      if (searchTerm) params.append("search", searchTerm);
+      if (roleFilter && roleFilter !== "all") params.append("role", roleFilter);
+      if (isVerifiedFilter && isVerifiedFilter !== "all") {
+        params.append(
+          "isVerified",
+          isVerifiedFilter === "true" ? "true" : "false"
+        );
+      }
+      if (isLockedFilter && isLockedFilter !== "all") {
+        params.append("isLocked", isLockedFilter === "true" ? "true" : "false");
+      }
+
+      const url = `/api/users/?${params.toString()}`;
+      console.log("Making API request to:", url);
+      console.log("Query parameters:", params.toString());
+
+      const response = await getApiRequest(url, accessToken);
+      console.log("API response:", response);
+
+      if (response.status === 200) {
+        const data = response.data;
+        console.log("Users data:", data);
+
+        // Handle nested data structure: data.data.data.users
+        const usersData = data?.data?.data || data?.data || data;
+        const users = usersData?.users || [];
+        const total = usersData?.total || 0;
+        const hasMore = usersData?.hasMore || false;
+
+        console.log("Extracted users:", users);
+        console.log("Total:", total);
+        console.log("Has more:", hasMore);
+
+        if (reset) {
+          setUsers(users);
+        } else {
+          setUsers((prev) => (page === 1 ? users : [...prev, ...users]));
+        }
+        setTotalUsers(total);
+        setHasMore(hasMore);
+        setCurrentPage(page);
+      } else {
+        console.error("API error:", response);
+        toast.error(response.message || "Failed to fetch users");
+      }
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchUsers(1, true);
+  }, [accessToken]);
+
+  // Refresh data when filters change
+  useEffect(() => {
+    fetchUsers(1, true);
+  }, [searchTerm, roleFilter, isVerifiedFilter, isLockedFilter]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUsers(users.map((user) => user.id));
+      setSelectedUsers(users.map((user) => user._id));
     } else {
       setSelectedUsers([]);
     }
   };
+
   const handleSelectUser = (userId: string, checked: boolean) => {
-    setSelectedUsers((prev) =>
-      checked ? [...prev, userId] : prev.filter((id) => id !== userId)
-    );
-  };
-  const handleBulkAction = (action: string) => {
-    // For now, just clear selection and show a toast
-    setSelectedUsers([]);
-    toast.info(`${action} applied to selected users.`);
-  };
-
-  // User action handlers
-  const handleViewUser = (user: User) => {
-    setViewUser(user);
-  };
-  const handleEditUser = (user: User) => {
-    toast.info(`Edit user: ${user.name}`);
-  };
-  const handleToggleSuspend = (user: User) => {
-    toast.info(
-      user.status === "suspended"
-        ? `Activate user: ${user.name}`
-        : `Suspend user: ${user.name}`
-    );
-  };
-
-  // Delete user handlers
-  const handleDeleteUser = (user: User) => {
-    setUserToDelete(user);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteUser = async () => {
-    if (!userToDelete || !accessToken) return;
-
-    try {
-      setDeletingUser(true);
-
-      const response = await deleteApiRequest(
-        `/api/users/${userToDelete.id}`,
-        accessToken
-      );
-
-      if (response.status === 200) {
-        // Remove user from local state
-        setUsers((prevUsers) =>
-          prevUsers.filter((user) => user.id !== userToDelete.id)
-        );
-
-        toast.success(
-          `User ${userToDelete.name} has been deactivated successfully`
-        );
-
-        // Show the response reason if available
-        if (response.data?.reason) {
-          toast.info(`Reason: ${response.data.reason}`);
-        }
-      } else {
-        toast.error(response.message || "Failed to deactivate user");
-      }
-    } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error(
-        error.message || "An error occurred while deactivating the user"
-      );
-    } finally {
-      setDeletingUser(false);
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
+    if (checked) {
+      setSelectedUsers((prev) => [...prev, userId]);
+    } else {
+      setSelectedUsers((prev) => prev.filter((id) => id !== userId));
     }
   };
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus =
-      statusFilter === "all" || user.status === statusFilter;
+  const handleBulkAction = async (action: string) => {
+    if (selectedUsers.length === 0) {
+      toast.warning("Please select users first");
+      return;
+    }
 
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+    if (!accessToken) {
+      toast.error("Authentication required");
+      return;
+    }
 
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    try {
+      const promises = selectedUsers.map((userId) => {
+        switch (action) {
+          case "verify":
+            return patchApiRequest(`/api/users/${userId}`, accessToken, {
+              isVerified: true,
+            });
+          case "unverify":
+            return patchApiRequest(`/api/users/${userId}`, accessToken, {
+              isVerified: false,
+            });
+          case "lock":
+            return patchApiRequest(`/api/users/${userId}`, accessToken, {
+              isLocked: true,
+            });
+          case "unlock":
+            return patchApiRequest(`/api/users/${userId}`, accessToken, {
+              isLocked: false,
+            });
+          default:
+            return Promise.resolve();
+        }
+      });
+
+      await Promise.all(promises);
+      toast.success(`${action} applied to ${selectedUsers.length} users`);
+      setSelectedUsers([]);
+      fetchUsers(currentPage, true); // Refresh the list
+    } catch (error: any) {
+      console.error(`Error in bulk ${action}:`, error);
+      toast.error(`Failed to ${action} users`);
+    }
+  };
+
+  // Individual user actions
+  const handleToggleVerify = async (user: User) => {
+    if (!accessToken) {
+      toast.error("Authentication required");
+      return;
+    }
+
+    try {
+      const response = await patchApiRequest(
+        `/api/users/${user._id}`,
+        accessToken,
+        {
+          isVerified: !user.isVerified,
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success(
+          `User ${user.isVerified ? "unverified" : "verified"} successfully`
+        );
+        // Refresh the users list
+        fetchUsers(currentPage, true);
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error: any) {
+      console.error("Error toggling verification:", error);
+      toast.error("Failed to update verification status");
+    }
+  };
+
+  const handleToggleLock = async (user: User) => {
+    if (!accessToken) {
+      toast.error("Authentication required");
+      return;
+    }
+
+    try {
+      const response = await patchApiRequest(
+        `/api/users/${user._id}`,
+        accessToken,
+        {
+          isLocked: !user.isLocked,
+        }
+      );
+
+      if (response.status === 200) {
+        toast.success(
+          `User ${user.isLocked ? "unlocked" : "locked"} successfully`
+        );
+        // Refresh the users list
+        fetchUsers(currentPage, true);
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error: any) {
+      console.error("Error toggling lock status:", error);
+      toast.error("Failed to update lock status");
+    }
+  };
+
+  // Server-side filtering is handled by the API, so we just sort the returned users
+  const sortedUsers = [...users].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
 
@@ -350,500 +410,584 @@ export default function UserManagementPage() {
     return 0;
   });
 
-  // Pagination logic
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
-  const paginatedUsers = sortedUsers.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage
-  );
-
+  // Calculate stats from current users (server-side filtered results)
   const stats = {
-    total: users.length,
-    active: users.filter((u) => u.status === "active").length,
-    pending: users.filter((u) => u.status === "pending").length,
-    suspended: users.filter((u) => u.status === "suspended").length,
+    total: totalUsers || 0,
+    verified: (users || []).filter((u) => u.isVerified).length,
+    locked: (users || []).filter((u) => u.isLocked === true).length,
+    active: (users || []).filter((u) => u.isLocked !== true).length,
   };
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#011F72]">User Management</h1>
-          <p className="text-gray-600 mt-1">
-            Manage all users, roles, and permissions
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Enhanced Header */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-[#011F72] lg:text-4xl">
+              User Management
+            </h1>
+            <p className="text-gray-600 text-sm lg:text-base">
+              Manage all users, roles, and permissions across the platform
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button
+              variant="outline"
+              onClick={() => fetchUsers(1, true)}
+              disabled={loading}
+              className="w-full sm:w-auto"
+            >
+              <Activity
+                className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            <Button
+              asChild
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+            >
+              <Link href="/dashboard/users/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Add User
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button
-            asChild
-            className="text-white hover:text-black rounded-[10px]"
-          >
-            <Link href="/dashboard/users/new">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Link>
-          </Button>
-          <Button variant="outline" className="rounded-[10px]">
-            <Download className="w-4 h-4 mr-2" />
-            Export Users
-          </Button>
+
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Users
+                  </p>
+                  <p className="text-3xl font-bold text-[#011F72]">
+                    {stats.total.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">From backend</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Users
+                  </p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {stats.active.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">Current page</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">Verified</p>
+                  <p className="text-3xl font-bold text-yellow-600">
+                    {stats.verified.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">Current page</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">Locked</p>
+                  <p className="text-3xl font-bold text-red-600">
+                    {stats.locked.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">Current page</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Ban className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 border border-blue-200 bg-blue-50 rounded-[10px]">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-[10px]">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.total}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 border border-green-200 bg-green-50 rounded-[10px]">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-[10px]">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.active}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 border border-yellow-200 bg-yellow-50 rounded-[10px]">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-[10px]">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.pending}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 border border-red-200 bg-red-50 rounded-[10px]">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-[10px]">
-                <Ban className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Suspended</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {stats.suspended}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
+        {/* Enhanced Search and Filters */}
+        <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Search Bar */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   placeholder="Search users by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 rounded-[10px]"
+                  className="pl-12 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
                 />
               </div>
+
+              {/* Filter Toggle for Mobile */}
+              <div className="flex items-center justify-between lg:hidden">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="w-full"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  {showFilters ? "Hide Filters" : "Show Filters"}
+                </Button>
+              </div>
+
+              {/* Filters */}
+              <div
+                className={`grid gap-4 ${
+                  showFilters ? "block" : "hidden"
+                } lg:grid lg:grid-cols-3 lg:gap-4`}
+              >
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl">
+                    <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white rounded-xl border-2 border-gray-200">
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="student">Students</SelectItem>
+                    <SelectItem value="individualTechProfessional">
+                      Tech Professionals
+                    </SelectItem>
+                    <SelectItem value="teamTechProfessional">
+                      Team Professionals
+                    </SelectItem>
+                    <SelectItem value="recruiter">Recruiters</SelectItem>
+                    <SelectItem value="institution">Institutions</SelectItem>
+                    <SelectItem value="customerCareRepresentative">
+                      Customer Care
+                    </SelectItem>
+                    <SelectItem value="instructor">Instructors</SelectItem>
+                    <SelectItem value="admin">Admins</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={isVerifiedFilter}
+                  onValueChange={setIsVerifiedFilter}
+                >
+                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl">
+                    <SelectValue placeholder="Filter by verification" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white rounded-xl border-2 border-gray-200">
+                    <SelectItem value="all">All Verification</SelectItem>
+                    <SelectItem value="true">Verified</SelectItem>
+                    <SelectItem value="false">Not Verified</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={isLockedFilter}
+                  onValueChange={setIsLockedFilter}
+                >
+                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white rounded-xl border-2 border-gray-200">
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="false">Active</SelectItem>
+                    <SelectItem value="true">Locked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full lg:w-48 rounded-[10px]">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent className="bg-white rounded-[10px]">
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="student">Students</SelectItem>
-                <SelectItem value="individualTechProfessional">
-                  Professionals
-                </SelectItem>
-                <SelectItem value="company">Companies</SelectItem>
-                <SelectItem value="institution">Institutions</SelectItem>
-                <SelectItem value="admin">Admins</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full lg:w-48 rounded-[10px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent className="bg-white rounded-[10px]">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Bulk Actions Bar */}
-      {selectedUsers.length > 0 && (
-        <div className="flex items-center gap-2 mb-2 bg-blue-50 border border-blue-200 rounded px-3 py-2">
-          <span className="font-medium text-blue-700">
-            {selectedUsers.length} selected
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleBulkAction("Suspend")}
-            className="rounded-[5px] bg-amber-600 text-white"
-          >
-            Suspend
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleBulkAction("Activate")}
-            className="rounded-[5px] bg-green-600 text-white"
-          >
-            Activate
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => handleBulkAction("Delete")}
-            className="rounded-[5px] bg-red-600 text-white hover:text-black"
-          >
-            Delete
-          </Button>
-        </div>
-      )}
+        {/* Enhanced Bulk Actions */}
+        {selectedUsers.length > 0 && (
+          <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <span className="text-lg font-semibold text-blue-800">
+                    {selectedUsers.length} user(s) selected
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkAction("verify")}
+                    className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800"
+                  >
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Verify
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkAction("unverify")}
+                    className="bg-white hover:bg-yellow-50 border-yellow-200 text-yellow-700 hover:text-yellow-800"
+                  >
+                    <UserX className="w-4 h-4 mr-2" />
+                    Unverify
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkAction("lock")}
+                    className="bg-white hover:bg-red-50 border-red-200 text-red-700 hover:text-red-800"
+                  >
+                    <Ban className="w-4 h-4 mr-2" />
+                    Lock
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkAction("unlock")}
+                    className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800"
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Unlock
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Users Table */}
-      <div className="overflow-x-auto border rounded-[10px]">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 w-12">
-                <Checkbox
-                  checked={
-                    selectedUsers.length === filteredUsers.length &&
-                    filteredUsers.length > 0
-                  }
-                  onCheckedChange={handleSelectAll}
-                  className="rounded-[5px]"
-                />
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                User Info
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Onboarding Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Location
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Join Date
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Last Active
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Verified
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Provider
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Token Version
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Login Attempts
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Acc Locked
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Lock Expires At
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Password Reset Pending
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Updated At
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Last Login IP
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
-              <tr>
-                <td colSpan={18} className="text-center py-8">
-                  Loading users...
-                </td>
-              </tr>
-            ) : paginatedUsers.length === 0 ? (
-              <tr>
-                <td colSpan={18} className="text-center py-8">
-                  No users found
-                </td>
-              </tr>
-            ) : (
-              paginatedUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <Checkbox
-                      checked={selectedUsers.includes(user.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectUser(user.id, checked as boolean)
-                      }
-                      className="rounded-[5px]"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-semibold text-[#011F72]">
-                        {user.name}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {user.email}
-                      </span>
-                      <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full w-fit mt-1">
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {/* onboardingStatus badge */}
-                    {user.onboardingStatus === "in_progress" && (
-                      <span className="bg-yellow-100 text-yellow-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                        In Progress
-                      </span>
-                    )}
-                    {user.onboardingStatus === "completed" && (
-                      <span className="bg-green-100 text-green-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                        Completed
-                      </span>
-                    )}
-                    {user.onboardingStatus === "submitted" && (
-                      <span className="bg-blue-100 text-blue-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                        Submitted
-                      </span>
-                    )}
-                    {!["in_progress", "completed", "submitted"].includes(
-                      user.onboardingStatus || ""
-                    ) && (
-                      <span className="bg-gray-100 text-gray-800 rounded-[4px] px-2 py-1 text-xs font-medium">
-                        {user.onboardingStatus || "-"}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <MapPin className="w-3 h-3" />
-                      {user.location}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-sm text-gray-600">{user.joinDate}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-sm text-gray-600">
-                      {user.lastActive}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {/* isVerified icon */}
-                    {user.isVerified ? (
-                      <Check className="text-green-600 w-5 h-5 mx-auto" />
-                    ) : (
-                      <X className="text-red-500 w-5 h-5 mx-auto" />
-                    )}
-                  </td>
-                  <td className="px-4 py-3">{user.provider}</td>
-                  <td className="px-4 py-3">{user.tokenVersion}</td>
-                  <td className="px-4 py-3">{user.loginAttempts}</td>
-                  <td className="px-4 py-3 text-center">
-                    {/* isLocked icon */}
-                    {user.isLocked ? (
-                      <Lock className="text-red-500 w-5 h-5 mx-auto" />
-                    ) : (
-                      <Unlock className="text-green-600 w-5 h-5 mx-auto" />
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {user.lockExpiresAt
-                      ? new Date(user.lockExpiresAt).toLocaleString()
-                      : ""}
-                  </td>
-                  <td className="px-4 py-3">
-                    {user.isPasswordResetPending ? "Yes" : "No"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {user.updatedAt
-                      ? new Date(user.updatedAt).toLocaleString()
-                      : ""}
-                  </td>
-                  <td className="px-4 py-3">{user.lastLoginIP}</td>
-                  <td className="px-4 py-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className="p-2 rounded-full hover:bg-gray-200 focus:outline-none"
-                          aria-label="Open actions menu"
-                        >
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-white rounded-[5px]"
+        {/* Enhanced Users Table */}
+        <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50 border-b-2 border-gray-200">
+                    <TableHead className="w-12 p-4">
+                      <Checkbox
+                        checked={
+                          selectedUsers.length === users.length &&
+                          users.length > 0
+                        }
+                        onCheckedChange={handleSelectAll}
+                        className="border-2 border-gray-300"
+                      />
+                    </TableHead>
+                    <TableHead className="p-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort("fullName")}
+                        className="h-auto p-0 font-semibold text-gray-700 hover:text-blue-600"
                       >
-                        <DropdownMenuItem
-                          onClick={() => handleEditUser(user)}
-                          className="cursor-pointer"
-                        >
-                          <Edit className="w-4 h-4 mr-1" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleToggleSuspend(user)}
-                          className="cursor-pointer"
-                        >
-                          {user.status === "suspended" ? (
-                            <UserCheck className="w-4 h-4 mr-1 text-green-600" />
-                          ) : (
-                            <UserX className="w-4 h-4 mr-1 text-red-600" />
-                          )}
-                          {user.status === "suspended" ? "Activate" : "Suspend"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                          <Link href={`/dashboard/users/${user.id}`}>
-                            <Eye className="w-4 h-4 mr-1" /> View
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteUser(user)}
-                          className="cursor-pointer text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      {/* Pagination Bar */}
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-sm text-gray-700">
-          Showing {Math.min((page - 1) * itemsPerPage + 1, sortedUsers.length)}{" "}
-          to {Math.min(page * itemsPerPage, sortedUsers.length)} of{" "}
-          {sortedUsers.length} users
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            aria-label="Previous page"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            aria-label="Next page"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+                        User
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="p-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort("role")}
+                        className="h-auto p-0 font-semibold text-gray-700 hover:text-blue-600"
+                      >
+                        Role
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="p-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort("isLocked")}
+                        className="h-auto p-0 font-semibold text-gray-700 hover:text-blue-600"
+                      >
+                        Status
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="p-4 font-semibold text-gray-700">
+                      Location
+                    </TableHead>
+                    <TableHead className="p-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort("createdAt")}
+                        className="h-auto p-0 font-semibold text-gray-700 hover:text-blue-600"
+                      >
+                        Joined
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="p-4 font-semibold text-gray-700">
+                      Last Login
+                    </TableHead>
+                    <TableHead className="p-4 font-semibold text-gray-700">
+                      Onboarding
+                    </TableHead>
+                    <TableHead className="w-24 p-4 font-semibold text-gray-700">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-16">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-12 h-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                          <div className="space-y-2">
+                            <p className="text-lg font-medium text-gray-700">
+                              Loading users...
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Please wait while we fetch the data
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : sortedUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-16">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="p-4 bg-gray-100 rounded-full">
+                            <Users className="w-12 h-12 text-gray-400" />
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-lg font-medium text-gray-700">
+                              No users found
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Try adjusting your filters or search terms
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    sortedUsers.map((user) => (
+                      <TableRow
+                        key={user._id}
+                        className="hover:bg-blue-50/50 transition-colors duration-200 border-b border-gray-100"
+                      >
+                        <TableCell className="p-4">
+                          <Checkbox
+                            checked={selectedUsers.includes(user._id)}
+                            onCheckedChange={(checked) =>
+                              handleSelectUser(user._id, checked as boolean)
+                            }
+                            className="border-2 border-gray-300"
+                          />
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <Image
+                                src={
+                                  user.profileImageUrl ||
+                                  "/assets/placeholder-avatar.jpg"
+                                }
+                                alt={user.fullName}
+                                width={48}
+                                height={48}
+                                className="rounded-full object-cover border-2 border-gray-200"
+                              />
+                              {user.isVerified && (
+                                <div className="absolute -bottom-1 -right-1 p-1 bg-green-500 rounded-full">
+                                  <CheckCircle className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-semibold text-gray-900">
+                                {user.fullName}
+                              </div>
+                              <div className="text-sm text-gray-600 flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {user.email}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <Badge
+                            className={`${getRoleColor(
+                              user.role
+                            )} border px-3 py-1`}
+                          >
+                            {getRoleIcon(user.role)}
+                            <span className="ml-2 capitalize font-medium">
+                              {user.role}
+                            </span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <Badge
+                            className={`${getStatusColor(
+                              user.isLocked
+                            )} border px-3 py-1`}
+                          >
+                            {getStatusLabel(user.isLocked)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <span className="truncate max-w-32">
+                              {user.profile?.currentLocation || "N/A"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="text-sm text-gray-600">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="space-y-1">
+                            <div className="text-sm text-gray-600">
+                              {user.lastLoginAt
+                                ? new Date(
+                                    user.lastLoginAt
+                                  ).toLocaleDateString()
+                                : "Never"}
+                            </div>
+                            {user.lastLoginLocation && (
+                              <div className="text-xs text-gray-500 truncate max-w-32">
+                                {user.lastLoginLocation}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="space-y-1">
+                            <div className="text-sm text-gray-600">
+                              {user.onboardingStatus
+                                ? user.onboardingStatus.replace("_", " ")
+                                : "N/A"}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {user.provider || "local"}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="hover:bg-blue-100 hover:text-blue-600"
+                            >
+                              <Link href={`/dashboard/users/${user._id}`}>
+                                <Eye className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleVerify(user)}
+                              title={
+                                user.isVerified
+                                  ? "Unverify user"
+                                  : "Verify user"
+                              }
+                              className="hover:bg-green-100 hover:text-green-600"
+                            >
+                              {user.isVerified ? (
+                                <CheckCircle className="w-4 h-4" />
+                              ) : (
+                                <Clock className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleLock(user)}
+                              title={
+                                user.isLocked ? "Unlock user" : "Lock user"
+                              }
+                              className="hover:bg-red-100 hover:text-red-600"
+                            >
+                              {user.isLocked ? (
+                                <Ban className="w-4 h-4" />
+                              ) : (
+                                <Shield className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="hover:bg-purple-100 hover:text-purple-600"
+                            >
+                              <Link href={`/dashboard/users/${user._id}/edit`}>
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Delete User Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white rounded-[10px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-5 h-5" />
-              Deactivate User Account
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600">
-              Are you sure you want to deactivate the account for{" "}
-              <span className="font-semibold text-[#011F72]">
-                {userToDelete?.name}
-              </span>
-              ? This action will:
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Deactivate the user's account immediately</li>
-                <li>Prevent the user from logging in</li>
-                <li>Preserve all user data for potential reactivation</li>
-                <li>
-                  Send a notification to the user about account deactivation
-                </li>
-              </ul>
-              <p className="mt-3 text-sm text-gray-500">
-                <strong>Note:</strong> This action can be reversed by an
-                administrator if needed.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className="rounded-[10px]"
-              disabled={deletingUser}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteUser}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-[10px]"
-              disabled={deletingUser}
-            >
-              {deletingUser ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deactivating...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Deactivate User
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Pagination */}
+        {!loading && sortedUsers.length > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing {(currentPage - 1) * limit + 1} to{" "}
+              {Math.min(currentPage * limit, totalUsers)} of {totalUsers} users
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchUsers(currentPage - 1, true)}
+                disabled={currentPage === 1}
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchUsers(currentPage + 1, false)}
+                disabled={!hasMore}
+                className="flex items-center gap-2"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

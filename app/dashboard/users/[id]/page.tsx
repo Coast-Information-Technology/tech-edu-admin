@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
+import { getApiRequest, patchApiRequest } from "@/lib/apiFetch";
+import { useTokenManagement } from "@/hooks/useTokenManagement";
+import { toast } from "react-toastify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getApiRequest } from "@/lib/apiFetch";
-import { getTokenFromCookies } from "@/lib/cookies";
 import {
   ChevronLeft,
   Mail,
@@ -34,187 +35,74 @@ import {
   AlertTriangle,
   UserCheck,
   UserX,
-  Globe,
-  Linkedin,
-  Star,
-  Users2,
   Target,
-  FileText,
-  Building,
-  User as UserIcon,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  Trash2,
+  AlertCircle,
+  User,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { User } from "@/types/users";
+import { UserProfile } from "@/types/users";
 
-export default function UserDetailPage({ params }: { params: { id: string } }) {
-  const [user, setUser] = useState<User | null>(null);
+export default function UserDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const resolvedParams = use(params);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [updating, setUpdating] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const { accessToken, isLoading: tokenLoading } = useTokenManagement();
+
+  // Fetch user data
+  const fetchUser = async () => {
+    if (!accessToken) {
+      toast.error("Authentication required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log("Fetching user with ID:", resolvedParams.id);
+
+      const response = await getApiRequest(
+        `/api/users/${resolvedParams.id}`,
+        accessToken
+      );
+
+      console.log("API response:", response);
+
+      if (response.status === 200) {
+        // Handle the API response structure: response.data.data (nested user data)
+        const userData = response.data?.data || response.data;
+        console.log("Single User data:", userData);
+        console.log("User role:", userData?.role);
+        console.log("User profile:", userData?.profile);
+        setUser(userData);
+      } else {
+        console.error("API error:", response);
+        toast.error(response.message || "Failed to fetch user");
+      }
+    } catch (error: any) {
+      console.error("Error fetching user:", error);
+      toast.error("Failed to load user data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true);
-
-      try {
-        const accessToken = getTokenFromCookies();
-
-        if (!accessToken) {
-          setError("No access token found. Please log in again.");
-          setLoading(false);
-          return;
-        }
-
-        const response = await getApiRequest(
-          `/api/users/admin/${params.id}`,
-          accessToken
-        );
-        const data = response.data;
-
-        if (!data.success) {
-          throw new Error(data.message || "Failed to load user");
-        }
-
-        const userData = data.data.data || data.data; // Handle nested structure for admin
-        const profile = userData.profile || {};
-
-        // Map common fields
-        const mappedUser: User = {
-          id: userData._id,
-          name: profile.fullName || userData.fullName,
-          email: profile.email || userData.email,
-          role: profile.role || userData.role,
-          status: profile.status || "active",
-          avatar:
-            profile.avatarUrl ||
-            userData.profileImageUrl ||
-            "/assets/placeholder-avatar.jpg",
-          location: "",
-          phone: profile.phoneNumber || "",
-          joinDate: userData.createdAt
-            ? new Date(userData.createdAt).toLocaleDateString()
-            : "",
-          lastActive: userData.updatedAt
-            ? new Date(userData.updatedAt).toLocaleDateString()
-            : "",
-          coursesEnrolled: 0,
-          coursesCompleted: 0,
-          certifications: profile.certifications?.length || 0,
-          isVerified: userData.isVerified,
-          onboardingStatus: userData.onboardingStatus,
-          bio: profile.bio || profile.experienceDetails || "",
-          skills: [],
-          education: [],
-          experience: [],
-          activityHistory: [],
-        };
-
-        // Role-specific mapping
-        switch (userData.role) {
-          case "individualTechProfessional":
-            mappedUser.location = profile.currentLocation || "";
-            mappedUser.currentJobTitle = profile.currentJobTitle;
-            mappedUser.employmentStatus = profile.employmentStatus;
-            mappedUser.industryFocus = profile.industryFocus;
-            mappedUser.yearsOfExperience = profile.yearsOfExperience;
-            mappedUser.programmingLanguages = profile.programmingLanguages;
-            mappedUser.softSkills = profile.softSkills;
-            mappedUser.skills = [
-              ...(profile.programmingLanguages || []),
-              ...(profile.frameworksAndTools || []),
-              ...(profile.softSkills || []),
-            ];
-            mappedUser.education = [
-              `${profile.highestQualification} in ${profile.fieldOfStudy}`,
-              `Graduated: ${profile.graduationYear}`,
-            ];
-            mappedUser.experience = [
-              `${profile.currentJobTitle} at ${profile.industryFocus}`,
-              `${profile.yearsOfExperience} years of experience`,
-            ];
-            break;
-
-          case "instructor":
-            mappedUser.location = "";
-            mappedUser.title = profile.title;
-            mappedUser.specializationAreas = profile.specializationAreas;
-            mappedUser.yearsOfExperience = profile.experience;
-            mappedUser.experienceDetails = profile.experienceDetails;
-            mappedUser.linkedIn = profile.linkedIn;
-            mappedUser.totalStudents = profile.totalStudents;
-            mappedUser.rating = profile.rating;
-            mappedUser.skills = [
-              ...(profile.specializationAreas || []),
-              ...(profile.certifications || []),
-            ];
-            mappedUser.experience = [
-              `${profile.title} with ${mappedUser.yearsOfExperience} years experience`,
-              profile.experienceDetails,
-            ];
-            break;
-
-          case "admin":
-            mappedUser.location = profile.assignedRegions?.[0] || "";
-            mappedUser.department = profile.departments?.[0] || "";
-            mappedUser.skills = profile.permissions || [];
-            mappedUser.experience = [
-              `Role: ${profile.role}`,
-              `Department: ${profile.departments?.join(", ")}`,
-            ];
-            break;
-
-          case "teamTechProfessional":
-            mappedUser.location = profile.location
-              ? `${profile.location.city}, ${profile.location.state}, ${profile.location.country}`
-              : "";
-            mappedUser.teamName = profile.teamName;
-            mappedUser.teamSize = profile.teamSize;
-            mappedUser.companyInfo = profile.company;
-            mappedUser.members = profile.members;
-            mappedUser.skills = [
-              ...(profile.preferredTechStack || []),
-              ...(profile.programmingLanguages || []),
-            ];
-            mappedUser.experience = [
-              `Team Lead: ${profile.teamName}`,
-              `Team Size: ${profile.teamSize} members`,
-              `Company: ${profile.company?.name}`,
-            ];
-            break;
-
-          case "recruiter":
-            mappedUser.location = "";
-            mappedUser.skills = [];
-            mappedUser.experience = [];
-            break;
-
-          case "student":
-            mappedUser.location = profile.countryOfResidence || "";
-            mappedUser.academicLevel = profile.academicLevel;
-            mappedUser.currentInstitution = profile.currentInstitution;
-            mappedUser.fieldOfStudy = profile.fieldOfStudy;
-            mappedUser.graduationYear = profile.graduationYear;
-            mappedUser.interestAreas = profile.interestAreas;
-            mappedUser.skills = profile.interestAreas || [];
-            mappedUser.education = [
-              `${profile.academicLevel} at ${profile.currentInstitution}`,
-              `Field: ${profile.fieldOfStudy}`,
-              `Expected Graduation: ${profile.graduationYear}`,
-            ];
-            break;
-        }
-
-        setUser(mappedUser);
-        setLoading(false);
-      } catch (err: any) {
-        setError(err.message || "Failed to load user");
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, [params.id]);
+    if (!tokenLoading && accessToken) {
+      fetchUser();
+    }
+  }, [resolvedParams.id, accessToken, tokenLoading]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -222,12 +110,16 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
         return <GraduationCap className="w-4 h-4" />;
       case "individualTechProfessional":
         return <Briefcase className="w-4 h-4" />;
-      case "instructor":
-        return <UserIcon className="w-4 h-4" />;
       case "teamTechProfessional":
-        return <Users2 className="w-4 h-4" />;
+        return <Users className="w-4 h-4" />;
       case "recruiter":
         return <Target className="w-4 h-4" />;
+      case "institution":
+        return <Building2 className="w-4 h-4" />;
+      case "customerCareRepresentative":
+        return <Users className="w-4 h-4" />;
+      case "instructor":
+        return <GraduationCap className="w-4 h-4" />;
       case "admin":
         return <Shield className="w-4 h-4" />;
       default:
@@ -238,774 +130,1425 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
   const getRoleColor = (role: string) => {
     switch (role) {
       case "student":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "individualTechProfessional":
-        return "bg-green-100 text-green-800";
-      case "instructor":
-        return "bg-purple-100 text-purple-800";
+        return "bg-green-100 text-green-800 border-green-200";
       case "teamTechProfessional":
-        return "bg-indigo-100 text-indigo-800";
+        return "bg-purple-100 text-purple-800 border-purple-200";
       case "recruiter":
-        return "bg-orange-100 text-orange-800";
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "institution":
+        return "bg-indigo-100 text-indigo-800 border-indigo-200";
+      case "customerCareRepresentative":
+        return "bg-pink-100 text-pink-800 border-pink-200";
+      case "instructor":
+        return "bg-teal-100 text-teal-800 border-teal-200";
       case "admin":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border-red-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "inactive":
-        return "bg-gray-100 text-gray-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "suspended":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const getStatusColor = (isLocked?: boolean) => {
+    return isLocked
+      ? "bg-red-100 text-red-800 border-red-200"
+      : "bg-green-100 text-green-800 border-green-200";
+  };
+
+  const getStatusLabel = (isLocked?: boolean) => {
+    return isLocked ? "Locked" : "Active";
+  };
+
+  const getStatusIcon = (isLocked?: boolean) => {
+    return isLocked ? (
+      <Ban className="w-4 h-4" />
+    ) : (
+      <CheckCircle className="w-4 h-4" />
+    );
+  };
+
+  const handleToggleVerify = async () => {
+    if (!user || !accessToken) return;
+
+    try {
+      setUpdating(true);
+      const response = await patchApiRequest(
+        `/api/users/${user._id}`,
+        accessToken,
+        {
+          isVerified: !user.isVerified,
+        }
+      );
+
+      if (response.status === 200) {
+        setUser((prev) =>
+          prev ? { ...prev, isVerified: !prev.isVerified } : null
+        );
+        toast.success(
+          `User ${user.isVerified ? "unverified" : "verified"} successfully`
+        );
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error: any) {
+      console.error("Error toggling verification:", error);
+      toast.error("Failed to update verification status");
+    } finally {
+      setUpdating(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "active":
-        return <CheckCircle className="w-4 h-4" />;
-      case "inactive":
-        return <Clock className="w-4 h-4" />;
-      case "pending":
-        return <Clock className="w-4 h-4" />;
-      case "suspended":
-        return <Ban className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
+  const handleToggleLock = async () => {
+    if (!user || !accessToken) return;
+
+    try {
+      setUpdating(true);
+      const response = await patchApiRequest(
+        `/api/users/${user._id}`,
+        accessToken,
+        {
+          isLocked: !user.isLocked,
+        }
+      );
+
+      if (response.status === 200) {
+        setUser((prev) =>
+          prev ? { ...prev, isLocked: !prev.isLocked } : null
+        );
+        toast.success(
+          `User ${user.isLocked ? "unlocked" : "locked"} successfully`
+        );
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error: any) {
+      console.error("Error toggling lock status:", error);
+      toast.error("Failed to update lock status");
+    } finally {
+      setUpdating(false);
     }
   };
 
-  const getOnboardingStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "in_progress":
-        return "bg-yellow-100 text-yellow-800";
-      case "submitted":
-        return "bg-blue-100 text-blue-800";
-      case "not_started":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
-  if (!user) return <div>No user found.</div>;
-
-  return (
-    <div className="space-y-6">
-      {/* Back to Users Button */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" className="rounded-[10px]" asChild>
-          <Link href="/dashboard/users">
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Back to Users
-          </Link>
-        </Button>
-      </div>
-
-      {/* User Header */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-[#011F72] to-blue-600 p-6 text-white">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Image
-                  src={user.avatar}
-                  alt={user.name}
-                  width={80}
-                  height={80}
-                  className="rounded-full object-cover border-4 border-white"
-                />
-                <div
-                  className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center ${
-                    user.status === "active"
-                      ? "bg-green-500"
-                      : user.status === "pending"
-                      ? "bg-yellow-500"
-                      : "bg-gray-500"
-                  }`}
-                >
-                  {getStatusIcon(user.status)}
-                </div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">{user.name}</h1>
-                <p className="text-blue-100">{user.email}</p>
-                <div className="flex gap-2 mt-2">
-                  <Badge className={getRoleColor(user.role)}>
-                    {getRoleIcon(user.role)}
-                    <span className="ml-1 capitalize">{user.role}</span>
-                  </Badge>
-                  <Badge className={getStatusColor(user.status)}>
-                    {getStatusIcon(user.status)}
-                    <span className="ml-1 capitalize">{user.status}</span>
-                  </Badge>
-                  {user.isVerified && (
-                    <Badge className="bg-green-100 text-green-800">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="ml-1">Verified</span>
-                    </Badge>
-                  )}
-                  {user.onboardingStatus && (
-                    <Badge
-                      className={getOnboardingStatusColor(
-                        user.onboardingStatus
-                      )}
-                    >
-                      <span className="capitalize">
-                        {user.onboardingStatus.replace("_", " ")}
-                      </span>
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-[#011F72] rounded-[10px]"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit User
-              </Button>
-              <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-[#011F72] rounded-[10px]"
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Send Message
-              </Button>
-              <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-[#011F72] rounded-[10px]"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </div>
+  if (loading || tokenLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-center gap-4 mb-6">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/users">
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Back to Users
+              </Link>
+            </Button>
+          </div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-12 h-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            <p className="mt-4 text-lg font-medium text-gray-700">
+              {tokenLoading
+                ? "Loading authentication..."
+                : "Loading user data..."}
+            </p>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-[10px]">
-                <BookOpen className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Courses Enrolled</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {user.coursesEnrolled}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-[10px]">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Courses Completed</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {user.coursesCompleted}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-[10px]">
-                <Award className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Certifications</p>
-                <p className="text-2xl font-bold text-[#011F72]">
-                  {user.certifications}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-[10px]">
-                <Activity className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Last Active</p>
-                <p className="text-lg font-bold text-[#011F72]">
-                  {user.lastActive}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-center gap-4 mb-6">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/users">
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Back to Users
+              </Link>
+            </Button>
+          </div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <AlertCircle className="w-16 h-16 text-gray-400 mb-4" />
+            <h2 className="text-2xl font-bold text-gray-700 mb-2">
+              User Not Found
+            </h2>
+            <p className="text-gray-600 mb-6">
+              The user you're looking for doesn't exist or you don't have
+              permission to view it.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/users">Back to Users</Link>
+            </Button>
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* User Details */}
-        <div className="lg:col-span-2">
-          <Tabs
-            value={selectedTab}
-            onValueChange={setSelectedTab}
-            className="space-y-6"
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Back to Users Button */}
+        <div className="flex items-center justify-between">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/users">
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Back to Users
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={fetchUser}
+            disabled={loading}
+            className="flex items-center gap-2"
           >
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-              <TabsTrigger value="courses">Courses</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
 
-            <TabsContent value="overview" className="space-y-6">
-              {/* Basic Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {user.email}
-                      </span>
-                    </div>
-                    {user.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          {user.phone}
-                        </span>
-                      </div>
+        {/* User Header */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border-0">
+          <div className="bg-gradient-to-r from-[#011F72] to-blue-600 p-6 text-white">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="relative">
+                  <Image
+                    src={
+                      user.profileImageUrl || "/assets/placeholder-avatar.jpg"
+                    }
+                    alt={user.fullName}
+                    width={80}
+                    height={80}
+                    className="rounded-full object-cover border-4 border-white shadow-lg"
+                  />
+                  <div
+                    className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center ${
+                      user.isVerified ? "bg-green-500" : "bg-yellow-500"
+                    }`}
+                  >
+                    {user.isVerified ? (
+                      <CheckCircle className="w-3 h-3 text-white" />
+                    ) : (
+                      <Clock className="w-3 h-3 text-white" />
                     )}
-                    {user.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          {user.location}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        Joined {user.joinDate}
-                      </span>
-                    </div>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <h1 className="text-2xl font-bold">{user.fullName}</h1>
+                  <p className="text-blue-100 flex items-center gap-2">
+                    {user.email}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(user.email)}
+                      className="h-6 w-6 p-0 text-blue-100 hover:bg-white/20"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={getRoleColor(user.role)}>
+                      {getRoleIcon(user.role)}
+                      <span className="ml-1 capitalize">{user.role}</span>
+                    </Badge>
+                    <Badge className={getStatusColor(user.isLocked)}>
+                      {getStatusIcon(user.isLocked)}
+                      <span className="ml-1">
+                        {getStatusLabel(user.isLocked)}
+                      </span>
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  className="border-white text-white hover:bg-white hover:text-[#011F72]"
+                  asChild
+                >
+                  <Link href={`/dashboard/users/${user._id}/edit`}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit User
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white text-white hover:bg-white hover:text-[#011F72]"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Send Message
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white text-white hover:bg-white hover:text-[#011F72]"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                  {user.bio && (
-                    <div>
-                      <h4 className="font-semibold text-[#011F72] mb-2">Bio</h4>
-                      <p className="text-sm text-gray-600">{user.bio}</p>
-                    </div>
-                  )}
+        {/* Debug Information - Remove this after testing */}
+        {process.env.NODE_ENV === "development" && (
+          <Card className="border-2 border-yellow-300 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="text-yellow-800">Debug Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm space-y-2">
+                <p>
+                  <strong>User Role:</strong> {user?.role}
+                </p>
+                <p>
+                  <strong>Has Profile:</strong> {user?.profile ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Profile Type:</strong>{" "}
+                  {user?.profile ? typeof user.profile : "N/A"}
+                </p>
+                <p>
+                  <strong>Profile Keys:</strong>{" "}
+                  {user?.profile ? Object.keys(user.profile).join(", ") : "N/A"}
+                </p>
+                <p>
+                  <strong>Company Data:</strong>{" "}
+                  {user?.profile?.company ? "Yes" : "No"}
+                </p>
+                <p>
+                  <strong>Hiring Regions:</strong>{" "}
+                  {user?.profile?.hiringRegions?.length || 0}
+                </p>
+                <p>
+                  <strong>Recruitment Focus Areas:</strong>{" "}
+                  {user?.profile?.recruitmentFocusAreas?.length || 0}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                  {/* Role-specific information */}
-                  {user.role === "individualTechProfessional" && (
-                    <>
-                      {user.currentJobTitle && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Current Position
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.currentJobTitle}
-                          </p>
-                        </div>
-                      )}
-                      {user.employmentStatus && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Employment Status
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.employmentStatus}
-                          </p>
-                        </div>
-                      )}
-                      {user.industryFocus && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Industry Focus
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.industryFocus}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Account Status
+                  </p>
+                  <p className="text-2xl font-bold text-[#011F72]">
+                    {user.isVerified ? "Verified" : "Pending"}
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                  {user.role === "instructor" && (
-                    <>
-                      {user.title && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Title
-                          </h4>
-                          <p className="text-sm text-gray-600">{user.title}</p>
-                        </div>
-                      )}
-                      {user.yearsOfExperience && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Years of Experience
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.yearsOfExperience} years
-                          </p>
-                        </div>
-                      )}
-                      {user.linkedIn && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            LinkedIn
-                          </h4>
-                          <a
-                            href={user.linkedIn}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                          >
-                            <Linkedin className="w-4 h-4" />
-                            View Profile
-                          </a>
-                        </div>
-                      )}
-                    </>
-                  )}
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Login Status
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {user.isLocked ? "Locked" : "Active"}
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                  {user.role === "teamTechProfessional" && (
-                    <>
-                      {user.teamName && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Team Name
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.teamName}
-                          </p>
-                        </div>
-                      )}
-                      {user.teamSize && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Team Size
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.teamSize} members
-                          </p>
-                        </div>
-                      )}
-                      {user.companyInfo && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Company
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.companyInfo.name}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Member Since
+                  </p>
+                  <p className="text-lg font-bold text-[#011F72]">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                  {user.role === "student" && (
-                    <>
-                      {user.academicLevel && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Academic Level
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.academicLevel}
-                          </p>
-                        </div>
-                      )}
-                      {user.currentInstitution && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Institution
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.currentInstitution}
-                          </p>
-                        </div>
-                      )}
-                      {user.fieldOfStudy && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Field of Study
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {user.fieldOfStudy}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+          <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Last Login
+                  </p>
+                  <p className="text-lg font-bold text-[#011F72]">
+                    {user.lastLoginAt
+                      ? new Date(user.lastLoginAt).toLocaleDateString()
+                      : "Never"}
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-              {/* Skills */}
-              {user.skills && user.skills.length > 0 && (
-                <Card>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* User Details */}
+          <div className="lg:col-span-2">
+            <Tabs
+              value={selectedTab}
+              onValueChange={setSelectedTab}
+              className="space-y-6"
+            >
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="courses">Courses</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-6">
+                {/* Basic Information */}
+                <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle>Skills & Expertise</CardTitle>
+                    <CardTitle>Basic Information</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {user.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary">
-                          {skill}
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          {user.email}
+                        </span>
+                      </div>
+                      {user.profile?.phoneNumber && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            {user.profile.phoneNumber}
+                          </span>
+                        </div>
+                      )}
+                      {user.profile?.currentLocation && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            {user.profile.currentLocation}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Joined {new Date(user.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {user.profile?.currentJobTitle && (
+                      <div>
+                        <h4 className="font-semibold text-[#011F72] mb-2">
+                          Current Position
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {user.profile.currentJobTitle}
+                        </p>
+                      </div>
+                    )}
+
+                    {user.profile?.industryFocus && (
+                      <div>
+                        <h4 className="font-semibold text-[#011F72] mb-2">
+                          Industry Focus
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {user.profile.industryFocus}
+                        </p>
+                      </div>
+                    )}
+
+                    {user.profile?.major && (
+                      <div>
+                        <h4 className="font-semibold text-[#011F72] mb-2">
+                          Academic Information
+                        </h4>
+                        <div className="space-y-1">
+                          <p className="text-sm text-gray-600">
+                            Major: {user.profile.major}
+                          </p>
+                          {user.profile.graduationYear && (
+                            <p className="text-sm text-gray-600">
+                              Graduation Year: {user.profile.graduationYear}
+                            </p>
+                          )}
+                          {user.profile.gpa && (
+                            <p className="text-sm text-gray-600">
+                              GPA: {user.profile.gpa}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Profile Status */}
+                    {!user.profile && (
+                      <div className="text-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <User className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <h4 className="font-semibold text-gray-700 mb-2">
+                          Profile Not Created
+                        </h4>
+                        <p className="text-sm text-gray-600 mb-4">
+                          This user hasn't completed their profile setup yet.
+                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          Onboarding: {user.onboardingStatus || "Not started"}
                         </Badge>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              )}
 
-              {/* Education */}
-              {user.education && user.education.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Education</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {user.education.map((edu, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <GraduationCap className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{edu}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Experience */}
-              {user.experience && user.experience.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Experience</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {user.experience.map((exp, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{exp}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Team Members (for teamTechProfessional) */}
-              {user.role === "teamTechProfessional" &&
-                user.members &&
-                user.members.length > 0 && (
-                  <Card>
+                {/* Recruiter-Specific Information */}
+                {/* Debug: Role check - {user.role === "recruiter" ? "TRUE" : "FALSE"} */}
+                {/* Debug: Profile check - {user.profile ? "TRUE" : "FALSE"} */}
+                {user.role === "recruiter" && user.profile && (
+                  <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
                     <CardHeader>
-                      <CardTitle>Team Members</CardTitle>
+                      <CardTitle>Recruitment Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Company Information */}
+                      {user.profile.company && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-3 flex items-center gap-2">
+                            <Building2 className="w-5 h-5" />
+                            Company Details
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Company Name
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {user.profile.company.name}
+                              </p>
+                            </div>
+                            {user.profile.company.industry && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">
+                                  Industry
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  {user.profile.company.industry}
+                                </p>
+                              </div>
+                            )}
+                            {user.profile.company.website && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">
+                                  Website
+                                </p>
+                                <a
+                                  href={user.profile.company.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  {user.profile.company.website}
+                                </a>
+                              </div>
+                            )}
+                            {user.profile.company.location && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">
+                                  Location
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  {user.profile.company.location.city},{" "}
+                                  {user.profile.company.location.state},{" "}
+                                  {user.profile.company.location.country}
+                                </p>
+                              </div>
+                            )}
+                            {user.profile.company.contactPerson && (
+                              <div className="md:col-span-2">
+                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                  Contact Person
+                                </p>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-gray-900">
+                                    Email:{" "}
+                                    {user.profile.company.contactPerson.email}
+                                  </p>
+                                  <p className="text-sm text-gray-900">
+                                    Phone:{" "}
+                                    {user.profile.company.contactPerson.phone}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Recruitment Details */}
+                      <div>
+                        <h4 className="font-semibold text-[#011F72] mb-3 flex items-center gap-2">
+                          <Target className="w-5 h-5" />
+                          Recruitment Details
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {user.profile.positionAtCompany && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Position
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {user.profile.positionAtCompany}
+                              </p>
+                            </div>
+                          )}
+                          {user.profile.contactEmail && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Contact Email
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {user.profile.contactEmail}
+                              </p>
+                            </div>
+                          )}
+                          {user.profile.phoneNumber && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Phone Number
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {user.profile.phoneNumber}
+                              </p>
+                            </div>
+                          )}
+                          {user.profile.preferredContactMethod && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Preferred Contact
+                              </p>
+                              <p className="text-sm text-gray-900 capitalize">
+                                {user.profile.preferredContactMethod}
+                              </p>
+                            </div>
+                          )}
+                          {user.profile.preferredHiringModel && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Hiring Model
+                              </p>
+                              <p className="text-sm text-gray-900 capitalize">
+                                {user.profile.preferredHiringModel}
+                              </p>
+                            </div>
+                          )}
+                          {user.profile.verificationStatus && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Verification Status
+                              </p>
+                              <Badge
+                                variant={
+                                  user.profile.verificationStatus === "verified"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="capitalize"
+                              >
+                                {user.profile.verificationStatus}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Hiring Regions */}
+                      {user.profile.hiringRegions &&
+                        user.profile.hiringRegions.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Hiring Regions
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.hiringRegions.map(
+                                (region, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {region}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Recruitment Focus Areas */}
+                      {user.profile.recruitmentFocusAreas &&
+                        user.profile.recruitmentFocusAreas.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Recruitment Focus Areas
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.recruitmentFocusAreas.map(
+                                (area, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="bg-blue-100 text-blue-800 text-xs"
+                                  >
+                                    {area}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* Referral Information */}
+                      {user.profile.referralSource && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Referral Information
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                Referral Source
+                              </p>
+                              <p className="text-sm text-gray-900">
+                                {user.profile.referralSource}
+                              </p>
+                            </div>
+                            {user.profile.referralCodeOrName && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">
+                                  Referral Code/Name
+                                </p>
+                                <p className="text-sm text-gray-900">
+                                  {user.profile.referralCodeOrName}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recruiter without profile */}
+                {user.role === "recruiter" && !user.profile && (
+                  <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle>Recruitment Information</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        {user.members.map((member, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Users2 className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">
-                                {member.role} - {member.status}
-                              </span>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="text-xs rounded-[10px]"
-                            >
-                              {member.status}
-                            </Badge>
-                          </div>
-                        ))}
+                      <div className="text-center p-6 bg-orange-50 rounded-lg border-2 border-dashed border-orange-300">
+                        <Target className="w-12 h-12 text-orange-400 mx-auto mb-3" />
+                        <h4 className="font-semibold text-orange-700 mb-2">
+                          Recruiter Profile Not Created
+                        </h4>
+                        <p className="text-sm text-orange-600 mb-4">
+                          This recruiter hasn't completed their detailed profile
+                          setup yet.
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-orange-100 text-orange-800"
+                        >
+                          Onboarding: {user.onboardingStatus || "Not started"}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
                 )}
-            </TabsContent>
 
-            <TabsContent value="activity" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {user.activityHistory && user.activityHistory.length > 0 ? (
-                      user.activityHistory.map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-[10px]"
-                        >
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                {/* Professional Goals - Only show if profile exists */}
+                {(user.profile?.lookingForJobs ||
+                  user.profile?.interestedInTraining ||
+                  user.profile?.availableAsInstructor ||
+                  (user.profile?.platformGoals &&
+                    user.profile.platformGoals.length > 0)) && (
+                  <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle>Professional Goals</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {user.profile?.lookingForJobs !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">
+                              Looking for Jobs:{" "}
+                              {user.profile.lookingForJobs ? "Yes" : "No"}
+                            </span>
+                          </div>
+                        )}
+                        {user.profile?.interestedInTraining !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">
+                              Interested in Training:{" "}
+                              {user.profile.interestedInTraining ? "Yes" : "No"}
+                            </span>
+                          </div>
+                        )}
+                        {user.profile?.availableAsInstructor !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">
+                              Available as Instructor:{" "}
+                              {user.profile.availableAsInstructor
+                                ? "Yes"
+                                : "No"}
+                            </span>
+                          </div>
+                        )}
+                        {user.profile?.remoteWorkExperience !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">
+                              Remote Work Experience:{" "}
+                              {user.profile.remoteWorkExperience ? "Yes" : "No"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {user.profile?.platformGoals &&
+                        user.profile.platformGoals.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Platform Goals
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.platformGoals.map((goal, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {goal}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      {user.profile?.learningGoals?.priorityAreas &&
+                        user.profile.learningGoals.priorityAreas.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Learning Priority Areas
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.learningGoals.priorityAreas.map(
+                                (area, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {area}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Technical Skills */}
+                {((user.profile?.programmingLanguages &&
+                  user.profile.programmingLanguages.length > 0) ||
+                  (user.profile?.frameworksAndTools &&
+                    user.profile.frameworksAndTools.length > 0) ||
+                  (user.profile?.preferredTechStack &&
+                    user.profile.preferredTechStack.length > 0) ||
+                  (user.profile?.softSkills &&
+                    user.profile.softSkills.length > 0)) && (
+                  <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle>Technical Skills</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {user.profile?.programmingLanguages &&
+                        user.profile.programmingLanguages.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Programming Languages
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.programmingLanguages.map(
+                                (lang, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="bg-blue-100 text-blue-800"
+                                  >
+                                    {lang}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {user.profile?.frameworksAndTools &&
+                        user.profile.frameworksAndTools.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Frameworks & Tools
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.frameworksAndTools.map(
+                                (tool, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="bg-green-100 text-green-800"
+                                  >
+                                    {tool}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {user.profile?.preferredTechStack &&
+                        user.profile.preferredTechStack.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Preferred Tech Stack
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.preferredTechStack.map(
+                                (tech, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="bg-purple-100 text-purple-800"
+                                  >
+                                    {tech}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                      {user.profile?.softSkills &&
+                        user.profile.softSkills.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Soft Skills
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.softSkills.map((skill, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      {user.profile?.certifications &&
+                        user.profile.certifications.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-[#011F72] mb-2">
+                              Certifications
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {user.profile.certifications.map(
+                                (cert, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="bg-yellow-100 text-yellow-800"
+                                  >
+                                    {cert}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Account Details */}
+                <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle>Account Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">User ID</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono text-gray-800">
+                            {user._id}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(user._id)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Provider</span>
+                        <span className="text-sm font-medium">
+                          {user.provider || "local"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          Onboarding Status
+                        </span>
+                        <span className="text-sm font-medium">
+                          {user.onboardingStatus
+                            ? user.onboardingStatus.replace("_", " ")
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          Last Updated
+                        </span>
+                        <span className="text-sm font-medium">
+                          {user.updatedAt
+                            ? new Date(user.updatedAt).toLocaleDateString()
+                            : "N/A"}
+                        </span>
+                      </div>
+                      {user.profile?.onboardingStatus && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">
+                            Profile Onboarding
+                          </span>
+                          <span className="text-sm font-medium">
+                            {user.profile.onboardingStatus.replace("_", " ")}
+                          </span>
+                        </div>
+                      )}
+                      {user.profile?.isActive !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">
+                            Profile Active
+                          </span>
+                          <span className="text-sm font-medium">
+                            {user.profile.isActive ? "Yes" : "No"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {user.lastLoginLocation && (
+                      <div>
+                        <h4 className="font-semibold text-[#011F72] mb-2">
+                          Last Login Location
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {user.lastLoginLocation}
+                        </p>
+                        {user.lastLoginIP && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            IP: {user.lastLoginIP}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Additional Profile Information */}
+                    {(user.profile?.trainingAvailability ||
+                      user.profile?.skillAssessmentInterested !== undefined ||
+                      user.profile?.consentToTerms !== undefined) && (
+                      <div>
+                        <h4 className="font-semibold text-[#011F72] mb-2">
+                          Additional Information
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {user.profile?.trainingAvailability && (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-600">
+                                Training Availability:{" "}
+                                {user.profile.trainingAvailability}
+                              </span>
+                            </div>
+                          )}
+                          {user.profile?.skillAssessmentInterested !==
+                            undefined && (
+                            <div className="flex items-center gap-2">
+                              <Target className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-600">
+                                Skill Assessment:{" "}
+                                {user.profile.skillAssessmentInterested
+                                  ? "Interested"
+                                  : "Not Interested"}
+                              </span>
+                            </div>
+                          )}
+                          {user.profile?.consentToTerms !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <Shield className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-600">
+                                Terms Consent:{" "}
+                                {user.profile.consentToTerms
+                                  ? "Agreed"
+                                  : "Not Agreed"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Project Links */}
+                    {user.profile?.additionalProjectLinks &&
+                      user.profile.additionalProjectLinks.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold text-[#011F72] mb-2">
+                            Additional Project Links
+                          </h4>
+                          <div className="space-y-2">
+                            {user.profile.additionalProjectLinks.map(
+                              (link, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2"
+                                >
+                                  <ExternalLink className="w-4 h-4 text-gray-500" />
+                                  <a
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                                  >
+                                    {link}
+                                  </a>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="activity" className="space-y-6">
+                <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-[10px]">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                        <div className="flex-1">
+                          <p className="font-medium text-[#011F72]">
+                            Account Created
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            User account was created
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(user.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      {user.lastLoginAt && (
+                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-[10px]">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2" />
                           <div className="flex-1">
                             <p className="font-medium text-[#011F72]">
-                              {activity.action}
+                              Last Login
                             </p>
                             <p className="text-sm text-gray-600">
-                              {activity.details}
+                              User logged in successfully
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {activity.timestamp}
+                              {new Date(user.lastLoginAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-600 text-center py-8">
-                        No activity history available
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      )}
+                      {user.updatedAt && user.updatedAt !== user.createdAt && (
+                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-[10px]">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full mt-2" />
+                          <div className="flex-1">
+                            <p className="font-medium text-[#011F72]">
+                              Profile Updated
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              User profile was updated
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(user.updatedAt).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="courses" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Enrolled Courses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Course management interface would go here.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Account Status</p>
-                      <p className="text-sm text-gray-600">
-                        Manage user account status
+              <TabsContent value="courses" className="space-y-6">
+                <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle>Enrolled Courses</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">
+                        Course management interface would go here.
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-[10px]"
-                      >
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Activate
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="settings" className="space-y-6">
+                <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle>Account Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Verification Status</p>
+                        <p className="text-sm text-gray-600">
+                          {user.isVerified
+                            ? "User is verified"
+                            : "User is not verified"}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleToggleVerify}
+                          disabled={updating}
+                        >
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          {user.isVerified ? "Unverify" : "Verify"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Account Status</p>
+                        <p className="text-sm text-gray-600">
+                          {user.isLocked
+                            ? "Account is locked"
+                            : "Account is active"}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleToggleLock}
+                          disabled={updating}
+                        >
+                          {user.isLocked ? (
+                            <>
+                              <UserCheck className="w-4 h-4 mr-2" />
+                              Unlock
+                            </>
+                          ) : (
+                            <>
+                              <UserX className="w-4 h-4 mr-2" />
+                              Lock
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Data Export</p>
+                        <p className="text-sm text-gray-600">
+                          Export user data and activity
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Data
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-[10px]"
-                      >
-                        <UserX className="w-4 h-4 mr-2" />
-                        Suspend
-                      </Button>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Role Management</p>
-                      <p className="text-sm text-gray-600">
-                        Change user role and permissions
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-[10px]"
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Change Role
-                    </Button>
-                  </div>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button className="w-full justify-start" variant="outline">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Send Message
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  asChild
+                >
+                  <Link href={`/dashboard/users/${user._id}/edit`}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline">
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Courses
+                </Button>
+                <Button className="w-full justify-start" variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Data
+                </Button>
+              </CardContent>
+            </Card>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Data Export</p>
-                      <p className="text-sm text-gray-600">
-                        Export user data and activity
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-[10px]"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export Data
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                className="w-full justify-start rounded-[10px]"
-                variant="outline"
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Send Message
-              </Button>
-              <Button
-                className="w-full justify-start rounded-[10px]"
-                variant="outline"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
-              <Button
-                className="w-full justify-start rounded-[10px]"
-                variant="outline"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                View Courses
-              </Button>
-              <Button
-                className="w-full justify-start rounded-[10px]"
-                variant="outline"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export Data
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Account Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Status</span>
-                <Badge className={getStatusColor(user.status)}>
-                  {getStatusIcon(user.status)}
-                  <span className="ml-1 capitalize">{user.status}</span>
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Role</span>
-                <Badge className={getRoleColor(user.role)}>
-                  {getRoleIcon(user.role)}
-                  <span className="ml-1 capitalize">{user.role}</span>
-                </Badge>
-              </div>
-              {user.isVerified !== undefined && (
+            {/* Account Status */}
+            <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>Account Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Status</span>
+                  <Badge className={getStatusColor(user.isLocked)}>
+                    {getStatusIcon(user.isLocked)}
+                    <span className="ml-1">
+                      {getStatusLabel(user.isLocked)}
+                    </span>
+                  </Badge>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Verification</span>
                   <Badge
                     className={
                       user.isVerified
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
+                        ? "bg-green-100 text-green-800 border-green-200"
+                        : "bg-yellow-100 text-yellow-800 border-yellow-200"
                     }
                   >
-                    {user.isVerified ? "Verified" : "Not Verified"}
-                  </Badge>
-                </div>
-              )}
-              {user.onboardingStatus && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Onboarding</span>
-                  <Badge
-                    className={getOnboardingStatusColor(user.onboardingStatus)}
-                  >
-                    <span className="capitalize">
-                      {user.onboardingStatus.replace("_", " ")}
+                    {user.isVerified ? (
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Clock className="w-3 h-3 mr-1" />
+                    )}
+                    <span className="ml-1">
+                      {user.isVerified ? "Verified" : "Pending"}
                     </span>
                   </Badge>
                 </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Member Since</span>
-                <span className="text-sm font-medium">{user.joinDate}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Last Active</span>
-                <span className="text-sm font-medium">{user.lastActive}</span>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Role</span>
+                  <Badge className={getRoleColor(user.role)}>
+                    {getRoleIcon(user.role)}
+                    <span className="ml-1 capitalize">{user.role}</span>
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Member Since</span>
+                  <span className="text-sm font-medium">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Last Active</span>
+                  <span className="text-sm font-medium">
+                    {user.lastLoginAt
+                      ? new Date(user.lastLoginAt).toLocaleDateString()
+                      : "Never"}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Danger Zone */}
-          <Card className="border-red-200">
-            <CardHeader>
-              <CardTitle className="text-red-600">Danger Zone</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                className="w-full justify-start rounded-[10px]"
-                variant="outline"
-                size="sm"
-              >
-                <AlertTriangle className="w-4 h-4 mr-2 text-yellow-600" />
-                Suspend Account
-              </Button>
-              <Button
-                className="w-full justify-start rounded-[10px]"
-                variant="outline"
-                size="sm"
-              >
-                <Ban className="w-4 h-4 mr-2 text-red-600" />
-                Delete Account
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Danger Zone */}
+            <Card className="border-red-200 bg-red-50/50">
+              <CardHeader>
+                <CardTitle className="text-red-600">Danger Zone</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleLock}
+                  disabled={updating}
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2 text-yellow-600" />
+                  {user.isLocked ? "Unlock Account" : "Lock Account"}
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  size="sm"
+                >
+                  <Trash2 className="w-4 h-4 mr-2 text-red-600" />
+                  Delete Account
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
