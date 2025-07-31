@@ -234,18 +234,24 @@ export default function CreateProductPage() {
       if (response.status === 201 || response.status === 200) {
         toast.success("Category created successfully!");
 
-        // Add the new category to the options
-        const newCategory = {
-          _id: response.data._id,
-          title: response.data.title,
-        };
-        setCategoryOptions((prev: { _id: string; title: string }[]) => [
-          ...prev,
-          newCategory,
-        ]);
+        // Refresh categories from API
+        const apiFetch = await import("@/lib/apiFetch");
+        const res = await apiFetch.getApiRequest(
+          `/api/product-categories/type/${encodeURIComponent(
+            form.productType
+          )}`,
+          token
+        );
+        const data = res?.data?.data || res?.data || [];
+        const activeCategories = data.filter((cat: any) => !cat.isDeleted);
+        setCategoryOptions(activeCategories);
+
+        // Extract service titles from categories
+        const services = activeCategories.map((cat: any) => cat.title);
+        setServiceOptions(services);
 
         // Set the new category as selected
-        setForm((prev: any) => ({ ...prev, category: newCategory.title }));
+        setForm((prev: any) => ({ ...prev, category: response.data.title }));
 
         // Reset and close dialog
         setNewCategoryTitle("");
@@ -301,18 +307,18 @@ export default function CreateProductPage() {
       if (response.status === 201 || response.status === 200) {
         toast.success("Subcategory created successfully!");
 
-        // Add the new subcategory to the options
-        const newSubcategory = {
-          _id: response.data._id,
-          name: response.data.name,
-        };
-        setSubcategoryOptions((prev: { _id: string; name: string }[]) => [
-          ...prev,
-          newSubcategory,
-        ]);
+        // Refresh subcategories from API
+        const apiFetch = await import("@/lib/apiFetch");
+        const res = await apiFetch.getApiRequest(
+          `/api/product-subcategories/category/${selectedCategory._id}`,
+          token
+        );
+        const data = res?.data?.data || res?.data || [];
+        const activeSubcategories = data.filter((sub: any) => !sub.isDeleted);
+        setSubcategoryOptions(activeSubcategories);
 
         // Set the new subcategory as selected
-        setForm((prev: any) => ({ ...prev, subcategory: newSubcategory.name }));
+        setForm((prev: any) => ({ ...prev, subcategory: response.data.name }));
 
         // Reset and close dialog
         setNewSubcategoryName("");
@@ -361,7 +367,9 @@ export default function CreateProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step < steps.length - 1) return;
+
+    // Only submit on the final step (step 4)
+    if (step !== steps.length - 1) return;
 
     // Enhanced validation for all required fields
     const requiredFields = [
