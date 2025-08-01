@@ -241,7 +241,7 @@ export const dashboardSidebarConfig = {
           {
             label: "Dashboard",
             icon: LayoutDashboard,
-            href: "/dashboard/customerRepresentative",
+            href: "/dashboard/customer-representative",
           },
           {
             label: "User Queries",
