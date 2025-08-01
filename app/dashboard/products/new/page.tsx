@@ -709,6 +709,7 @@ export default function CreateProductPage() {
                             disabled={
                               creatingCategory || !newCategoryTitle.trim()
                             }
+                            className="hover:bg-blue-600 text-white"
                           >
                             {creatingCategory
                               ? "Creating..."
@@ -833,6 +834,7 @@ export default function CreateProductPage() {
                             disabled={
                               creatingSubcategory || !newSubcategoryName.trim()
                             }
+                            className="hover:bg-blue-600 text-white"
                           >
                             {creatingSubcategory
                               ? "Creating..."
