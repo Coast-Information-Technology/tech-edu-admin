@@ -72,7 +72,7 @@ const PRODUCT_TYPE_OPTIONS = [
 ];
 
 // Remove static SERVICE_OPTIONS since we'll fetch dynamically
-const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
+const DELIVERY_MODE_OPTIONS = ["online", "physical", "hybrid"];
 const SESSION_TYPE_OPTIONS = ["1-on-1", "group", "classroom"];
 const MODE_OPTIONS = ["weeks", "days", "hours"];
 
