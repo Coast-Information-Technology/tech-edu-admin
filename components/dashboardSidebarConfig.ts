@@ -274,6 +274,11 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/users",
           },
           {
+            label: "Bookings",
+            icon: Calendar,
+            href: "/dashboard/bookings",
+          },
+          {
             label: "User Feedback",
             icon: MessageCircle,
             href: "/dashboard/feedback",
