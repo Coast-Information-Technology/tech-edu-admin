@@ -6,37 +6,62 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 // Types
-interface User {
-  _id: string;
-  fullName: string;
-  email: string;
-}
-interface Product {
-  _id: string;
-  service: string;
-}
 interface Payment {
   _id: string;
-  userId: User;
-  amount: number;
-  currency: string;
-  status: string;
+  userId: string;
   provider: string;
   transactionId: string;
-  createdAt: string;
-  productId: Product;
-}
-interface PaymentDetails extends Payment {
-  updatedAt: string;
-  jobApplicationId: string | null;
-  trainingEnrollmentId: string | null;
+  amount: number;
+  status: string;
+  currency: string;
+  productId: string;
+  jobApplicationId?: string;
+  bookingId?: string;
+  stripeProductId?: string;
+  stripePriceId?: string;
   couponCode?: string;
-  discountAmount?: number;
+  clientSecret?: string;
   metadata?: Record<string, any>;
+  webhookReceived: boolean;
+  receiptUrl?: string;
+  productType: string;
+  bookingService?: string;
+  platformRole: string;
+  profileId?: string;
+  isSession: boolean;
+  isClassroom: boolean;
+  isDeleted: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const STATUS_OPTIONS = ["success", "pending", "failed"];
-const PROVIDER_OPTIONS = ["stripe", "paypal", "flutterwave"];
+interface PaymentDetails extends Payment {
+  // Additional fields for detailed view if needed
+}
+
+const STATUS_OPTIONS = ["pending", "success", "failed"];
+const PROVIDER_OPTIONS = ["stripe", "flutterwave", "paystack"];
+const PRODUCT_TYPE_OPTIONS = [
+  "Training & Certification",
+  "Academic Support Services",
+  "Career Development & Mentorship",
+  "Institutional & Team Services",
+  "AI-Powered or Automation Services",
+  "Recruitment & Job Matching",
+  "Marketing",
+  "Consultation & Free Services",
+];
+const PLATFORM_ROLE_OPTIONS = [
+  "student",
+  "individualTechProfessional",
+  "teamTechProfessional",
+  "recruiter",
+  "institution",
+  "admin",
+  "visitor",
+];
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -47,6 +72,10 @@ export default function AdminPaymentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [status, setStatus] = useState("");
   const [provider, setProvider] = useState("");
+  const [productType, setProductType] = useState("");
+  const [platformRole, setPlatformRole] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<PaymentDetails | null>(
@@ -71,15 +100,19 @@ export default function AdminPaymentsPage() {
       params.append("limit", String(limit));
       if (status) params.append("status", status);
       if (provider) params.append("provider", provider);
+      if (productType) params.append("productType", productType);
+      if (platformRole) params.append("platformRole", platformRole);
+      if (currency) params.append("currency", currency);
+      if (search) params.append("search", search);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
       try {
         const res = await getApiRequest(
-          `/api/payments/admin?${params.toString()}`,
+          `/api/payments?${params.toString()}`,
           token
         );
-        setPayments(res.data.data.payments);
-        setTotalPages(res.data.data.pagination.pages);
+        setPayments(res.data.data);
+        setTotalPages(res.data.meta.totalPages);
       } catch (err: any) {
         setError(err.message || "Failed to fetch payments");
       } finally {
@@ -87,7 +120,18 @@ export default function AdminPaymentsPage() {
       }
     };
     fetchPayments();
-  }, [page, limit, status, provider, startDate, endDate]);
+  }, [
+    page,
+    limit,
+    status,
+    provider,
+    productType,
+    platformRole,
+    currency,
+    search,
+    startDate,
+    endDate,
+  ]);
 
   // Fetch single payment details
   const openPaymentModal = async (paymentId: string) => {
@@ -101,8 +145,8 @@ export default function AdminPaymentsPage() {
       return;
     }
     try {
-      const res = await getApiRequest(`/api/payments/admin/`, token);
-      setSelectedPayment(res.data.data.payments);
+      const res = await getApiRequest(`/api/payments/${paymentId}`, token);
+      setSelectedPayment(res.data.data);
     } catch (err: any) {
       setSelectedPayment(null);
     } finally {
@@ -111,300 +155,393 @@ export default function AdminPaymentsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Payments</h1>
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-[10px] border p-2"
-        >
-          <option value="">All Statuses</option>
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt.charAt(0).toUpperCase() + opt.slice(1)}
-            </option>
-          ))}
-        </select>
-        <select
-          value={provider}
-          onChange={(e) => {
-            setProvider(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-[10px] border p-2"
-        >
-          <option value="">All Providers</option>
-          {PROVIDER_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt.charAt(0).toUpperCase() + opt.slice(1)}
-            </option>
-          ))}
-        </select>
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => {
-            setStartDate(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-[10px] border p-2"
-          placeholder="Start Date"
-        />
-        <Input
-          type="date"
-          value={endDate}
-          onChange={(e) => {
-            setEndDate(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-[10px] border p-2"
-          placeholder="End Date"
-        />
-        <select
-          value={limit}
-          onChange={(e) => {
-            setLimit(Number(e.target.value));
-            setPage(1);
-          }}
-          className="rounded-[10px] border p-2"
-        >
-          {[10, 20, 50, 100].map((opt) => (
-            <option key={opt} value={opt}>
-              {opt} per page
-            </option>
-          ))}
-        </select>
-      </div>
-      {/* Table */}
-      <div className="overflow-x-auto border rounded-[10px]">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                User
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Amount
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Provider
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Product
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Date
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
-              [...Array(8)].map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} className="px-4 py-4">
-                      <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
-                    </td>
-                  ))}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Payment Management
+            </h1>
+            <p className="text-slate-600 mt-1">
+              Monitor and manage all payment transactions
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-2xl font-bold text-slate-900">
+                {payments.length}
+              </div>
+              <div className="text-sm text-slate-600">Total Payments</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+            Filters & Search
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl p-3 text-sm"
+            >
+              <option value="">All Statuses</option>
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </option>
+              ))}
+            </select>
+            <select
+              value={provider}
+              onChange={(e) => {
+                setProvider(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+            >
+              <option value="">All Providers</option>
+              {PROVIDER_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </option>
+              ))}
+            </select>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+              placeholder="Start Date"
+            />
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+              placeholder="End Date"
+            />
+            <select
+              value={productType}
+              onChange={(e) => {
+                setProductType(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+            >
+              <option value="">All Product Types</option>
+              {PRODUCT_TYPE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            <select
+              value={platformRole}
+              onChange={(e) => {
+                setPlatformRole(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+            >
+              <option value="">All Platform Roles</option>
+              {PLATFORM_ROLE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </option>
+              ))}
+            </select>
+            <Input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+              placeholder="Search transaction ID or service"
+            />
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-[10px] border p-2"
+            >
+              {[10, 20, 50, 100].map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt} per page
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-2xl overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Provider
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                [...Array(8)].map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <td key={j} className="px-4 py-4">
+                        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="text-center text-red-600 py-8">
+                    {error}
+                  </td>
                 </tr>
-              ))
-            ) : error ? (
-              <tr>
-                <td colSpan={7} className="text-center text-red-600 py-8">
-                  {error}
-                </td>
-              </tr>
-            ) : payments.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8">
-                  No payments found.
-                </td>
-              </tr>
-            ) : (
-              payments.map((payment) => (
-                <tr key={payment._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="font-medium">{payment.userId.fullName}</div>
-                    <div className="text-xs text-gray-500">
-                      {payment.userId.email}
-                    </div>
+              ) : payments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8">
+                    No payments found.
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap font-semibold">
-                    {payment.currency} {payment.amount.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                </tr>
+              ) : (
+                payments.map((payment) => (
+                  <tr
+                    key={payment._id}
+                    className="hover:bg-blue-50/50 transition-colors duration-200"
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="font-medium">
+                        User ID: {payment.userId}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {payment.platformRole}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold">
+                      {payment.currency} {payment.amount.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          payment.status === "success"
+                            ? "bg-green-100 text-green-700"
+                            : payment.status === "pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {payment.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {payment.provider}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {payment.productType || "-"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {new Date(payment.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button
+                        className="text-blue-600 hover:text-blue-800 font-medium mr-3 transition-colors duration-200"
+                        onClick={() => openPaymentModal(payment._id)}
+                      >
+                        View Details
+                      </button>
+                      <button className="text-green-600 hover:text-green-800 font-medium transition-colors duration-200">
+                        Download Receipt
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Pagination */}
+        <div className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-2xl p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="text-slate-600">
+              Page <span className="font-semibold text-slate-900">{page}</span>{" "}
+              of{" "}
+              <span className="font-semibold text-slate-900">{totalPages}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* Payment Details Modal */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-6 relative border border-slate-200">
+              <button
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors duration-200"
+                onClick={() => setModalOpen(false)}
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              {modalLoading ? (
+                <div className="space-y-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-4 w-full bg-gray-200 rounded animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : selectedPayment ? (
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-6">
+                    Payment Details
+                  </h2>
+                  <div className="mb-4 p-4 bg-slate-50 rounded-xl">
+                    <span className="font-semibold text-slate-700">
+                      User ID:
+                    </span>{" "}
+                    <span className="text-slate-900">
+                      {selectedPayment.userId}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Amount:</span>{" "}
+                    {selectedPayment.currency}{" "}
+                    {selectedPayment.amount.toFixed(2)}
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Status:</span>{" "}
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        payment.status === "success"
+                        selectedPayment.status === "success"
                           ? "bg-green-100 text-green-700"
-                          : payment.status === "pending"
+                          : selectedPayment.status === "pending"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {payment.status}
+                      {selectedPayment.status}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {payment.provider}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {payment.productId?.service || "-"}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {new Date(payment.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Provider:</span>{" "}
+                    {selectedPayment.provider}
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Transaction ID:</span>{" "}
+                    {selectedPayment.transactionId}
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Product Type:</span>{" "}
+                    {selectedPayment.productType || "-"}
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Platform Role:</span>{" "}
+                    {selectedPayment.platformRole}
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Date:</span>{" "}
+                    {new Date(selectedPayment.createdAt).toLocaleString()}
+                  </div>
+                  {selectedPayment.couponCode && (
+                    <div className="mb-2">
+                      <span className="font-medium">Coupon:</span>{" "}
+                      {selectedPayment.couponCode}
+                    </div>
+                  )}
+
+                  {selectedPayment.metadata && (
+                    <div className="mb-2">
+                      <span className="font-medium">Metadata:</span>{" "}
+                      <pre className="bg-gray-100 rounded p-2 text-xs overflow-x-auto">
+                        {JSON.stringify(selectedPayment.metadata, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  <DialogFooter className="mt-6 flex justify-end gap-2">
+                    <button className="px-4 py-2 rounded-[10px] bg-gray-200 hover:bg-gray-300">
+                      Download Receipt
+                    </button>
                     <button
-                      className="text-blue-600 hover:underline mr-2"
-                      onClick={() => openPaymentModal(payment._id)}
+                      className="px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700"
+                      onClick={() => setModalOpen(false)}
                     >
-                      View
+                      Close
                     </button>
-                    <button className="text-gray-600 hover:underline">
-                      Download
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-6">
-        <div>
-          Page {page} of {totalPages}
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-      {/* Payment Details Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-[10px] shadow-lg max-w-lg w-full p-6 relative">
-            <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-black"
-              onClick={() => setModalOpen(false)}
-            >
-              &times;
-            </button>
-            {modalLoading ? (
-              <div className="space-y-4">
-                {[...Array(8)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-4 w-full bg-gray-200 rounded animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : selectedPayment ? (
-              <div>
-                <h2 className="text-xl font-bold mb-2">Payment Details</h2>
-                <div className="mb-2">
-                  <span className="font-medium">User:</span>{" "}
-                  {selectedPayment.userId.fullName} (
-                  {selectedPayment.userId.email})
+                  </DialogFooter>
                 </div>
-                <div className="mb-2">
-                  <span className="font-medium">Amount:</span>{" "}
-                  {selectedPayment.currency} {selectedPayment.amount.toFixed(2)}
+              ) : (
+                <div className="text-red-600">
+                  Failed to load payment details.
                 </div>
-                <div className="mb-2">
-                  <span className="font-medium">Status:</span>{" "}
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      selectedPayment.status === "success"
-                        ? "bg-green-100 text-green-700"
-                        : selectedPayment.status === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {selectedPayment.status}
-                  </span>
-                </div>
-                <div className="mb-2">
-                  <span className="font-medium">Provider:</span>{" "}
-                  {selectedPayment.provider}
-                </div>
-                <div className="mb-2">
-                  <span className="font-medium">Transaction ID:</span>{" "}
-                  {selectedPayment.transactionId}
-                </div>
-                <div className="mb-2">
-                  <span className="font-medium">Product:</span>{" "}
-                  {selectedPayment.productId?.service || "-"}
-                </div>
-                <div className="mb-2">
-                  <span className="font-medium">Date:</span>{" "}
-                  {new Date(selectedPayment.createdAt).toLocaleString()}
-                </div>
-                {selectedPayment.couponCode && (
-                  <div className="mb-2">
-                    <span className="font-medium">Coupon:</span>{" "}
-                    {selectedPayment.couponCode}
-                  </div>
-                )}
-                {selectedPayment.discountAmount && (
-                  <div className="mb-2">
-                    <span className="font-medium">Discount:</span>{" "}
-                    {selectedPayment.discountAmount}
-                  </div>
-                )}
-                {selectedPayment.metadata && (
-                  <div className="mb-2">
-                    <span className="font-medium">Metadata:</span>{" "}
-                    <pre className="bg-gray-100 rounded p-2 text-xs overflow-x-auto">
-                      {JSON.stringify(selectedPayment.metadata, null, 2)}
-                    </pre>
-                  </div>
-                )}
-                <DialogFooter className="mt-6 flex justify-end gap-2">
-                  <button className="px-4 py-2 rounded-[10px] bg-gray-200 hover:bg-gray-300">
-                    Download Receipt
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded-[10px] bg-blue-600 text-white hover:bg-blue-700"
-                    onClick={() => setModalOpen(false)}
-                  >
-                    Close
-                  </button>
-                </DialogFooter>
-              </div>
-            ) : (
-              <div className="text-red-600">
-                Failed to load payment details.
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

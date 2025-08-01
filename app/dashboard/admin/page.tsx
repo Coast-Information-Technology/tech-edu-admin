@@ -229,14 +229,14 @@ export default function AdminDashboard() {
               <h1 className="text-3xl font-bold text-[#011F72]">
                 Welcome back, {admin.name}!
               </h1>
-              <p className="text-gray-600 mt-1 flex items-center gap-2">
+              <div className="text-gray-600 mt-1 flex items-center gap-2">
                 <Shield size={16} className="text-blue-600" />
                 {admin.role} • System Status:{" "}
                 <Badge className="bg-green-100 text-green-800">
                   <CheckCircle size={12} className="mr-1" />
                   {systemHealth.status}
                 </Badge>
-              </p>
+              </div>
             </div>
           </div>
           <div className="flex gap-3 pt-4 md:pt-0">

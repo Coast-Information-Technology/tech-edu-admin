@@ -144,6 +144,14 @@ export const updateApiRequest = async <T = any>(
   return apiRequest<T>(endpoint, "PUT", data, token);
 };
 
+export const putApiRequest = async <T = any>(
+  endpoint: string,
+  data: any,
+  token: string
+): Promise<ApiResponse<T>> => {
+  return apiRequest<T>(endpoint, "PUT", data, token);
+};
+
 export const deleteApiRequest = async <T = any>(
   endpoint: string,
   token: string
@@ -200,6 +208,7 @@ export const logoutUser = async (): Promise<ApiResponse<any>> => {
   };
 
   try {
+    // Try to call the logout API endpoint
     const response = await postApiRequest(
       "/api/auth/logout",
       accessToken || "",
@@ -207,9 +216,22 @@ export const logoutUser = async (): Promise<ApiResponse<any>> => {
     );
     return response;
   } catch (error) {
-    throw error;
+    // If the API call fails, we still want to logout locally
+    // This handles cases where the API endpoint doesn't exist or is down
+    console.warn(
+      "Logout API call failed, proceeding with local logout:",
+      error
+    );
+
+    // Return a success response for local logout
+    return {
+      data: { message: "Logged out successfully" },
+      status: 200,
+      message: "Logged out successfully",
+    };
   } finally {
-    deleteTokenFromCookies(); // Always clear cookies on logout
+    // Always clear cookies on logout, regardless of API call success
+    deleteTokenFromCookies();
     deleteRefreshTokenFromCookies();
     deleteUserDataFromCookies();
     deleteUserIdFromCookies();

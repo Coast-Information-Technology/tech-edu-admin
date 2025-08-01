@@ -99,16 +99,13 @@ export default function AttendanceManagementPage() {
   const [meta, setMeta] = useState<Meta | null>(null);
 
   const PRODUCT_TYPE_OPTIONS = [
-    "AcademicService",
-    "TrainingProgram",
-    "Consultancy",
-    "Inquiry",
-    "AI/ML Service",
-    "Marketing",
-    "Free Support",
-    "Demo Session",
-    "Career Connect",
-    "Cv Builder",
+    "Training & Certification",
+    "Academic Support Services",
+    "Career Development & Mentorship",
+    "Institutional & Team Services",
+    "AI-Powered or Automation Services",
+    "Recruitment & Job Matching",
+    "Marketing, Consultation & Free Services",
   ];
 
   const STATUS_OPTIONS = [
@@ -253,14 +250,24 @@ export default function AttendanceManagementPage() {
                   Refresh
                 </span>
               </button>
-              <Link href="/dashboard/attendance-management/new">
-                <button className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                  <span className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                    Create Attendance
-                  </span>
-                </button>
-              </Link>
+              <div className="flex flex-col md:flex-row gap-3">
+                <Link href="/dashboard/attendance-management/new">
+                  <button className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 w-full">
+                    <span className="flex items-center gap-2">
+                      <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                      Academic Session
+                    </span>
+                  </button>
+                </Link>
+                <Link href="/dashboard/attendance-management/classroom/new">
+                  <button className="group relative px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 w-full">
+                    <span className="flex items-center gap-2">
+                      <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                      Classroom Session
+                    </span>
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

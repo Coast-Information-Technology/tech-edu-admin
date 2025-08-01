@@ -552,7 +552,7 @@ export default function CreateProductPage() {
                   )}
                 </div>
                 <span
-                  className={`mt-3 text-sm font-semibold transition-all duration-300 ${
+                  className={`mt-3 hidden md:block text-sm font-semibold transition-all duration-300 ${
                     idx === step
                       ? "text-blue-600"
                       : idx < step
@@ -590,7 +590,7 @@ export default function CreateProductPage() {
                       name="productType"
                       value={form.productType}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                     >
                       <option value="">Select Product Type</option>
@@ -613,7 +613,7 @@ export default function CreateProductPage() {
                       value={form.service}
                       onChange={handleChange}
                       placeholder="Enter service name (e.g., Data Science for Beginners)"
-                      className="px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      className="px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                     />
                   </div>
@@ -626,7 +626,7 @@ export default function CreateProductPage() {
                       name="category"
                       value={form.category}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                       disabled={!form.productType || categoryLoading}
                     >
@@ -664,7 +664,7 @@ export default function CreateProductPage() {
                       open={showCategoryDialog}
                       onOpenChange={setShowCategoryDialog}
                     >
-                      <DialogContent className="sm:max-w-md">
+                      <DialogContent className="sm:max-w-md bg-white">
                         <DialogHeader>
                           <DialogTitle>Create New Category</DialogTitle>
                         </DialogHeader>
@@ -725,7 +725,7 @@ export default function CreateProductPage() {
                       name="subcategory"
                       value={form.subcategory}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       disabled={!form.category || subcategoryLoading}
                       required
                     >
@@ -1002,6 +1002,7 @@ export default function CreateProductPage() {
                   onChange={handleChange}
                   placeholder="Enter a detailed description of your product or service..."
                   className="w-full border rounded-[10px] p-2"
+                  rows={4}
                 />
                 <label className="block text-sm font-medium mb-1">
                   Tags (comma separated)
@@ -1262,7 +1263,7 @@ export default function CreateProductPage() {
               <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <button
                   type="button"
-                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={prevStep}
                   disabled={step === 0 || loading}
                 >
@@ -1287,7 +1288,7 @@ export default function CreateProductPage() {
                 {step === steps.length - 1 ? (
                   <button
                     type="submit"
-                    className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
+                    className="px-8 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
                     disabled={loading}
                   >
                     {loading ? (
@@ -1335,7 +1336,7 @@ export default function CreateProductPage() {
                 ) : (
                   <button
                     type="button"
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
+                    className="px-8 py-5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
                     onClick={nextStep}
                     disabled={loading}
                   >

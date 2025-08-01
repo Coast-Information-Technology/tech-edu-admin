@@ -39,31 +39,8 @@ import { toast } from "react-toastify";
 import { postApiRequest } from "@/lib/apiFetch";
 import { useTokenManagement } from "@/hooks/useTokenManagement";
 import { uploadImageToFirebase } from "@/lib/firebase";
-
-interface InstructorFormData {
-  email: string;
-  password: string;
-  fullName: string;
-  profileImageUrl: string;
-  title: string;
-  bio: string;
-  specializationAreas: string[];
-  certifications: string[];
-  yearsOfExperience: number;
-  linkedInProfileUrl: string;
-  languagesSpoken: string[];
-  experience: number;
-  experienceDetails: string;
-  linkedIn: string;
-}
-
-interface CustomerCareFormData {
-  email: string;
-  password: string;
-  fullName: string;
-  profileImageUrl: string;
-  assignedDepartments: string[];
-}
+import { getTokenFromCookies, getRefreshTokenFromCookies } from "@/lib/cookies";
+import { InstructorFormData, CustomerCareFormData } from "@/types/users";
 
 const availableDepartments = [
   "Academic Services",
@@ -79,7 +56,21 @@ const availableDepartments = [
 ];
 
 export default function NewUserPage() {
-  const { accessToken } = useTokenManagement();
+  const {
+    accessToken,
+    getValidToken,
+    isLoading: tokenLoading,
+  } = useTokenManagement();
+
+  // Debug: Check all cookies on component mount
+  React.useEffect(() => {
+    console.log("=== COOKIE DEBUG ===");
+    console.log("All cookies:", document.cookie);
+    console.log("Token from cookies:", getTokenFromCookies());
+    console.log("Refresh token from cookies:", getRefreshTokenFromCookies());
+    console.log("===================");
+  }, []);
+
   const [activeTab, setActiveTab] = useState("instructor");
   const [loading, setLoading] = useState(false);
   const [newSpecialization, setNewSpecialization] = useState("");
@@ -309,8 +300,27 @@ export default function NewUserPage() {
   };
 
   const handleSubmitInstructor = async () => {
-    if (!accessToken) {
-      toast.error("Authentication required");
+    if (tokenLoading) {
+      toast.error("Please wait while we verify your authentication...");
+      return;
+    }
+
+    console.log("Token loading state:", tokenLoading);
+    console.log("Current access token:", accessToken);
+
+    let token = await getValidToken();
+    console.log("Valid token result:", token ? "Token found" : "No token");
+
+    // Fallback: try to get token directly from cookies
+    if (!token) {
+      console.log("Trying fallback token from cookies...");
+      console.log("All cookies:", document.cookie);
+      token = getTokenFromCookies();
+      console.log("Fallback token result:", token ? "Token found" : "No token");
+    }
+
+    if (!token) {
+      toast.error("Authentication required. Please log in again.");
       return;
     }
 
@@ -328,7 +338,7 @@ export default function NewUserPage() {
       setLoading(true);
       const response = await postApiRequest(
         "/api/users/create-instructor",
-        accessToken,
+        token,
         instructorData
       );
 
@@ -365,8 +375,33 @@ export default function NewUserPage() {
   };
 
   const handleSubmitCustomerCare = async () => {
-    if (!accessToken) {
-      toast.error("Authentication required");
+    if (tokenLoading) {
+      toast.error("Please wait while we verify your authentication...");
+      return;
+    }
+
+    console.log("Customer Care - Token loading state:", tokenLoading);
+    console.log("Customer Care - Current access token:", accessToken);
+
+    let token = await getValidToken();
+    console.log(
+      "Customer Care - Valid token result:",
+      token ? "Token found" : "No token"
+    );
+
+    // Fallback: try to get token directly from cookies
+    if (!token) {
+      console.log("Customer Care - Trying fallback token from cookies...");
+      console.log("Customer Care - All cookies:", document.cookie);
+      token = getTokenFromCookies();
+      console.log(
+        "Customer Care - Fallback token result:",
+        token ? "Token found" : "No token"
+      );
+    }
+
+    if (!token) {
+      toast.error("Authentication required. Please log in again.");
       return;
     }
 
@@ -389,7 +424,7 @@ export default function NewUserPage() {
       setLoading(true);
       const response = await postApiRequest(
         "/api/users/create-customer-care",
-        accessToken,
+        token,
         customerCareData
       );
 
@@ -423,7 +458,7 @@ export default function NewUserPage() {
     <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
           <Button variant="outline" asChild className="rounded-[10px]">
             <Link href="/dashboard/users">
               <ArrowLeft className="w-4 h-4 mr-2" />

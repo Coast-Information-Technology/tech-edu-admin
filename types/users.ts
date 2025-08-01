@@ -88,6 +88,31 @@ export interface AdminProfile {
   };
 }
 
+export interface InstructorFormData {
+  email: string;
+  password: string;
+  fullName: string;
+  profileImageUrl: string;
+  title: string;
+  bio: string;
+  specializationAreas: string[];
+  certifications: string[];
+  yearsOfExperience: number;
+  linkedInProfileUrl: string;
+  languagesSpoken: string[];
+  experience: number;
+  experienceDetails: string;
+  linkedIn: string;
+}
+
+export interface CustomerCareFormData {
+  email: string;
+  password: string;
+  fullName: string;
+  profileImageUrl: string;
+  assignedDepartments: string[];
+}
+
 export interface UserProfile {
   _id: string;
   fullName: string;

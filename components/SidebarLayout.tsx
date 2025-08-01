@@ -36,9 +36,12 @@ export default function SidebarLayout({
   const logoutHandler = async () => {
     try {
       await logoutUser(); // Your existing helper
+      // If logoutUser succeeds, redirect to login
+      router.push("/login");
     } catch (error) {
       console.error("Logout failed", error);
-    } finally {
+      // Even if logoutUser fails, we should still redirect to login
+      // and clear any remaining tokens
       deleteTokenFromCookies();
       deleteRefreshTokenFromCookies();
       router.push("/login");

@@ -18,6 +18,7 @@ import {
   Settings,
   Plus,
   X,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -28,8 +29,8 @@ interface Participant {
   fullName: string;
 }
 
-interface AttendanceForm {
-  sessionId: string;
+interface ClassroomAttendanceForm {
+  classroomId: string;
   productType: string;
   ledBy: string;
   scheduleAt: string;
@@ -54,11 +55,17 @@ const PRODUCT_TYPE_OPTIONS = [
   "Marketing, Consultation & Free Services",
 ];
 
-const BOOKER_TYPE_OPTIONS = ["individual", "group", "organization"];
-const PLATFORM_ROLE_OPTIONS = ["student", "instructor", "admin", "coordinator"];
-const PARTICIPANT_TYPE_OPTIONS = ["individual", "group"];
+const BOOKER_TYPE_OPTIONS = ["individual", "team", "organization"];
+const PLATFORM_ROLE_OPTIONS = [
+  "student",
+  "instructor",
+  "admin",
+  "coordinator",
+  "teamTechProfessional",
+];
+const PARTICIPANT_TYPE_OPTIONS = ["individual", "team"];
 
-export default function CreateAttendancePage() {
+export default function CreateClassroomAttendancePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,27 +74,27 @@ export default function CreateAttendancePage() {
     Array<{ _id: string; fullName: string; email: string }>
   >([]);
   const [instructorsLoading, setInstructorsLoading] = useState(false);
-  const [form, setForm] = useState<AttendanceForm>({
-    sessionId: "",
+  const [form, setForm] = useState<ClassroomAttendanceForm>({
+    classroomId: "",
     productType: "",
     ledBy: "",
     scheduleAt: "",
     endAt: "",
-    durationInMinutes: 60,
+    durationInMinutes: 120,
     title: "",
-    bookerType: "individual",
-    bookerPlatformRole: "student",
+    bookerType: "team",
+    bookerPlatformRole: "teamTechProfessional",
     bookerEmail: "",
     bookerFullName: "",
     participants: [
       {
-        participantType: "individual",
-        platformRole: "student",
+        participantType: "team",
+        platformRole: "teamTechProfessional",
         email: "",
         fullName: "",
       },
     ],
-    numberOfExpectedParticipants: 1,
+    numberOfExpectedParticipants: 5,
   });
 
   // Fetch instructors on component mount
@@ -147,8 +154,8 @@ export default function CreateAttendancePage() {
       participants: [
         ...prev.participants,
         {
-          participantType: "individual",
-          platformRole: "student",
+          participantType: "team",
+          platformRole: "teamTechProfessional",
           email: "",
           fullName: "",
         },
@@ -181,7 +188,7 @@ export default function CreateAttendancePage() {
 
     // Validate required fields
     if (
-      !form.sessionId ||
+      !form.classroomId ||
       !form.productType ||
       !form.ledBy ||
       !form.scheduleAt ||
@@ -214,7 +221,7 @@ export default function CreateAttendancePage() {
       }
 
       const payload = {
-        sessionId: form.sessionId,
+        classroomId: form.classroomId,
         productType: form.productType,
         ledBy: form.ledBy,
         scheduleAt: form.scheduleAt,
@@ -229,10 +236,14 @@ export default function CreateAttendancePage() {
         numberOfExpectedParticipants: form.numberOfExpectedParticipants,
       };
 
-      console.log("Creating attendance with payload:", payload);
+      console.log("Creating classroom attendance with payload:", payload);
 
-      const response = await postApiRequest("/api/attendance", token, payload);
-      console.log("Attendance creation response:", response);
+      const response = await postApiRequest(
+        "/api/classroom-attendance",
+        token,
+        payload
+      );
+      console.log("Classroom attendance creation response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);
@@ -240,10 +251,12 @@ export default function CreateAttendancePage() {
           router.push("/dashboard/attendance-management");
         }, 2000);
       } else {
-        setError(response?.data?.message || "Failed to create attendance");
+        setError(
+          response?.data?.message || "Failed to create classroom attendance"
+        );
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create attendance");
+      setError(err.message || "Failed to create classroom attendance");
     } finally {
       setLoading(false);
     }
@@ -262,10 +275,10 @@ export default function CreateAttendancePage() {
             </Link>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Create New Attendance
+                Create Classroom Session Attendance
               </h1>
               <p className="text-slate-600">
-                Set up a new attendance record with Microsoft Teams integration
+                Set up a new classroom attendance record for in-person sessions
               </p>
             </div>
           </div>
@@ -293,7 +306,7 @@ export default function CreateAttendancePage() {
             <div>
               <h3 className="text-lg font-semibold text-green-800">Success!</h3>
               <p className="text-green-700">
-                Attendance created successfully. Redirecting...
+                Classroom attendance created successfully. Redirecting...
               </p>
             </div>
           </div>
@@ -301,28 +314,28 @@ export default function CreateAttendancePage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Session Details */}
+          {/* Classroom Session Details */}
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-blue-600" />
+                <Building2 className="w-5 h-5 text-blue-600" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900">
-                Session Details
+                Classroom Session Details
               </h2>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Session ID *
+                  Classroom ID *
                 </label>
                 <input
                   type="text"
-                  name="sessionId"
-                  value={form.sessionId}
+                  name="classroomId"
+                  value={form.classroomId}
                   onChange={handleChange}
-                  placeholder="Enter session ID"
+                  placeholder="Enter classroom ID"
                   className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   required
                 />
@@ -392,7 +405,7 @@ export default function CreateAttendancePage() {
                   name="title"
                   value={form.title}
                   onChange={handleChange}
-                  placeholder="Enter session title"
+                  placeholder="e.g., TrainingProgram | Data Science Fundamentals – 2025-08-01 10:00-12:00"
                   className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   required
                 />
@@ -448,7 +461,7 @@ export default function CreateAttendancePage() {
                   value={form.durationInMinutes}
                   onChange={handleNumberChange}
                   min="1"
-                  placeholder="60"
+                  placeholder="120"
                   className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   required
                 />
@@ -671,7 +684,7 @@ export default function CreateAttendancePage() {
                 value={form.numberOfExpectedParticipants}
                 onChange={handleNumberChange}
                 min="1"
-                placeholder="1"
+                placeholder="5"
                 className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                 required
               />
@@ -694,7 +707,7 @@ export default function CreateAttendancePage() {
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    Create Attendance
+                    Create Classroom Attendance
                   </>
                 )}
               </button>

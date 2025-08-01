@@ -55,6 +55,7 @@ import {
   ChevronRight,
   Plus,
   Settings,
+  RefreshCcw,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -436,23 +437,26 @@ export default function UserManagementPage() {
               variant="outline"
               onClick={() => fetchUsers(1, true)}
               disabled={loading}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto rounded-[10px]"
             >
-              <Activity
+              <RefreshCcw
                 className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
               />
               Refresh
             </Button>
             <Button
               asChild
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+              className="w-full sm:w-auto rounded-[10px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
             >
               <Link href="/dashboard/users/new">
                 <Plus className="w-4 h-4 mr-2" />
                 Add User
               </Link>
             </Button>
-            <Button variant="outline" className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto rounded-[10px]"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -471,7 +475,6 @@ export default function UserManagementPage() {
                   <p className="text-3xl font-bold text-[#011F72]">
                     {stats.total.toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-500">From backend</p>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
                   <Users className="w-6 h-6 text-white" />
@@ -554,7 +557,7 @@ export default function UserManagementPage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="w-full"
+                  className="w-full rounded-[10px]"
                 >
                   <Filter className="w-4 h-4 mr-2" />
                   {showFilters ? "Hide Filters" : "Show Filters"}
@@ -969,7 +972,7 @@ export default function UserManagementPage() {
                 size="sm"
                 onClick={() => fetchUsers(currentPage - 1, true)}
                 disabled={currentPage === 1}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[5px]"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Previous
@@ -979,7 +982,7 @@ export default function UserManagementPage() {
                 size="sm"
                 onClick={() => fetchUsers(currentPage + 1, false)}
                 disabled={!hasMore}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[5px]"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />

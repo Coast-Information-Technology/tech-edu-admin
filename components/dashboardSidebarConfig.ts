@@ -48,7 +48,7 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/products-management",
           },
           {
-            label: "Attendance Management",
+            label: "Attendance Mgt.",
             icon: BookOpen,
             href: "/dashboard/attendance-management",
           },
@@ -80,6 +80,11 @@ export const dashboardSidebarConfig = {
           // },
           {
             label: "Bookings",
+            icon: Calendar,
+            href: "/dashboard/bookings",
+          },
+          {
+            label: "Booked Services",
             icon: Calendar,
             href: "/dashboard/booked-services",
           },
