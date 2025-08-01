@@ -34,9 +34,32 @@ import { toast } from "react-toastify";
 
 interface Booking {
   _id: string;
-  productId: string;
-  productType: "AcademicService" | "TrainingProgram";
-  instructorId: string;
+  productId: {
+    _id: string;
+    service: string;
+    productType:
+      | "Training & Certification"
+      | "Academic Support Services"
+      | "Career Development & Mentorship"
+      | "Institutional & Team Services"
+      | "AI-Powered or Automation Services"
+      | "Recruitment & Job Matching"
+      | "Marketing, Consultation & Free Services";
+    price: number;
+  };
+  productType:
+    | "Training & Certification"
+    | "Academic Support Services"
+    | "Career Development & Mentorship"
+    | "Institutional & Team Services"
+    | "AI-Powered or Automation Services"
+    | "Recruitment & Job Matching"
+    | "Marketing, Consultation & Free Services";
+  instructorId: {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
   bookingPurpose: string;
   scheduleAt: string;
   endAt: string;
@@ -51,10 +74,20 @@ interface Booking {
   userNotes?: string;
   internalNotes?: string;
   attachments?: string[];
-  participantType: "individual" | "team";
+  participantType:
+    | "individual"
+    | "team"
+    | "institution"
+    | "recruiter"
+    | "visitor";
   platformRole: string;
   email: string;
   fullName: string;
+  createdBy: {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -80,10 +113,9 @@ export default function AdminBookingsPage() {
         return;
       }
 
-      const response = await getApiRequest("/api/bookings", token);
+      const response = await getApiRequest("/api/bookings/admin/all", token);
       if (response?.data?.success) {
-        const bookingsData =
-          response.data.data?.bookings || response.data.bookings || [];
+        const bookingsData = response.data.data || [];
         setBookings(bookingsData);
       } else {
         console.error("Failed to fetch bookings:", response?.data?.message);
@@ -338,11 +370,26 @@ export default function AdminBookingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="AcademicService">
-                    Academic Service
+                  <SelectItem value="Training & Certification">
+                    Training & Certification
                   </SelectItem>
-                  <SelectItem value="TrainingProgram">
-                    Training Program
+                  <SelectItem value="Academic Support Services">
+                    Academic Support Services
+                  </SelectItem>
+                  <SelectItem value="Career Development & Mentorship">
+                    Career Development & Mentorship
+                  </SelectItem>
+                  <SelectItem value="Institutional & Team Services">
+                    Institutional & Team Services
+                  </SelectItem>
+                  <SelectItem value="AI-Powered or Automation Services">
+                    AI-Powered or Automation Services
+                  </SelectItem>
+                  <SelectItem value="Recruitment & Job Matching">
+                    Recruitment & Job Matching
+                  </SelectItem>
+                  <SelectItem value="Marketing, Consultation & Free Services">
+                    Marketing, Consultation & Free Services
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -404,14 +451,16 @@ export default function AdminBookingsPage() {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant={
-                            booking.productType === "AcademicService"
+                            booking.productType === "Academic Support Services"
                               ? "default"
                               : "secondary"
                           }
                         >
-                          {booking.productType === "AcademicService"
+                          {booking.productType === "Academic Support Services"
                             ? "Academic"
-                            : "Training"}
+                            : booking.productType === "Training & Certification"
+                            ? "Training"
+                            : booking.productType}
                         </Badge>
                         {getStatusBadge(booking.status)}
                         {getPaymentStatusBadge(booking.paymentStatus)}
