@@ -76,20 +76,13 @@ export default function UserDetailPage({
 
     try {
       setLoading(true);
-      console.log("Fetching user with ID:", resolvedParams.id);
 
       const response = await getApiRequest(
         `/api/users/admin/${resolvedParams.id}`,
         accessToken
       );
 
-      console.log("API response:", response);
-
       if (response.status === 200) {
-        // Handle the API response structure: response.data.data (nested user data)
-        console.log("Full API Response:", response);
-        console.log("Response data:", response.data);
-
         // Try different possible data structures
         let userData = null;
         if (response.data?.data) {
@@ -103,10 +96,6 @@ export default function UserDetailPage({
         } else if (response.data?.data?.data) {
           userData = response.data.data.data;
         }
-
-        console.log("Extracted user data:", userData);
-        console.log("User role:", userData?.role);
-        console.log("User profile:", userData?.profile);
 
         // Ensure we have the user data
         if (userData && typeof userData === "object" && userData._id) {
@@ -250,11 +239,18 @@ export default function UserDetailPage({
         setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
         toast.success("User updated successfully");
       } else {
-        toast.error(response.message || "Failed to update user");
+        console.error("Update failed with status:", response.status);
+        console.error("Response data:", response.data);
+        toast.error(
+          response.data?.message || response.message || "Failed to update user"
+        );
       }
     } catch (error: any) {
       console.error("Error updating user:", error);
-      toast.error("Failed to update user");
+      console.error("Error response:", error.response);
+      toast.error(
+        error.data?.message || error.message || "Failed to update user"
+      );
     } finally {
       setUpdating(false);
     }
@@ -468,8 +464,8 @@ export default function UserDetailPage({
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                {/* <Button
+              {/* <div className="flex flex-col sm:flex-row gap-2">
+                <Button
                   variant="outline"
                   className="border-white text-white hover:bg-white hover:text-[#011F72]"
                   asChild
@@ -478,7 +474,7 @@ export default function UserDetailPage({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit User
                   </Link>
-                </Button> */}
+                </Button>
                 <Button
                   variant="outline"
                   className="border-white text-white hover:bg-white hover:text-[#011F72]"
@@ -492,7 +488,7 @@ export default function UserDetailPage({
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -1268,7 +1264,7 @@ export default function UserDetailPage({
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+            {/* <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
@@ -1277,7 +1273,7 @@ export default function UserDetailPage({
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Send Message
                 </Button>
-                {/* <Button
+                <Button
                   className="w-full justify-start"
                   variant="outline"
                   asChild
@@ -1286,7 +1282,7 @@ export default function UserDetailPage({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Link>
-                </Button> */}
+                </Button>
                 <Button className="w-full justify-start" variant="outline">
                   <Eye className="w-4 h-4 mr-2" />
                   View Courses
@@ -1296,7 +1292,7 @@ export default function UserDetailPage({
                   Export Data
                 </Button>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Account Status */}
             <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
