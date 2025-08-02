@@ -587,7 +587,7 @@ export default function UserDetailPage({
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="courses">Courses</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="settings">Edit Profile</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">
