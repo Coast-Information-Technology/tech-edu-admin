@@ -50,6 +50,7 @@ interface Product {
   price: number;
   category: string;
   subcategory: string;
+  productSubcategoryName: string;
 }
 
 export default function CreateTrainingBookingPage() {
@@ -64,7 +65,7 @@ export default function CreateTrainingBookingPage() {
 
   const [form, setForm] = useState({
     productId: "",
-    productType: "TrainingProgram",
+    productType: "Training & Certification",
     instructorId: "",
     bookingPurpose: "",
     scheduleAt: "",
@@ -128,21 +129,16 @@ export default function CreateTrainingBookingPage() {
   const fetchProducts = async () => {
     setProductsLoading(true);
     try {
-      const token = getTokenFromCookies();
-      if (!token) {
-        toast.error("Authentication required. Please log in.");
-        return;
-      }
-
-      const response = await getApiRequest(
-        "/api/products?type=Training & Certification",
-        token
-      );
+      const response = await getApiRequest("/api/products/public");
       if (response?.data?.success) {
-        const productsData =
+        const allProducts =
           response.data.data?.products || response.data.products || [];
-        setProducts(productsData);
-        console.log("Fetched products:", productsData);
+        // Filter products by productType "Training & Certification"
+        const trainingProducts = allProducts.filter(
+          (product: any) => product.productType === "Training & Certification"
+        );
+        setProducts(trainingProducts);
+        console.log("Fetched training products:", trainingProducts);
       } else {
         console.error("Failed to fetch products:", response?.data?.message);
       }
@@ -425,10 +421,10 @@ export default function CreateTrainingBookingPage() {
                       handleChange("productType", value)
                     }
                   >
-                    <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent text-black">
                       <SelectValue placeholder="Select product type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       {PRODUCT_TYPE_OPTIONS.map((type) => (
                         <SelectItem key={type} value={type}>
                           {type}
@@ -459,10 +455,10 @@ export default function CreateTrainingBookingPage() {
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       {products.map((product) => (
                         <SelectItem key={product._id} value={product._id}>
-                          {product.title} - ${product.price}
+                          {product.productSubcategoryName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -492,7 +488,7 @@ export default function CreateTrainingBookingPage() {
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       {instructors.map((instructor) => (
                         <SelectItem key={instructor._id} value={instructor._id}>
                           {instructor.fullName}{" "}
@@ -650,7 +646,7 @@ export default function CreateTrainingBookingPage() {
                     <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       <SelectItem value="individual">Individual</SelectItem>
                       <SelectItem value="team">Team</SelectItem>
                     </SelectContent>
@@ -673,7 +669,7 @@ export default function CreateTrainingBookingPage() {
                     <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       <SelectItem value="teamTechProfessional">
                         Team Tech Professional
                       </SelectItem>
@@ -715,30 +711,30 @@ export default function CreateTrainingBookingPage() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isClassroom"
-                  checked={form.isClassroom}
-                  onCheckedChange={(checked) =>
-                    handleChange("isClassroom", checked)
-                  }
-                />
-                <Label htmlFor="isClassroom" className="text-sm text-slate-700">
-                  This is a classroom session
+              <div>
+                <Label
+                  htmlFor="sessionType"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  Session Type
                 </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isSession"
-                  checked={form.isSession}
-                  onCheckedChange={(checked) =>
-                    handleChange("isSession", checked)
-                  }
-                />
-                <Label htmlFor="isSession" className="text-sm text-slate-700">
-                  This is an individual session
-                </Label>
+                <Select
+                  value={form.isClassroom ? "classroom" : "individual"}
+                  onValueChange={(value) => {
+                    handleChange("isClassroom", value === "classroom");
+                    handleChange("isSession", value === "individual");
+                  }}
+                >
+                  <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <SelectValue placeholder="Select session type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="classroom">Classroom Session</SelectItem>
+                    <SelectItem value="individual">
+                      Individual Session
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

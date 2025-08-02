@@ -267,6 +267,11 @@ export default function AdminDashboard() {
         value: userStats.byRole.instructor,
         color: "#EF4444",
       },
+      {
+        name: "Customer Care Representatives",
+        value: userStats.byRole.customerCareRepresentative,
+        color: "#6B7280",
+      },
       { name: "Admins", value: userStats.byRole.admin, color: "#6B7280" },
     ].filter((item) => item.value > 0);
   };
