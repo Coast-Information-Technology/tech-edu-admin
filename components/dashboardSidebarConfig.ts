@@ -137,11 +137,6 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/courses",
           },
           {
-            label: "Create Course",
-            icon: ClipboardList,
-            href: "/dashboard/create-course",
-          },
-          {
             label: "Lesson Videos",
             icon: Video,
             href: "/dashboard/videos",
@@ -157,14 +152,14 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/students",
           },
           {
-            label: "Assignments / Grading",
+            label: "Assignments/Grading",
             icon: FileText,
             href: "/dashboard/assignments",
           },
           {
             label: "Live Sessions",
             icon: Calendar,
-            href: "/dashboard/live-sessions",
+            href: "/dashboard/sessions",
           },
         ],
       },

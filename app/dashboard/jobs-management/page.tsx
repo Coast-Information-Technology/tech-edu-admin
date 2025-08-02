@@ -15,6 +15,14 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Briefcase,
   Search,
   Filter,
@@ -70,6 +78,9 @@ import {
   FilterX,
   SortAsc,
   SortDesc,
+  Euro,
+  Grid,
+  List,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -90,14 +101,11 @@ const useJobs = () => {
       setError(null);
 
       const token = getTokenFromCookies();
-      console.log("🔑 Token check:", token ? "Token found" : "No token");
 
       if (!token) {
         setError("Authentication required. Please log in.");
         return;
       }
-
-      console.log("📡 Making API request to:", "/api/ats/job-posts");
       const response = await getApiRequest<{
         success: boolean;
         message: string;
@@ -105,18 +113,9 @@ const useJobs = () => {
         meta?: any;
       }>("/api/ats/job-posts", token);
 
-      console.log("📥 Full API Response:", {
-        status: response.status,
-        message: response.message,
-        data: response.data,
-        responseObject: response,
-      });
-
       if (response.status >= 200 && response.status < 300) {
         // Handle nested data structure: response.data.data contains the actual jobs array
         const jobsData = response.data?.data || response.data || [];
-        console.log("✅ Success! Jobs loaded:", jobsData.length);
-        console.log("📋 Jobs data structure:", jobsData);
         setJobs(jobsData);
       } else {
         console.error("❌ API Error:", response.message);
@@ -137,8 +136,6 @@ const useJobs = () => {
   const deleteJob = async (jobId: string) => {
     try {
       const token = getTokenFromCookies();
-      console.log("🗑️ Deleting job:", jobId);
-      console.log("🔑 Token for delete:", token ? "Present" : "Missing");
 
       if (!token) {
         return { success: false, message: "Authentication required" };
@@ -149,15 +146,7 @@ const useJobs = () => {
         token
       );
 
-      console.log("🗑️ Delete Response:", {
-        status: response.status,
-        message: response.message,
-        data: response.data,
-        fullResponse: response,
-      });
-
       if (response.status >= 200 && response.status < 300) {
-        console.log("✅ Job deleted successfully");
         setJobs(jobs.filter((job) => job._id !== jobId));
         return { success: true };
       } else {
@@ -190,6 +179,11 @@ export default function JobsManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
+    useState(false);
+  const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+  const [isBulkDeleteConfirmationOpen, setIsBulkDeleteConfirmationOpen] =
+    useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -250,14 +244,8 @@ export default function JobsManagementPage() {
   };
 
   const handleDeleteJob = async (jobId: string) => {
-    if (confirm("Are you sure you want to delete this job?")) {
-      const result = await deleteJob(jobId);
-      if (result.success) {
-        toast.success("Job deleted successfully");
-      } else {
-        toast.error(result.message || "Failed to delete job");
-      }
-    }
+    setJobToDelete(jobId);
+    setIsDeleteConfirmationOpen(true);
   };
 
   const handleBulkDelete = async () => {
@@ -266,26 +254,25 @@ export default function JobsManagementPage() {
       return;
     }
 
-    if (
-      confirm(
-        `Are you sure you want to delete ${selectedJobs.length} selected jobs?`
-      )
-    ) {
-      const deletePromises = selectedJobs.map((jobId) => deleteJob(jobId));
-      const results = await Promise.all(deletePromises);
+    setIsBulkDeleteConfirmationOpen(true);
+  };
 
-      const successCount = results.filter((result) => result.success).length;
-      const failureCount = results.length - successCount;
+  const confirmBulkDelete = async () => {
+    const deletePromises = selectedJobs.map((jobId) => deleteJob(jobId));
+    const results = await Promise.all(deletePromises);
 
-      if (successCount > 0) {
-        toast.success(`${successCount} jobs deleted successfully`);
-      }
-      if (failureCount > 0) {
-        toast.error(`${failureCount} jobs failed to delete`);
-      }
+    const successCount = results.filter((result) => result.success).length;
+    const failureCount = results.length - successCount;
 
-      setSelectedJobs([]);
+    if (successCount > 0) {
+      toast.success(`${successCount} jobs deleted successfully`);
     }
+    if (failureCount > 0) {
+      toast.error(`${failureCount} jobs failed to delete`);
+    }
+
+    setSelectedJobs([]);
+    setIsBulkDeleteConfirmationOpen(false);
   };
 
   // Filter and sort jobs
@@ -383,10 +370,6 @@ export default function JobsManagementPage() {
                 <Button
                   onClick={() => {
                     const token = getTokenFromCookies();
-                    console.log(
-                      "🔍 Manual Auth Check - Token:",
-                      token ? "Present" : "Missing"
-                    );
                     if (!token) {
                       toast.error(
                         "No authentication token found. Please log in."
@@ -621,17 +604,17 @@ export default function JobsManagementPage() {
                     variant={viewMode === "list" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setViewMode("list")}
-                    className="rounded-2xl"
+                    className="rounded-2xl text-gray-400"
                   >
-                    <FileText className="w-4 h-4" />
+                    <List className="w-4 h-4" />
                   </Button>
                   <Button
                     variant={viewMode === "grid" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setViewMode("grid")}
-                    className="rounded-2xl"
+                    className="rounded-2xl text-gray-400"
                   >
-                    <BarChart3 className="w-4 h-4" />
+                    <Grid className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -734,7 +717,7 @@ export default function JobsManagementPage() {
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                     : "space-y-4"
                 }
               >
@@ -747,7 +730,7 @@ export default function JobsManagementPage() {
                         : "bg-white/50 backdrop-blur-sm"
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-start gap-4">
                           <Checkbox
@@ -790,7 +773,7 @@ export default function JobsManagementPage() {
                               </Badge>
                               {job.salaryRange && (
                                 <span className="flex items-center gap-1">
-                                  <DollarSign className="w-4 h-4" />
+                                  <Euro className="w-4 h-4" />
                                   {job.salaryRange}
                                 </span>
                               )}
@@ -844,7 +827,7 @@ export default function JobsManagementPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -949,6 +932,80 @@ export default function JobsManagementPage() {
           </Card>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={isDeleteConfirmationOpen}
+        onOpenChange={setIsDeleteConfirmationOpen}
+      >
+        <DialogContent className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this job? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteConfirmationOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (jobToDelete) {
+                  deleteJob(jobToDelete).then((result) => {
+                    if (result.success) {
+                      toast.success("Job deleted successfully");
+                      setIsDeleteConfirmationOpen(false);
+                      setJobToDelete(null);
+                    } else {
+                      toast.error(result.message || "Failed to delete job");
+                    }
+                  });
+                }
+              }}
+              className="text-white bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={isBulkDeleteConfirmationOpen}
+        onOpenChange={setIsBulkDeleteConfirmationOpen}
+      >
+        <DialogContent className="bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl">
+          <DialogHeader>
+            <DialogTitle>Confirm Bulk Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedJobs.length} selected
+              jobs? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkDeleteConfirmationOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBulkDelete}
+              className="text-white bg-red-600 hover:bg-red-700"
+            >
+              Delete {selectedJobs.length} Jobs
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

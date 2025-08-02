@@ -559,7 +559,7 @@ export default function OnboardingStuckUsersPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                disabled={page === 1 || onboardingStuckUsers.length === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Previous page"
               >
@@ -567,7 +567,9 @@ export default function OnboardingStuckUsersPage() {
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                disabled={
+                  page === totalPages || onboardingStuckUsers.length === 0
+                }
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Next page"
               >

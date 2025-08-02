@@ -568,7 +568,7 @@ export default function AttendanceManagementPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={meta.page === 1}
+                  disabled={meta.page === 1 || attendances.length === 0}
                   className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                   aria-label="Previous page"
                 >
@@ -578,7 +578,9 @@ export default function AttendanceManagementPage() {
                   onClick={() =>
                     setPage((p) => Math.min(meta.totalPages, p + 1))
                   }
-                  disabled={meta.page === meta.totalPages}
+                  disabled={
+                    meta.page === meta.totalPages || attendances.length === 0
+                  }
                   className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                   aria-label="Next page"
                 >
