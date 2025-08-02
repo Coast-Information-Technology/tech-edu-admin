@@ -91,17 +91,17 @@ export const dashboardSidebarConfig = {
           },
         ],
       },
-      {
-        title: "Resources & Support",
-        items: [
-          { label: "Resources", icon: Layers, href: "/dashboard/resources" },
-          {
-            label: "Feedback / Support",
-            icon: MessageCircle,
-            href: "/dashboard/feedback",
-          },
-        ],
-      },
+      // {
+      //   title: "Resources & Support",
+      //   items: [
+      //     { label: "Resources", icon: Layers, href: "/dashboard/resources" },
+      //     {
+      //       label: "Feedback / Support",
+      //       icon: MessageCircle,
+      //       href: "/dashboard/feedback",
+      //     },
+      //   ],
+      // },
       {
         title: "System",
         items: [
