@@ -243,7 +243,7 @@ export default function AdminBookingsPage() {
                 Refresh
               </span>
             </Button>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col lg:flex-row gap-3">
               <Link href="/dashboard/bookings/academic/new">
                 <Button className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 w-full">
                   <span className="flex items-center gap-2">

@@ -15,6 +15,14 @@ import {
   Activity,
   EyeOff,
   Eye,
+  Calendar,
+  CheckCircle,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
+  Bell,
+  Key,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,8 +64,6 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const { profile: contextProfile, setProfile } = useProfile();
   const { userRole, getRoleDisplayName, getRoleDescription, isProfileRole } =
@@ -94,39 +100,69 @@ export default function ProfilePage() {
     }
   };
 
-  const handleProfileUpdate = async (updatedData: any) => {
-    try {
-      setLoading(true);
-      const token = getTokenFromCookies();
-      if (!token) {
-        return { success: false, error: "No authentication token found" };
-      }
+  // const handleProfileUpdate = async (updatedData: any) => {
+  //   try {
+  //     setLoading(true);
+  //     const token = getTokenFromCookies();
+  //     if (!token) {
+  //       return { success: false, error: "No authentication token found" };
+  //     }
 
-      // Use the direct PATCH /api/users/me endpoint for profile updates
-      const response = await patchApiRequest(
-        "/api/users/me",
-        token,
-        updatedData
-      );
+  //     // Get the current user's role and ID
+  //     const currentRole = getCurrentRole();
+  //     const userId =
+  //       userProfile._id || userProfile.id || userProfile.userId || "";
 
-      if (response.status === 200) {
-        // Update the context with the new data
-        setProfile({ ...contextProfile, ...updatedData });
-        // Refresh the profile data
-        await fetchUserProfile();
-        toast.success("Profile updated successfully");
-        return { success: true };
-      } else {
-        return { success: false, error: response.message };
-      }
-    } catch (err: any) {
-      console.error("Error updating profile:", err);
-      toast.error(err.message || "Failed to update profile");
-      return { success: false, error: "Failed to update profile" };
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     if (!userId) {
+  //       return { success: false, error: "User ID not found" };
+  //     }
+
+  //     // Prepare the update payload based on the API specification
+  //     const updatePayload = {
+  //       email: updatedData.profile?.email || userProfile.email,
+  //       fullName: updatedData.profile?.fullName || userProfile.fullName,
+  //       profileImageUrl:
+  //         updatedData.profile?.avatarUrl || userProfile.profileImageUrl,
+  //       isVerified: userProfile.isVerified,
+  //       isLocked: userProfile.isLocked,
+  //       // Include additional profile fields if they exist
+  //       ...(updatedData.profile && {
+  //         phoneNumber: updatedData.profile.phoneNumber,
+  //         bio: updatedData.profile.bio,
+  //         departments: updatedData.profile.departments,
+  //         assignedRegions: updatedData.profile.assignedRegions,
+  //         permissions: updatedData.profile.permissions,
+  //       }),
+  //     };
+
+  //     // Use the role-based PATCH /api/users/{userId} endpoint
+  //     const response = await patchApiRequest(
+  //       `/api/users/me`,
+  //       token,
+  //       updatePayload
+  //     );
+
+  //     if (response.status === 200) {
+  //       // Update the context with the new data
+  //       setProfile({ ...contextProfile, ...updatedData.profile });
+  //       // Refresh the profile data
+  //       await fetchUserProfile();
+  //       toast.success("Profile updated successfully");
+  //       return { success: true };
+  //     } else {
+  //       return {
+  //         success: false,
+  //         error: response.message || "Failed to update profile",
+  //       };
+  //     }
+  //   } catch (err: any) {
+  //     console.error("Error updating profile:", err);
+  //     toast.error(err.message || "Failed to update profile");
+  //     return { success: false, error: "Failed to update profile" };
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Get role from profile data with fallback to context
   const getCurrentRole = (): string => {
@@ -159,7 +195,7 @@ export default function ProfilePage() {
       return (
         <AdminProfile
           userProfile={userProfile}
-          onUpdate={handleProfileUpdate}
+          // onUpdate={handleProfileUpdate}
           userId={userProfile._id || userProfile.id || userProfile.userId || ""}
           token={getTokenFromCookies() || ""}
         />
@@ -190,7 +226,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -203,7 +239,7 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -222,7 +258,7 @@ export default function ProfilePage() {
 
   if (!userProfile) {
     return (
-      <div className="max-w-7xl mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -254,33 +290,29 @@ export default function ProfilePage() {
   const onboardingStatus = userProfile.onboardingStatus || "not_started";
 
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4">
-      {/* Header */}
+    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      {/* Enhanced Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-[#011F72]">Profile</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#011F72]">
+              Profile
+            </h1>
+            <p className="text-gray-600 mt-1">
               Manage your {getRoleDisplayName(currentRole as any)} profile
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="rounded-[10px]">
-              <User className="w-4 h-4 mr-2" />
-              View Public Profile
-            </Button>
-          </div>
         </div>
 
-        {/* Profile Header Card */}
+        {/* Enhanced Profile Header Card */}
         <Card className="border-0 shadow-lg mb-6">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Avatar className="w-20 h-20">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="relative flex justify-center sm:justify-start">
+                  <Avatar className="w-16 h-16 sm:w-20 sm:h-20">
                     <AvatarImage src={avatarUrl} alt={displayName} />
-                    <AvatarFallback className="text-xl">
+                    <AvatarFallback className="text-lg sm:text-xl">
                       {displayName
                         .split(" ")
                         .map((n: string) => n[0])
@@ -288,36 +320,40 @@ export default function ProfilePage() {
                     </AvatarFallback>
                   </Avatar>
                   {isVerified && (
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                      <Shield className="w-3 h-3 text-white" />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                      <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                     </div>
                   )}
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-[#011F72]">
+                <div className="text-center sm:text-left">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#011F72]">
                     {displayName}
                   </h2>
-                  <p className="text-gray-600">{email}</p>
-                  <div className="flex gap-2 mt-2">
+                  <p className="text-gray-600 text-sm sm:text-base">{email}</p>
+                  <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start">
                     <Badge className={roleColor}>
                       <RoleIcon className="w-3 h-3 mr-1" />
-                      {getRoleDisplayName(currentRole as any)}
+                      <span className="hidden sm:inline">
+                        {getRoleDisplayName(currentRole as any)}
+                      </span>
+                      <span className="sm:hidden">{currentRole}</span>
                     </Badge>
                     {isVerified && (
                       <Badge className="bg-green-100 text-green-800">
                         <Shield className="w-3 h-3 mr-1" />
-                        Verified
+                        <span className="hidden sm:inline">Verified</span>
+                        <span className="sm:hidden">✓</span>
                       </Badge>
                     )}
-                    <Badge className="bg-purple-100 text-purple-800">
+                    <Badge className="bg-purple-100 text-purple-800 text-xs">
                       {onboardingStatus.replace("_", " ")}
                     </Badge>
                   </div>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-center lg:text-right">
                 <p className="text-sm text-gray-600">Role Description</p>
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium max-w-xs">
                   {getRoleDescription(currentRole as any)}
                 </p>
               </div>
@@ -326,40 +362,33 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Profile Content */}
+      {/* Enhanced Profile Content with Responsive Tabs */}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto sm:h-10">
+          <TabsTrigger
+            value="overview"
+            className="flex items-center gap-2 py-3 sm:py-2"
+          >
             <User className="w-4 h-4" />
-            Overview
+            <span className="hidden sm:inline">Profile Overview</span>
+            <span className="sm:hidden">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="flex items-center gap-2">
+          <TabsTrigger
+            value="activity"
+            className="flex items-center gap-2 py-3 sm:py-2"
+          >
             <Activity className="w-4 h-4" />
-            Activity
+            <span className="hidden sm:inline">Activity</span>
+            <span className="sm:hidden">Activity</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           {renderProfileComponent()}
-        </TabsContent>
-
-        <TabsContent value="profile" className="space-y-6">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-[#011F72]">
-                Profile Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent>{renderProfileComponent()}</CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
@@ -370,7 +399,12 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">Activity tracking coming soon...</p>
+              <div className="text-center py-8">
+                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">
+                  Activity tracking coming soon...
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

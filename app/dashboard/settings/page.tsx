@@ -158,15 +158,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeactivateAccount = () => {
-    setIsDeactivating(true);
-    // TODO: Implement deactivate/delete account logic
-    setTimeout(() => {
-      setIsDeactivating(false);
-      toast.info("Account deactivation is not implemented in this demo.");
-    }, 1000);
-  };
-
   const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
     switch (field) {
       case "current":
@@ -366,33 +357,6 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Account Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="destructive"
-            onClick={handleDeactivateAccount}
-            disabled={isDeactivating}
-            className="w-full rounded-[10px] bg-red-600 hover:bg-red-700 text-white py-4 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDeactivating ? "Processing..." : "Deactivate Account"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Mode Toggle */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Theme</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ThemeToggle />
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

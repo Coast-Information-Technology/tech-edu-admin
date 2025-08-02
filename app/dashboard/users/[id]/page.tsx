@@ -46,6 +46,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { UserProfile } from "@/types/users";
+import RecruiterProfile from "./components/RecruiterProfile";
+import CustomerCareProfile from "./components/CustomerCareProfile";
+import IndividualTechProfessionalProfile from "./components/IndividualTechProfessionalProfile";
+import TeamTechProfessionalProfile from "./components/TeamTechProfessionalProfile";
+import StudentProfile from "./components/StudentProfile";
+import UserEditForm from "./components/UserEditForm";
 
 export default function UserDetailPage({
   params,
@@ -73,7 +79,7 @@ export default function UserDetailPage({
       console.log("Fetching user with ID:", resolvedParams.id);
 
       const response = await getApiRequest(
-        `/api/users/${resolvedParams.id}`,
+        `/api/users/admin/${resolvedParams.id}`,
         accessToken
       );
 
@@ -81,11 +87,34 @@ export default function UserDetailPage({
 
       if (response.status === 200) {
         // Handle the API response structure: response.data.data (nested user data)
-        const userData = response.data?.data || response.data;
-        console.log("Single User data:", userData);
+        console.log("Full API Response:", response);
+        console.log("Response data:", response.data);
+
+        // Try different possible data structures
+        let userData = null;
+        if (response.data?.data) {
+          userData = response.data.data;
+        } else if (
+          response.data &&
+          typeof response.data === "object" &&
+          response.data._id
+        ) {
+          userData = response.data;
+        } else if (response.data?.data?.data) {
+          userData = response.data.data.data;
+        }
+
+        console.log("Extracted user data:", userData);
         console.log("User role:", userData?.role);
         console.log("User profile:", userData?.profile);
-        setUser(userData);
+
+        // Ensure we have the user data
+        if (userData && typeof userData === "object" && userData._id) {
+          setUser(userData);
+        } else {
+          console.error("Invalid user data structure:", userData);
+          toast.error("Invalid user data received");
+        }
       } else {
         console.error("API error:", response);
         toast.error(response.message || "Failed to fetch user");
@@ -199,6 +228,38 @@ export default function UserDetailPage({
     }
   };
 
+  // Handle user profile update with restricted fields
+  const handleUserUpdate = async (updatedData: {
+    email?: string;
+    fullName?: string;
+    profileImageUrl?: string;
+    isVerified?: boolean;
+    isLocked?: boolean;
+  }) => {
+    if (!user || !accessToken) return;
+
+    try {
+      setUpdating(true);
+      const response = await patchApiRequest(
+        `/api/users/${user._id}`,
+        accessToken,
+        updatedData
+      );
+
+      if (response.status === 200) {
+        setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
+        toast.success("User updated successfully");
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast.error("Failed to update user");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleToggleLock = async () => {
     if (!user || !accessToken) return;
 
@@ -225,6 +286,47 @@ export default function UserDetailPage({
     } catch (error: any) {
       console.error("Error toggling lock status:", error);
       toast.error("Failed to update lock status");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeactivateUser = async () => {
+    if (!user || !accessToken) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to deactivate ${user.fullName}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const response = await fetch(`/api/users/${user._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: "Admin requested account deactivation",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`User ${user.fullName} deactivated successfully`);
+        // Redirect back to users list
+        window.location.href = "/dashboard/users";
+      } else {
+        toast.error(data.message || "Failed to deactivate user");
+      }
+    } catch (error: any) {
+      console.error("Error deactivating user:", error);
+      toast.error("Failed to deactivate user");
     } finally {
       setUpdating(false);
     }
@@ -367,7 +469,7 @@ export default function UserDetailPage({
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button
+                {/* <Button
                   variant="outline"
                   className="border-white text-white hover:bg-white hover:text-[#011F72]"
                   asChild
@@ -376,7 +478,7 @@ export default function UserDetailPage({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit User
                   </Link>
-                </Button>
+                </Button> */}
                 <Button
                   variant="outline"
                   className="border-white text-white hover:bg-white hover:text-[#011F72]"
@@ -394,45 +496,6 @@ export default function UserDetailPage({
             </div>
           </div>
         </div>
-
-        {/* Debug Information - Remove this after testing */}
-        {process.env.NODE_ENV === "development" && (
-          <Card className="border-2 border-yellow-300 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="text-yellow-800">Debug Info</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm space-y-2">
-                <p>
-                  <strong>User Role:</strong> {user?.role}
-                </p>
-                <p>
-                  <strong>Has Profile:</strong> {user?.profile ? "Yes" : "No"}
-                </p>
-                <p>
-                  <strong>Profile Type:</strong>{" "}
-                  {user?.profile ? typeof user.profile : "N/A"}
-                </p>
-                <p>
-                  <strong>Profile Keys:</strong>{" "}
-                  {user?.profile ? Object.keys(user.profile).join(", ") : "N/A"}
-                </p>
-                <p>
-                  <strong>Company Data:</strong>{" "}
-                  {user?.profile?.company ? "Yes" : "No"}
-                </p>
-                <p>
-                  <strong>Hiring Regions:</strong>{" "}
-                  {user?.profile?.hiringRegions?.length || 0}
-                </p>
-                <p>
-                  <strong>Recruitment Focus Areas:</strong>{" "}
-                  {user?.profile?.recruitmentFocusAreas?.length || 0}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -628,269 +691,25 @@ export default function UserDetailPage({
                   </CardContent>
                 </Card>
 
-                {/* Recruiter-Specific Information */}
-                {/* Debug: Role check - {user.role === "recruiter" ? "TRUE" : "FALSE"} */}
-                {/* Debug: Profile check - {user.profile ? "TRUE" : "FALSE"} */}
-                {user.role === "recruiter" && user.profile && (
-                  <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle>Recruitment Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Company Information */}
-                      {user.profile.company && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-3 flex items-center gap-2">
-                            <Building2 className="w-5 h-5" />
-                            Company Details
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Company Name
-                              </p>
-                              <p className="text-sm text-gray-900">
-                                {user.profile.company.name}
-                              </p>
-                            </div>
-                            {user.profile.company.industry && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  Industry
-                                </p>
-                                <p className="text-sm text-gray-900">
-                                  {user.profile.company.industry}
-                                </p>
-                              </div>
-                            )}
-                            {user.profile.company.website && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  Website
-                                </p>
-                                <a
-                                  href={user.profile.company.website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:text-blue-800 underline"
-                                >
-                                  {user.profile.company.website}
-                                </a>
-                              </div>
-                            )}
-                            {user.profile.company.location && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  Location
-                                </p>
-                                <p className="text-sm text-gray-900">
-                                  {user.profile.company.location.city},{" "}
-                                  {user.profile.company.location.state},{" "}
-                                  {user.profile.company.location.country}
-                                </p>
-                              </div>
-                            )}
-                            {user.profile.company.contactPerson && (
-                              <div className="md:col-span-2">
-                                <p className="text-sm font-medium text-gray-700 mb-2">
-                                  Contact Person
-                                </p>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-gray-900">
-                                    Email:{" "}
-                                    {user.profile.company.contactPerson.email}
-                                  </p>
-                                  <p className="text-sm text-gray-900">
-                                    Phone:{" "}
-                                    {user.profile.company.contactPerson.phone}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Recruitment Details */}
-                      <div>
-                        <h4 className="font-semibold text-[#011F72] mb-3 flex items-center gap-2">
-                          <Target className="w-5 h-5" />
-                          Recruitment Details
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {user.profile.positionAtCompany && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Position
-                              </p>
-                              <p className="text-sm text-gray-900">
-                                {user.profile.positionAtCompany}
-                              </p>
-                            </div>
-                          )}
-                          {user.profile.contactEmail && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Contact Email
-                              </p>
-                              <p className="text-sm text-gray-900">
-                                {user.profile.contactEmail}
-                              </p>
-                            </div>
-                          )}
-                          {user.profile.phoneNumber && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Phone Number
-                              </p>
-                              <p className="text-sm text-gray-900">
-                                {user.profile.phoneNumber}
-                              </p>
-                            </div>
-                          )}
-                          {user.profile.preferredContactMethod && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Preferred Contact
-                              </p>
-                              <p className="text-sm text-gray-900 capitalize">
-                                {user.profile.preferredContactMethod}
-                              </p>
-                            </div>
-                          )}
-                          {user.profile.preferredHiringModel && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Hiring Model
-                              </p>
-                              <p className="text-sm text-gray-900 capitalize">
-                                {user.profile.preferredHiringModel}
-                              </p>
-                            </div>
-                          )}
-                          {user.profile.verificationStatus && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Verification Status
-                              </p>
-                              <Badge
-                                variant={
-                                  user.profile.verificationStatus === "verified"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                                className="capitalize"
-                              >
-                                {user.profile.verificationStatus}
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Hiring Regions */}
-                      {user.profile.hiringRegions &&
-                        user.profile.hiringRegions.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-[#011F72] mb-2">
-                              Hiring Regions
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {user.profile.hiringRegions.map(
-                                (region, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="text-xs"
-                                  >
-                                    {region}
-                                  </Badge>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                      {/* Recruitment Focus Areas */}
-                      {user.profile.recruitmentFocusAreas &&
-                        user.profile.recruitmentFocusAreas.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-[#011F72] mb-2">
-                              Recruitment Focus Areas
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {user.profile.recruitmentFocusAreas.map(
-                                (area, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="secondary"
-                                    className="bg-blue-100 text-blue-800 text-xs"
-                                  >
-                                    {area}
-                                  </Badge>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                      {/* Referral Information */}
-                      {user.profile.referralSource && (
-                        <div>
-                          <h4 className="font-semibold text-[#011F72] mb-2">
-                            Referral Information
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                Referral Source
-                              </p>
-                              <p className="text-sm text-gray-900">
-                                {user.profile.referralSource}
-                              </p>
-                            </div>
-                            {user.profile.referralCodeOrName && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  Referral Code/Name
-                                </p>
-                                <p className="text-sm text-gray-900">
-                                  {user.profile.referralCodeOrName}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                {/* Role-Specific Information */}
+                {user.role === "recruiter" && (
+                  <RecruiterProfile profile={user.profile} />
                 )}
 
-                {/* Recruiter without profile */}
-                {user.role === "recruiter" && !user.profile && (
-                  <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle>Recruitment Information</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center p-6 bg-orange-50 rounded-lg border-2 border-dashed border-orange-300">
-                        <Target className="w-12 h-12 text-orange-400 mx-auto mb-3" />
-                        <h4 className="font-semibold text-orange-700 mb-2">
-                          Recruiter Profile Not Created
-                        </h4>
-                        <p className="text-sm text-orange-600 mb-4">
-                          This recruiter hasn't completed their detailed profile
-                          setup yet.
-                        </p>
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-orange-100 text-orange-800"
-                        >
-                          Onboarding: {user.onboardingStatus || "Not started"}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {user.role === "customerCareRepresentative" && (
+                  <CustomerCareProfile profile={user.profile} />
+                )}
+
+                {user.role === "individualTechProfessional" && (
+                  <IndividualTechProfessionalProfile profile={user.profile} />
+                )}
+
+                {user.role === "teamTechProfessional" && (
+                  <TeamTechProfessionalProfile profile={user.profile} />
+                )}
+
+                {user.role === "student" && (
+                  <StudentProfile profile={user.profile} />
                 )}
 
                 {/* Professional Goals - Only show if profile exists */}
@@ -1121,7 +940,7 @@ export default function UserDetailPage({
                     <CardTitle>Account Details</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">User ID</span>
                         <div className="flex items-center gap-2">
@@ -1355,9 +1174,24 @@ export default function UserDetailPage({
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-6">
+                {/* User Profile Edit Form */}
                 <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle>Account Settings</CardTitle>
+                    <CardTitle>Edit User Profile</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <UserEditForm
+                      user={user}
+                      onUpdate={handleUserUpdate}
+                      updating={updating}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Account Management */}
+                <Card className="border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle>Account Management</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1443,7 +1277,7 @@ export default function UserDetailPage({
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Send Message
                 </Button>
-                <Button
+                {/* <Button
                   className="w-full justify-start"
                   variant="outline"
                   asChild
@@ -1452,7 +1286,7 @@ export default function UserDetailPage({
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Link>
-                </Button>
+                </Button> */}
                 <Button className="w-full justify-start" variant="outline">
                   <Eye className="w-4 h-4 mr-2" />
                   View Courses
@@ -1542,9 +1376,11 @@ export default function UserDetailPage({
                   className="w-full justify-start"
                   variant="outline"
                   size="sm"
+                  onClick={handleDeactivateUser}
+                  disabled={updating}
                 >
                   <Trash2 className="w-4 h-4 mr-2 text-red-600" />
-                  Delete Account
+                  Deactivate Account
                 </Button>
               </CardContent>
             </Card>

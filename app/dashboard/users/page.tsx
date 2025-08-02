@@ -56,6 +56,7 @@ import {
   Plus,
   Settings,
   RefreshCcw,
+  AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -118,9 +119,6 @@ export default function UserManagementPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
-  const [verifiedUsers, setVerifiedUsers] = useState(0);
-  const [lockedUsers, setLockedUsers] = useState(0);
-  const [activeUsers, setActiveUsers] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [limit] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
@@ -173,16 +171,6 @@ export default function UserManagementPage() {
     }
   };
 
-  const getStatusColor = (isLocked?: boolean) => {
-    return isLocked
-      ? "bg-red-100 text-red-800 border-red-200"
-      : "bg-green-100 text-green-800 border-green-200";
-  };
-
-  const getStatusLabel = (isLocked?: boolean) => {
-    return isLocked ? "Locked" : "Active";
-  };
-
   const handleSort = (field: keyof User) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -195,13 +183,11 @@ export default function UserManagementPage() {
   // Fetch users from API
   const fetchUsers = async (page: number = 1, reset: boolean = false) => {
     if (!accessToken) {
-      console.log("No access token available");
       return;
     }
 
     try {
       setLoading(true);
-      console.log("Fetching users with params:", { page, limit });
 
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -221,25 +207,17 @@ export default function UserManagementPage() {
       }
 
       const url = `/api/users/?${params.toString()}`;
-      console.log("Making API request to:", url);
-      console.log("Query parameters:", params.toString());
 
       const response = await getApiRequest(url, accessToken);
-      console.log("API response:", response);
 
       if (response.status === 200) {
         const data = response.data;
-        console.log("Users data:", data);
 
         // Handle nested data structure: data.data.data.users
         const usersData = data?.data?.data || data?.data || data;
         const users = usersData?.users || [];
         const total = usersData?.total || 0;
         const hasMore = usersData?.hasMore || false;
-
-        console.log("Extracted users:", users);
-        console.log("Total:", total);
-        console.log("Has more:", hasMore);
 
         if (reset) {
           setUsers(users);
@@ -298,98 +276,80 @@ export default function UserManagementPage() {
       return;
     }
 
-    try {
-      const promises = selectedUsers.map((userId) => {
-        switch (action) {
-          case "verify":
-            return patchApiRequest(`/api/users/${userId}`, accessToken, {
-              isVerified: true,
-            });
-          case "unverify":
-            return patchApiRequest(`/api/users/${userId}`, accessToken, {
-              isVerified: false,
-            });
-          case "lock":
-            return patchApiRequest(`/api/users/${userId}`, accessToken, {
-              isLocked: true,
-            });
-          case "unlock":
-            return patchApiRequest(`/api/users/${userId}`, accessToken, {
-              isLocked: false,
-            });
-          default:
-            return Promise.resolve();
-        }
-      });
+    if (action === "delete") {
+      if (
+        !confirm(
+          `Are you sure you want to delete ${selectedUsers.length} user(s)? This action cannot be undone.`
+        )
+      ) {
+        return;
+      }
 
-      await Promise.all(promises);
-      toast.success(`${action} applied to ${selectedUsers.length} users`);
-      setSelectedUsers([]);
-      fetchUsers(currentPage, true); // Refresh the list
-    } catch (error: any) {
-      console.error(`Error in bulk ${action}:`, error);
-      toast.error(`Failed to ${action} users`);
+      try {
+        const promises = selectedUsers.map((userId) =>
+          fetch(`/api/users/${userId}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              reason: "Admin requested bulk account deletion",
+            }),
+          })
+        );
+
+        await Promise.all(promises);
+        toast.success(`${selectedUsers.length} user(s) deleted successfully`);
+        setSelectedUsers([]);
+        fetchUsers(currentPage, true); // Refresh the list
+      } catch (error: any) {
+        console.error("Error in bulk delete:", error);
+        toast.error("Failed to delete users");
+      }
     }
   };
 
   // Individual user actions
-  const handleToggleVerify = async (user: User) => {
+
+  const handleDeleteUser = async (user: User) => {
     if (!accessToken) {
       toast.error("Authentication required");
       return;
     }
 
-    try {
-      const response = await patchApiRequest(
-        `/api/users/${user._id}`,
-        accessToken,
-        {
-          isVerified: !user.isVerified,
-        }
-      );
-
-      if (response.status === 200) {
-        toast.success(
-          `User ${user.isVerified ? "unverified" : "verified"} successfully`
-        );
-        // Refresh the users list
-        fetchUsers(currentPage, true);
-      } else {
-        toast.error(response.message || "Failed to update user");
-      }
-    } catch (error: any) {
-      console.error("Error toggling verification:", error);
-      toast.error("Failed to update verification status");
-    }
-  };
-
-  const handleToggleLock = async (user: User) => {
-    if (!accessToken) {
-      toast.error("Authentication required");
+    if (
+      !confirm(
+        `Are you sure you want to delete ${user.fullName}? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
     try {
-      const response = await patchApiRequest(
-        `/api/users/${user._id}`,
-        accessToken,
-        {
-          isLocked: !user.isLocked,
-        }
-      );
+      const response = await fetch(`/api/users/${user._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: "Admin requested account deletion",
+        }),
+      });
 
-      if (response.status === 200) {
-        toast.success(
-          `User ${user.isLocked ? "unlocked" : "locked"} successfully`
-        );
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`User ${user.fullName} deleted successfully`);
         // Refresh the users list
         fetchUsers(currentPage, true);
       } else {
-        toast.error(response.message || "Failed to update user");
+        toast.error(data.message || "Failed to delete user");
       }
     } catch (error: any) {
-      console.error("Error toggling lock status:", error);
-      toast.error("Failed to update lock status");
+      console.error("Error deleting user:", error);
+      toast.error("Failed to delete user");
     }
   };
 
@@ -642,38 +602,11 @@ export default function UserManagementPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleBulkAction("verify")}
-                    className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800"
-                  >
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Verify
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkAction("unverify")}
-                    className="bg-white hover:bg-yellow-50 border-yellow-200 text-yellow-700 hover:text-yellow-800"
-                  >
-                    <UserX className="w-4 h-4 mr-2" />
-                    Unverify
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkAction("lock")}
+                    onClick={() => handleBulkAction("delete")}
                     className="bg-white hover:bg-red-50 border-red-200 text-red-700 hover:text-red-800"
                   >
-                    <Ban className="w-4 h-4 mr-2" />
-                    Lock
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkAction("unlock")}
-                    className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800"
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Unlock
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
                   </Button>
                 </div>
               </div>
@@ -721,10 +654,20 @@ export default function UserManagementPage() {
                     <TableHead className="p-4">
                       <Button
                         variant="ghost"
+                        onClick={() => handleSort("isVerified")}
+                        className="h-auto p-0 font-semibold text-gray-700 hover:text-blue-600"
+                      >
+                        Verified
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead className="p-4">
+                      <Button
+                        variant="ghost"
                         onClick={() => handleSort("isLocked")}
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-blue-600"
                       >
-                        Status
+                        Locked
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
@@ -755,7 +698,7 @@ export default function UserManagementPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-16">
+                      <TableCell colSpan={10} className="text-center py-16">
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-12 h-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
                           <div className="space-y-2">
@@ -771,7 +714,7 @@ export default function UserManagementPage() {
                     </TableRow>
                   ) : sortedUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-16">
+                      <TableCell colSpan={10} className="text-center py-16">
                         <div className="flex flex-col items-center gap-4">
                           <div className="p-4 bg-gray-100 rounded-full">
                             <Users className="w-12 h-12 text-gray-400" />
@@ -846,11 +789,34 @@ export default function UserManagementPage() {
                         </TableCell>
                         <TableCell className="p-4">
                           <Badge
-                            className={`${getStatusColor(
-                              user.isLocked
-                            )} border px-3 py-1`}
+                            className={`${
+                              user.isVerified
+                                ? "bg-green-100 text-green-800 border-green-200"
+                                : "bg-yellow-100 text-yellow-800 border-yellow-200"
+                            } border px-3 py-1`}
                           >
-                            {getStatusLabel(user.isLocked)}
+                            {user.isVerified ? (
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                            ) : (
+                              <Clock className="w-3 h-3 mr-1" />
+                            )}
+                            {user.isVerified ? "Verified" : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <Badge
+                            className={`${
+                              user.isLocked
+                                ? "bg-red-100 text-red-800 border-red-200"
+                                : "bg-green-100 text-green-800 border-green-200"
+                            } border px-3 py-1`}
+                          >
+                            {user.isLocked ? (
+                              <Ban className="w-3 h-3 mr-1" />
+                            ) : (
+                              <Shield className="w-3 h-3 mr-1" />
+                            )}
+                            {user.isLocked ? "Locked" : "Active"}
                           </Badge>
                         </TableCell>
                         <TableCell className="p-4">
@@ -901,6 +867,7 @@ export default function UserManagementPage() {
                               size="sm"
                               asChild
                               className="hover:bg-blue-100 hover:text-blue-600"
+                              title="View user details"
                             >
                               <Link href={`/dashboard/users/${user._id}`}>
                                 <Eye className="w-4 h-4" />
@@ -909,44 +876,11 @@ export default function UserManagementPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleToggleVerify(user)}
-                              title={
-                                user.isVerified
-                                  ? "Unverify user"
-                                  : "Verify user"
-                              }
-                              className="hover:bg-green-100 hover:text-green-600"
-                            >
-                              {user.isVerified ? (
-                                <CheckCircle className="w-4 h-4" />
-                              ) : (
-                                <Clock className="w-4 h-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleToggleLock(user)}
-                              title={
-                                user.isLocked ? "Unlock user" : "Lock user"
-                              }
+                              onClick={() => handleDeleteUser(user)}
+                              title="Delete user"
                               className="hover:bg-red-100 hover:text-red-600"
                             >
-                              {user.isLocked ? (
-                                <Ban className="w-4 h-4" />
-                              ) : (
-                                <Shield className="w-4 h-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              className="hover:bg-purple-100 hover:text-purple-600"
-                            >
-                              <Link href={`/dashboard/users/${user._id}/edit`}>
-                                <Edit className="w-4 h-4" />
-                              </Link>
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>

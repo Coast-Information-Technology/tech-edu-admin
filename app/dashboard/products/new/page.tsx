@@ -107,6 +107,21 @@ export default function CreateProductPage() {
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [creatingSubcategory, setCreatingSubcategory] = useState(false);
 
+  // Tag input state
+  const [tagInput, setTagInput] = useState("");
+
+  // Add tag function
+  const addTag = () => {
+    const trimmedTag = tagInput.trim();
+    if (trimmedTag && !form.tags.includes(trimmedTag)) {
+      setForm((prev: any) => ({
+        ...prev,
+        tags: [...prev.tags, trimmedTag],
+      }));
+      setTagInput("");
+    }
+  };
+
   // Fetch categories and services when productType changes
   React.useEffect(() => {
     if (!form.productType) {
@@ -1006,24 +1021,92 @@ export default function CreateProductPage() {
                   className="w-full border rounded-[10px] p-2"
                   rows={4}
                 />
-                <label className="block text-sm font-medium mb-1">
-                  Tags (comma separated)
-                </label>
-                <Input
-                  name="tags"
-                  value={form.tags.join(", ")}
-                  onChange={(e) =>
-                    setForm((prev: any) => ({
-                      ...prev,
-                      tags: e.target.value
-                        .split(",")
-                        .map((s: string) => s.trim())
-                        .filter(Boolean),
-                    }))
-                  }
-                  placeholder="Enter tags separated by commas (e.g., Python, AI, Machine Learning, Data Science)"
-                  className="rounded-[10px]"
-                />
+                <label className="block text-sm font-medium mb-1">Tags</label>
+                <div className="space-y-2">
+                  {/* Tags Display */}
+                  <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-[10px] bg-white">
+                    {form.tags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((prev: any) => ({
+                              ...prev,
+                              tags: prev.tags.filter(
+                                (_: string, i: number) => i !== index
+                              ),
+                            }))
+                          }
+                          className="text-blue-600 hover:text-blue-800 ml-1"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {form.tags.length === 0 && (
+                      <span className="text-gray-400 text-sm">
+                        No tags added yet
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tag Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter a tag and press Enter or click Add"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      className="rounded-[10px] flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={addTag}
+                      disabled={!tagInput.trim()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-[10px] hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Add
+                    </Button>
+                  </div>
+
+                  {/* Quick Add Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Soft Skills",
+                      "Hard Skills",
+                      "Leadership",
+                      "Technical",
+                      "Communication",
+                      "Problem Solving",
+                    ].map((suggestedTag) => (
+                      <button
+                        key={suggestedTag}
+                        type="button"
+                        onClick={() => {
+                          if (!form.tags.includes(suggestedTag)) {
+                            setForm((prev: any) => ({
+                              ...prev,
+                              tags: [...prev.tags, suggestedTag],
+                            }));
+                          }
+                        }}
+                        disabled={form.tags.includes(suggestedTag)}
+                        className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        + {suggestedTag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <label className="block text-sm font-medium mb-1">
                   Icon Image
                 </label>

@@ -57,27 +57,7 @@ export const dashboardSidebarConfig = {
             icon: Briefcase,
             href: "/dashboard/jobs-management",
           },
-          {
-            label: "Staffs Management",
-            icon: Users,
-            href: "/dashboard/staffs",
-          },
           { label: "Companies", icon: Building2, href: "/dashboard/companies" },
-          // {
-          //   label: "Services Management",
-          //   icon: Layers,
-          //   href: "/dashboard/services",
-          // },
-          // {
-          //   label: "Career Connect",
-          //   icon: Users,
-          //   href: "/dashboard/career-connect",
-          // },
-          // {
-          //   label: "Academic Services",
-          //   icon: Award,
-          //   href: "/dashboard/academic-services",
-          // },
           {
             label: "Bookings",
             icon: Calendar,
@@ -93,6 +73,11 @@ export const dashboardSidebarConfig = {
             icon: ClipboardList,
             href: "/dashboard/onboarding",
           },
+          {
+            label: "Payments",
+            icon: ShoppingCart,
+            href: "/dashboard/payments",
+          },
         ],
       },
       {
@@ -104,22 +89,6 @@ export const dashboardSidebarConfig = {
             icon: FileText,
             href: "/dashboard/cv-builder",
           },
-        ],
-      },
-      {
-        title: "Commerce",
-        items: [
-          {
-            label: "Orders",
-            icon: ShoppingCart,
-            href: "/dashboard/orders",
-          },
-          {
-            label: "Payments",
-            icon: ShoppingCart,
-            href: "/dashboard/payments",
-          },
-          { label: "Promo Codes", icon: Tag, href: "/dashboard/promo-codes" },
         ],
       },
       {
@@ -145,11 +114,6 @@ export const dashboardSidebarConfig = {
             label: "Site Settings",
             icon: Settings,
             href: "/dashboard/settings",
-          },
-          {
-            label: "FAQ Management",
-            icon: HelpCircle,
-            href: "/dashboard/faqs",
           },
         ],
       },
