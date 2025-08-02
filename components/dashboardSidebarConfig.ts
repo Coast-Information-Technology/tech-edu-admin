@@ -69,9 +69,9 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/booked-services",
           },
           {
-            label: "Onboarding",
+            label: "Onboarding Stuck Users",
             icon: ClipboardList,
-            href: "/dashboard/onboarding",
+            href: "/dashboard/onboarding-stucked-users",
           },
           {
             label: "Payments",
