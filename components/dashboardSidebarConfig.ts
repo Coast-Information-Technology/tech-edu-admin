@@ -132,14 +132,29 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/instructor",
           },
           {
-            label: "My Courses",
+            label: "Student",
             icon: BookOpen,
-            href: "/dashboard/courses",
+            href: "/dashboard/users",
           },
           {
-            label: "Lesson Videos",
+            label: "Academic Services",
+            icon: BookOpen,
+            href: "/dashboard/products",
+          },
+          {
+            label: "Bookings",
+            icon: BookOpen,
+            href: "/dashboard/bookings",
+          },
+          {
+            label: "Classroom",
+            icon: BookOpen,
+            href: "/dashboard/classroom",
+          },
+          {
+            label: "Sessions",
             icon: Video,
-            href: "/dashboard/videos",
+            href: "/dashboard/sessions",
           },
         ],
       },
@@ -149,12 +164,12 @@ export const dashboardSidebarConfig = {
           {
             label: "Enrolled Students",
             icon: Users,
-            href: "/dashboard/students",
+            href: "/dashboard/enrolled-students",
           },
           {
-            label: "Assignments/Grading",
+            label: "Attendance",
             icon: FileText,
-            href: "/dashboard/assignments",
+            href: "/dashboard/attendance",
           },
           {
             label: "Live Sessions",
@@ -166,11 +181,6 @@ export const dashboardSidebarConfig = {
       {
         title: "Reports & Insights",
         items: [
-          {
-            label: "Course Performance",
-            icon: BarChart3,
-            href: "/dashboard/performance",
-          },
           {
             label: "Feedback",
             icon: MessageCircle,

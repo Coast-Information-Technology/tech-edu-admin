@@ -84,6 +84,7 @@ export default function SidebarLayout({
             alt="TechEdu Solution logo"
             width={50}
             height={50}
+            className="rounded-[10px]"
           />
           <div className="flex flex-col">
             <span className="text-sm font-semibold">TechEdu Solution</span>
@@ -167,7 +168,7 @@ export default function SidebarLayout({
           </div>
           <Button
             variant="ghost"
-            className="w-full flex items-center bg-blue-600 hover:bg-blue-400 text-white rounded-[10px] gap-2 justify-start"
+            className="w-full flex items-center bg-red-500 hover:bg-red-700 text-white rounded-[10px] gap-2 justify-start"
             onClick={logoutHandler}
           >
             {/* You can use an icon here if you want */}

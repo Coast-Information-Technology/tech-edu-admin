@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { postApiRequest } from "@/lib/apiFetch";
+import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import {
   Calendar,
@@ -16,14 +16,18 @@ import {
   FileText,
   MapPin,
   Settings,
+  GraduationCap,
+  Users2,
 } from "lucide-react";
 import Link from "next/link";
 
 interface SessionForm {
+  sessionCategory: "academic" | "group";
   bookingId: string;
   productId: string;
   productType: string;
   bookingPurpose: string;
+  instructorId: string;
   scheduleAt: string;
   endAt: string;
   minutesPerSession: number;
@@ -34,26 +38,29 @@ interface SessionForm {
   internalNotes: string;
 }
 
-const PRODUCT_TYPE_OPTIONS = [
-  "AcademicService",
-  "TrainingProgram",
-  "Consultancy",
-  "Mentoring",
-  "Coaching",
-  "Workshop",
-  "Seminar",
-  "Webinar",
-  "Assessment",
-  "Evaluation",
-];
+interface Product {
+  _id: string;
+  title: string;
+  productSubcategoryName: string;
+  price: number;
+}
 
-const SESSION_TYPE_OPTIONS = [
-  "1-on-1",
-  "group",
-  "workshop",
-  "seminar",
-  "webinar",
-];
+interface Booking {
+  _id: string;
+  bookingPurpose: string;
+  productId: {
+    title: string;
+    productSubcategoryName: string;
+  };
+  instructorId: {
+    fullName: string;
+    email: string;
+  };
+  scheduleAt: string;
+  numberOfExpectedParticipants: number;
+}
+
+const SESSION_TYPE_OPTIONS = ["1-on-1", "Group"];
 
 export default function CreateSessionPage() {
   const router = useRouter();
@@ -61,11 +68,18 @@ export default function CreateSessionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+
   const [form, setForm] = useState<SessionForm>({
+    sessionCategory: "academic",
     bookingId: "",
     productId: "",
-    productType: "",
+    productType: "Academic Support Services", // Default for academic
     bookingPurpose: "",
+    instructorId: "",
     scheduleAt: "",
     endAt: "",
     minutesPerSession: 60,
@@ -76,16 +90,74 @@ export default function CreateSessionPage() {
     internalNotes: "",
   });
 
+  // Fetch product subcategories by type
+  const fetchProductSubcategories = async (productType: string) => {
+    setProductsLoading(true);
+    try {
+      const response = await getApiRequest(
+        `/api/product-subcategories/type/${encodeURIComponent(productType)}`
+      );
+      if (response?.data?.success) {
+        const subcategories = response.data.data || [];
+        setProducts(subcategories);
+      }
+    } catch (err: any) {
+      console.error("Error fetching product subcategories:", err);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // Fetch bookings for group sessions
+  const fetchBookings = async () => {
+    setBookingsLoading(true);
+    try {
+      const token = getTokenFromCookies();
+      if (!token) return;
+
+      const response = await getApiRequest("/api/bookings/admin/all", token);
+      if (response?.data?.success) {
+        const allBookings = response.data.data || [];
+        const trainingBookings = allBookings.filter(
+          (booking: any) => booking.productType === "Training & Certification"
+        );
+        setBookings(trainingBookings);
+      }
+    } catch (err: any) {
+      console.error("Error fetching bookings:", err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProductSubcategories(form.productType);
+    fetchBookings();
+  }, [form.productType]);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => {
+      const updatedForm = { ...prev, [name]: value };
+
+      // Update product type when session category changes
+      if (name === "sessionCategory") {
+        if (value === "academic") {
+          updatedForm.productType = "Academic Support Services";
+        } else if (value === "group") {
+          updatedForm.productType = "Training & Certification";
+        }
+        // Clear product/booking selection when category changes
+        updatedForm.productId = "";
+        updatedForm.bookingId = "";
+      }
+
+      return updatedForm;
+    });
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,12 +172,11 @@ export default function CreateSessionPage() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(
-          form.bookingId &&
-          form.productId &&
-          form.productType &&
-          form.bookingPurpose
-        );
+        if (form.sessionCategory === "academic") {
+          return !!(form.productType && form.productId && form.bookingPurpose);
+        } else {
+          return !!(form.productType && form.bookingId && form.bookingPurpose);
+        }
       case 2:
         return !!(form.scheduleAt && form.endAt && form.minutesPerSession > 0);
       case 3:
@@ -148,6 +219,7 @@ export default function CreateSessionPage() {
         productId: form.productId,
         productType: form.productType,
         bookingPurpose: form.bookingPurpose,
+        instructorId: form.instructorId,
         scheduleAt: form.scheduleAt,
         endAt: form.endAt,
         minutesPerSession: form.minutesPerSession,
@@ -286,65 +358,166 @@ export default function CreateSessionPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div>
+                {/* Session Category Selection */}
+                <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Booking ID *
+                    Session Category *
                   </label>
-                  <input
-                    type="text"
-                    name="bookingId"
-                    value={form.bookingId}
-                    onChange={handleChange}
-                    placeholder="Enter booking ID"
-                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    required
-                  />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          sessionCategory: "academic",
+                        }))
+                      }
+                      className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
+                        form.sessionCategory === "academic"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-slate-200 bg-white/50 hover:border-blue-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            form.sessionCategory === "academic"
+                              ? "bg-blue-100"
+                              : "bg-slate-100"
+                          }`}
+                        >
+                          <GraduationCap
+                            className={`w-5 h-5 ${
+                              form.sessionCategory === "academic"
+                                ? "text-blue-600"
+                                : "text-slate-600"
+                            }`}
+                          />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-semibold text-slate-900">
+                            Academic Session
+                          </h3>
+                          <p className="text-sm text-slate-600">
+                            Academic Support Services
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          sessionCategory: "group",
+                        }))
+                      }
+                      className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
+                        form.sessionCategory === "group"
+                          ? "border-green-500 bg-green-50"
+                          : "border-slate-200 bg-white/50 hover:border-green-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            form.sessionCategory === "group"
+                              ? "bg-green-100"
+                              : "bg-slate-100"
+                          }`}
+                        >
+                          <Users2
+                            className={`w-5 h-5 ${
+                              form.sessionCategory === "group"
+                                ? "text-green-600"
+                                : "text-slate-600"
+                            }`}
+                          />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-semibold text-slate-900">
+                            Group Session
+                          </h3>
+                          <p className="text-sm text-slate-600">
+                            Training & certification programs
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Product ID *
-                  </label>
-                  <input
-                    type="text"
-                    name="productId"
-                    value={form.productId}
-                    onChange={handleChange}
-                    placeholder="Enter product ID"
-                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Product Type *
-                  </label>
-                  <select
-                    name="productType"
-                    value={form.productType}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                    required
-                  >
-                    <option value="">Select product type</option>
-                    {PRODUCT_TYPE_OPTIONS.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
+                {/* Dynamic Fields based on Session Category */}
+                {form.sessionCategory === "academic" && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Academic Service Subcategory *
+                    </label>
+                    <select
+                      name="productId"
+                      value={form.productId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                      required
+                      disabled={productsLoading}
+                    >
+                      <option value="">
+                        {productsLoading
+                          ? "Loading subcategories..."
+                          : "Select an academic service subcategory"}
                       </option>
-                    ))}
-                  </select>
-                </div>
+                      {products.map((product) => (
+                        <option key={product._id} value={product._id}>
+                          {product.productSubcategoryName} - ${product.price}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {form.sessionCategory === "group" && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Training Booking *
+                    </label>
+                    <select
+                      name="bookingId"
+                      value={form.bookingId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                      required
+                      disabled={bookingsLoading}
+                    >
+                      <option value="">
+                        {bookingsLoading
+                          ? "Loading bookings..."
+                          : "Select a training booking"}
+                      </option>
+                      {bookings.map((booking) => (
+                        <option key={booking._id} value={booking._id}>
+                          {booking.productId.productSubcategoryName} -{" "}
+                          {booking.instructorId.fullName} (
+                          {new Date(booking.scheduleAt).toLocaleDateString()})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Booking Purpose *
+                    Session Purpose *
                   </label>
                   <textarea
                     name="bookingPurpose"
                     value={form.bookingPurpose}
                     onChange={handleChange}
-                    placeholder="Describe the purpose of this session"
+                    placeholder={
+                      form.sessionCategory === "academic"
+                        ? "Describe the academic purpose of this session"
+                        : "Describe the training purpose of this session"
+                    }
                     rows={3}
                     className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
                     required
