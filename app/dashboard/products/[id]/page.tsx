@@ -52,6 +52,7 @@ interface Product {
   iconUrl: string;
   thumbnailUrl: string;
   enabled: boolean;
+  instructorId?: string; // Add instructor field
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +66,7 @@ export default function ProductViewPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [instructor, setInstructor] = useState<any>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -83,10 +85,29 @@ export default function ProductViewPage() {
           `/api/products/public/${params.id}`,
           token
         );
-        console.log("Product API response:", response);
 
         if (response?.data?.success) {
-          setProduct(response.data.data);
+          const productData = response.data.data;
+          setProduct(productData);
+
+          // Fetch instructor data if product has instructorId
+          if (productData.instructorId) {
+            try {
+              const instructorsResponse = await getApiRequest(
+                "/api/users/admin/instructors",
+                token
+              );
+              if (instructorsResponse?.data?.success) {
+                const instructorData =
+                  instructorsResponse.data.data.instructors.find(
+                    (i: any) => i._id === productData.instructorId
+                  );
+                setInstructor(instructorData);
+              }
+            } catch (instructorErr) {
+              console.error("Failed to fetch instructor:", instructorErr);
+            }
+          }
         } else {
           setError(response?.data?.message || "Failed to load product");
         }
@@ -563,6 +584,30 @@ export default function ProductViewPage() {
                   <p className="font-medium text-slate-900">
                     {product.sessionType}
                   </p>
+                </div>
+                <div>
+                  <span className="text-sm text-slate-500">Instructor</span>
+                  {instructor ? (
+                    <div className="flex items-center gap-3 mt-1">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">
+                          {instructor.fullName.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {instructor.fullName}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {instructor.title}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="font-medium text-slate-400 italic">
+                      Not assigned
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

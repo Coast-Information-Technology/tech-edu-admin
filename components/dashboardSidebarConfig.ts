@@ -147,9 +147,9 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/bookings",
           },
           {
-            label: "Classroom",
+            label: "Classrooms",
             icon: BookOpen,
-            href: "/dashboard/classroom",
+            href: "/dashboard/classrooms",
           },
           {
             label: "Sessions",

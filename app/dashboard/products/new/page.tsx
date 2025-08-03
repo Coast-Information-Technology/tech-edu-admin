@@ -46,6 +46,7 @@ const initialForm = {
   iconUrl: "",
   thumbnailUrl: "",
   enabled: true,
+  instructorId: "", // Add instructor field
   // API required fields
   productSubcategoryName: "",
   productSubCategoryId: "",
@@ -72,7 +73,7 @@ const PRODUCT_TYPE_OPTIONS = [
 ];
 
 // Remove static SERVICE_OPTIONS since we'll fetch dynamically
-const DELIVERY_MODE_OPTIONS = ["online", "physical", "hybrid"];
+const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
 const SESSION_TYPE_OPTIONS = ["1-on-1", "group", "classroom"];
 const MODE_OPTIONS = ["weeks", "days", "hours"];
 
@@ -96,6 +97,9 @@ export default function CreateProductPage() {
   >([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [instructorsLoading, setInstructorsLoading] = useState(false);
+  const [instructorsError, setInstructorsError] = useState<string | null>(null);
 
   // Category creation dialog state
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
@@ -124,55 +128,62 @@ export default function CreateProductPage() {
 
   // Fetch categories and services when productType changes
   React.useEffect(() => {
-    if (!form.productType) {
-      setCategoryOptions([]);
-      setServiceOptions([]);
-      setForm((prev: any) => ({ ...prev, category: "", service: "" }));
-      return;
-    }
     const fetchCategoriesAndServices = async () => {
-      setCategoryLoading(true);
-      setCategoryError(null);
+      const token = getTokenFromCookies();
+      if (!token) {
+        setError("Authentication required. Please log in.");
+        return;
+      }
+
       try {
-        let token = getTokenFromCookies() || "";
-        const apiFetch = await import("@/lib/apiFetch");
-        const res = await apiFetch.getApiRequest(
-          `/api/product-categories/type/${encodeURIComponent(
-            form.productType
-          )}`,
-          token
+        setCategoryLoading(true);
+        setCategoryError(null);
+
+        // Fetch categories
+        const categoriesResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/product-categories`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
-        const data = res?.data?.data || res?.data || [];
-        const activeCategories = data.filter((cat: any) => !cat.isDeleted);
-        setCategoryOptions(activeCategories);
 
-        // Extract service titles from categories
-        const services = activeCategories.map((cat: any) => cat.title);
-        setServiceOptions(services);
+        if (!categoriesResponse.ok) {
+          throw new Error("Failed to fetch categories");
+        }
 
-        // Reset form if current service/category is not in new options
-        setForm((prev: any) => {
-          let updates: any = {};
-          if (!services.includes(prev.service)) {
-            updates.service = "";
+        const categoriesData = await categoriesResponse.json();
+        setCategoryOptions(categoriesData.data || []);
+
+        // Fetch instructors
+        setInstructorsLoading(true);
+        const instructorsResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/users/admin/instructors`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-          if (
-            !activeCategories.some((cat: any) => cat.title === prev.category)
-          ) {
-            updates.category = "";
-          }
-          return { ...prev, ...updates };
-        });
+        );
+
+        if (!instructorsResponse.ok) {
+          throw new Error("Failed to fetch instructors");
+        }
+
+        const instructorsData = await instructorsResponse.json();
+        setInstructors(instructorsData.data?.instructors || []);
       } catch (err: any) {
         setCategoryError(err.message || "Failed to fetch categories");
-        setCategoryOptions([]);
-        setServiceOptions([]);
+        setInstructorsError(err.message || "Failed to fetch instructors");
       } finally {
         setCategoryLoading(false);
+        setInstructorsLoading(false);
       }
     };
+
     fetchCategoriesAndServices();
-  }, [form.productType]);
+  }, []);
 
   // Fetch subcategories when category changes
   React.useEffect(() => {
@@ -488,6 +499,7 @@ export default function CreateProductPage() {
         hasCertificate: form.hasCertificate || false,
         isRecurring: form.isRecurring || false,
         enabled: form.enabled !== undefined ? form.enabled : true,
+        instructorId: form.instructorId || null, // Add instructor ID
       };
 
       // Debug: Log the payload being sent
@@ -785,6 +797,43 @@ export default function CreateProductPage() {
                     {subcategoryError && (
                       <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-200">
                         {subcategoryError}
+                      </div>
+                    )}
+
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Assign Instructor
+                    </label>
+                    <select
+                      name="instructorId"
+                      value={form.instructorId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      disabled={instructorsLoading}
+                    >
+                      <option value="">
+                        {instructorsLoading
+                          ? "Loading instructors..."
+                          : "Select Instructor (Optional)"}
+                      </option>
+                      {instructors.map((instructor) => (
+                        <option
+                          key={instructor._id}
+                          value={instructor._id}
+                          className="rounded-[10px]"
+                        >
+                          {instructor.fullName} - {instructor.title}
+                        </option>
+                      ))}
+                    </select>
+                    {instructorsError && (
+                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-200">
+                        {instructorsError}
+                      </div>
+                    )}
+                    {instructors.length === 0 && !instructorsLoading && (
+                      <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        No instructors available. You can assign an instructor
+                        later.
                       </div>
                     )}
 

@@ -3,14 +3,6 @@ import React, { useEffect, useState } from "react";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
   MoreVertical,
   Eye,
   Pencil,
@@ -56,6 +48,8 @@ export default function ProductsPage() {
   const [filterEnabled, setFilterEnabled] = useState("all");
   const [sortKey, setSortKey] = useState("service");
   const [sortDirection, setSortDirection] = useState("asc");
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [filterInstructor, setFilterInstructor] = useState("all");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -68,9 +62,12 @@ export default function ProductsPage() {
         return;
       }
       try {
-        const res = await getApiRequest("/api/products/public", token);
-        console.log("Raw products API response:", res);
-        setProducts(res?.data?.data?.products || []);
+        const [productsRes, instructorsRes] = await Promise.all([
+          getApiRequest("/api/products/public", token),
+          getApiRequest("/api/users/admin/instructors", token),
+        ]);
+        setProducts(productsRes?.data?.data?.products || []);
+        setInstructors(instructorsRes?.data?.data?.instructors || []);
       } catch (err: any) {
         setError(err.message || "Failed to load products");
       } finally {
@@ -97,7 +94,9 @@ export default function ProductsPage() {
       filterEnabled === "all" ||
       (filterEnabled === "enabled" && product.enabled) ||
       (filterEnabled === "disabled" && !product.enabled);
-    return matchesSearch && matchesType && matchesEnabled;
+    const matchesInstructor =
+      filterInstructor === "all" || product.instructorId === filterInstructor;
+    return matchesSearch && matchesType && matchesEnabled && matchesInstructor;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -213,6 +212,24 @@ export default function ProductsPage() {
                     <option value="disabled">Disabled</option>
                   </select>
                 </div>
+
+                <div className="relative">
+                  <select
+                    value={filterInstructor}
+                    onChange={(e) => {
+                      setFilterInstructor(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                  >
+                    <option value="all">All Instructors</option>
+                    {instructors.map((instructor) => (
+                      <option key={instructor._id} value={instructor._id}>
+                        {instructor.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -292,6 +309,9 @@ export default function ProductsPage() {
                       Service
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Instructor
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Category
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
@@ -332,6 +352,40 @@ export default function ProductsPage() {
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
                             {product.service}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            {product.instructorId && (
+                              <>
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                                  <span className="text-sm font-medium text-blue-600">
+                                    {instructors
+                                      .find(
+                                        (i) => i._id === product.instructorId
+                                      )
+                                      ?.fullName?.charAt(0) || "I"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-slate-900">
+                                    {instructors.find(
+                                      (i) => i._id === product.instructorId
+                                    )?.fullName || "Unknown Instructor"}
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    {instructors.find(
+                                      (i) => i._id === product.instructorId
+                                    )?.title || "Instructor"}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {!product.instructorId && (
+                              <span className="text-sm text-slate-400 italic">
+                                Not assigned
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">

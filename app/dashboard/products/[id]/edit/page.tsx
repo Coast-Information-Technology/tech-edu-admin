@@ -52,6 +52,7 @@ interface Product {
   iconUrl: string;
   thumbnailUrl: string;
   enabled: boolean;
+  instructorId?: string; // Add instructor field
 }
 
 export default function ProductEditPage() {
@@ -62,6 +63,8 @@ export default function ProductEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Product>>({});
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [instructorsLoading, setInstructorsLoading] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -76,13 +79,13 @@ export default function ProductEditPage() {
       }
 
       try {
-        const response = await getApiRequest(
-          `/api/products/public/${params.id}`,
-          token
-        );
+        const [productResponse, instructorsResponse] = await Promise.all([
+          getApiRequest(`/api/products/public/${params.id}`, token),
+          getApiRequest("/api/users/admin/instructors", token),
+        ]);
 
-        if (response?.data?.success) {
-          const product = response.data.data;
+        if (productResponse?.data?.success) {
+          const product = productResponse.data.data;
           setForm({
             productType: product.productType,
             service: product.service,
@@ -108,9 +111,15 @@ export default function ProductEditPage() {
             iconUrl: product.iconUrl,
             thumbnailUrl: product.thumbnailUrl,
             enabled: product.enabled,
+            instructorId: product.instructorId, // Add instructorId to form
           });
         } else {
-          setError(response?.data?.message || "Failed to load product");
+          setError("Failed to load product");
+        }
+
+        // Set instructors data
+        if (instructorsResponse?.data?.success) {
+          setInstructors(instructorsResponse.data.data.instructors || []);
         }
       } catch (err: any) {
         setError(err.message || "Failed to load product");
@@ -119,9 +128,7 @@ export default function ProductEditPage() {
       }
     };
 
-    if (params.id) {
-      fetchProduct();
-    }
+    fetchProduct();
   }, [params.id]);
 
   const handleChange = (
@@ -318,6 +325,25 @@ export default function ProductEditPage() {
                     className="px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Assign Instructor
+                  </label>
+                  <select
+                    name="instructorId"
+                    value={form.instructorId || ""}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  >
+                    <option value="">Select Instructor (Optional)</option>
+                    {instructors.map((instructor) => (
+                      <option key={instructor._id} value={instructor._id}>
+                        {instructor.fullName} - {instructor.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
