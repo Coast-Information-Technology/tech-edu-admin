@@ -198,37 +198,39 @@ export default function ProductsPage() {
                   </select>
                 </div>
 
-                <div className="relative">
-                  <select
-                    value={filterEnabled}
-                    onChange={(e) => {
-                      setFilterEnabled(e.target.value);
-                      setPage(1);
-                    }}
-                    className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
-                  </select>
-                </div>
+                <div className="flex gap-3">
+                  <div className="relative">
+                    <select
+                      value={filterEnabled}
+                      onChange={(e) => {
+                        setFilterEnabled(e.target.value);
+                        setPage(1);
+                      }}
+                      className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
 
-                <div className="relative">
-                  <select
-                    value={filterInstructor}
-                    onChange={(e) => {
-                      setFilterInstructor(e.target.value);
-                      setPage(1);
-                    }}
-                    className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                  >
-                    <option value="all">All Instructors</option>
-                    {instructors.map((instructor) => (
-                      <option key={instructor._id} value={instructor._id}>
-                        {instructor.fullName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={filterInstructor}
+                      onChange={(e) => {
+                        setFilterInstructor(e.target.value);
+                        setPage(1);
+                      }}
+                      className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
+                    >
+                      <option value="all">All Instructors</option>
+                      {instructors.map((instructor) => (
+                        <option key={instructor._id} value={instructor._id}>
+                          {instructor.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
