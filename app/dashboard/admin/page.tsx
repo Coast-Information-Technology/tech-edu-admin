@@ -168,7 +168,6 @@ export default function AdminDashboard() {
         accessToken
       );
       if (onboardingResponse.status === 200) {
-        console.log("onboarding stats", onboardingResponse.data);
         // Map the response to match our interface
         const analyticsData =
           onboardingResponse.data?.data || onboardingResponse.data;
