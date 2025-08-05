@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -49,90 +48,9 @@ export async function POST(req: NextRequest) {
 }
 
 async function handlePaymentSuccess(paymentIntent: any) {
-  const { productId, userId, ...metadata } = paymentIntent.metadata;
-
-  if (!productId || !userId) {
-    console.error("Missing productId or userId in payment metadata");
-    return;
-  }
-
-  try {
-    // Get product details to check if it's bookable
-    const productResponse = await getApiRequest(
-      `/api/products/public/${productId}`,
-      null
-    );
-
-    if (!productResponse?.data?.success) {
-      console.error("Product not found:", productId);
-      return;
-    }
-
-    const product = productResponse.data.data;
-
-    // Only create booking if product is bookable
-    if (!product.isBookableService) {
-      console.log(
-        "Product is not bookable, skipping booking creation:",
-        productId
-      );
-      return;
-    }
-
-    // Create booking automatically
-    const bookingPayload = {
-      productId: productId,
-      productType:
-        product.productType === "Academic Support Services"
-          ? "AcademicService"
-          : "TrainingProgram",
-      instructorId: product.instructorId || null,
-      bookingPurpose:
-        metadata.bookingPurpose || `Booking for ${product.service}`,
-      scheduleAt:
-        metadata.scheduleAt ||
-        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      endAt:
-        metadata.endAt ||
-        new Date(
-          Date.now() +
-            24 * 60 * 60 * 1000 +
-            product.minutesPerSession * 60 * 1000
-        ).toISOString(),
-      minutesPerSession: product.minutesPerSession || 60,
-      durationInMinutes: product.durationInMinutes || 60,
-      numberOfExpectedParticipants: metadata.numberOfExpectedParticipants || 1,
-      isClassroom: product.hasClassroom || false,
-      meetingLink: metadata.meetingLink || null,
-      sessionType: product.sessionType || "1-on-1",
-      userNotes: metadata.userNotes || null,
-      internalNotes: `Auto-created booking from payment ${paymentIntent.id}`,
-      paymentIntentId: paymentIntent.id,
-      amount: paymentIntent.amount / 100, // Convert from cents
-      currency: paymentIntent.currency,
-      status: "confirmed",
-    };
-
-    const bookingResponse = await postApiRequest(
-      "/api/bookings",
-      null,
-      bookingPayload
-    );
-
-    if (bookingResponse?.data?.success) {
-      console.log(
-        "Booking created successfully:",
-        bookingResponse.data.data._id
-      );
-    } else {
-      console.error(
-        "Failed to create booking:",
-        bookingResponse?.data?.message
-      );
-    }
-  } catch (error) {
-    console.error("Error handling payment success:", error);
-  }
+  console.log("Payment succeeded:", paymentIntent.id);
+  // Payment success handling - could send confirmation email, update order status, etc.
+  // Booking creation has been removed from admin dashboard
 }
 
 async function handlePaymentFailure(paymentIntent: any) {
