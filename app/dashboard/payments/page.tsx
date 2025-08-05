@@ -291,7 +291,7 @@ export default function AdminPaymentsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-2xl overflow-hidden">
+        <div className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-2xl overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
               <tr>
