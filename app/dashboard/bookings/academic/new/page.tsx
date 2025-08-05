@@ -89,7 +89,7 @@ export default function CreateAcademicBookingPage() {
     "Career Development & Mentorship",
     "Institutional & Team Services",
     "AI-Powered or Automation Services",
-    "Recruitment & Job Matching",
+    "Career Connect",
     "Marketing, Consultation & Free Services",
   ];
 
