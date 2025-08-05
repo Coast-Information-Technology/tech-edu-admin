@@ -39,9 +39,7 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
@@ -63,58 +61,63 @@ export default function ProductsPage() {
         setLoading(false);
         return;
       }
-
       try {
-        // Build query parameters for server-side pagination and filtering
-        const params = new URLSearchParams();
-        params.append("page", String(page));
-        params.append("limit", String(limit));
-        if (searchTerm) params.append("search", searchTerm);
-        if (filterType !== "all") params.append("productType", filterType);
-        if (filterEnabled !== "all") params.append("enabled", filterEnabled);
-        if (filterInstructor !== "all")
-          params.append("instructorId", filterInstructor);
-        if (sortKey) params.append("sortBy", sortKey);
-        if (sortDirection) params.append("sortOrder", sortDirection);
-
         const [productsRes, instructorsRes] = await Promise.all([
-          getApiRequest(`/api/products/public?${params.toString()}`, token),
+          getApiRequest("/api/products/public", token),
           getApiRequest("/api/users/admin/instructors", token),
         ]);
-
-        if (productsRes?.data?.success) {
-          setProducts(productsRes.data.data.products || []);
-          setTotalPages(productsRes.data.meta?.totalPages || 1);
-          setTotalProducts(productsRes.data.meta?.total || 0);
-        } else {
-          setProducts([]);
-          setTotalPages(1);
-          setTotalProducts(0);
-        }
-
-        if (instructorsRes?.data?.success) {
-          setInstructors(instructorsRes.data.data.instructors || []);
-        }
+        setProducts(productsRes?.data?.data?.products || []);
+        setInstructors(instructorsRes?.data?.data?.instructors || []);
       } catch (err: any) {
         setError(err.message || "Failed to load products");
-        setProducts([]);
-        setTotalPages(1);
-        setTotalProducts(0);
       } finally {
         setLoading(false);
       }
     };
     fetchProducts();
-  }, [
-    page,
-    limit,
-    searchTerm,
-    filterType,
-    filterEnabled,
-    filterInstructor,
-    sortKey,
-    sortDirection,
-  ]);
+  }, []);
+
+  // Search, filter, and sort logic
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.productCategoryTitle
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      product.productSubcategoryName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    const matchesType =
+      filterType === "all" || product.productType === filterType;
+    const matchesEnabled =
+      filterEnabled === "all" ||
+      (filterEnabled === "enabled" && product.enabled) ||
+      (filterEnabled === "disabled" && !product.enabled);
+    const matchesInstructor =
+      filterInstructor === "all" || product.instructorId === filterInstructor;
+    return matchesSearch && matchesType && matchesEnabled && matchesInstructor;
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    let aVal = a[sortKey];
+    let bVal = b[sortKey];
+    if (typeof aVal === "string" && typeof bVal === "string") {
+      return sortDirection === "asc"
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+    if (typeof aVal === "number" && typeof bVal === "number") {
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    }
+    return 0;
+  });
+
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const paginatedProducts = sortedProducts.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
 
   // Reset page to 1 when filters change
   const handleFilterChange = (filterName: string, value: string) => {
@@ -131,6 +134,9 @@ export default function ProductsPage() {
         break;
       case "instructor":
         setFilterInstructor(value);
+        break;
+      case "limit":
+        setItemsPerPage(Number(value));
         break;
     }
   };
@@ -194,10 +200,7 @@ export default function ProductsPage() {
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    handleFilterChange("search", e.target.value);
-                  }}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
                   placeholder="Search products..."
                   className="w-full pl-12 pr-4 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 placeholder-slate-400"
                 />
@@ -209,10 +212,7 @@ export default function ProductsPage() {
                   <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <select
                     value={filterType}
-                    onChange={(e) => {
-                      setFilterType(e.target.value);
-                      handleFilterChange("type", e.target.value);
-                    }}
+                    onChange={(e) => handleFilterChange("type", e.target.value)}
                     className="pl-10 pr-8 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
                   >
                     <option value="all">All Types</option>
@@ -228,10 +228,9 @@ export default function ProductsPage() {
                   <div className="relative">
                     <select
                       value={filterEnabled}
-                      onChange={(e) => {
-                        setFilterEnabled(e.target.value);
-                        handleFilterChange("enabled", e.target.value);
-                      }}
+                      onChange={(e) =>
+                        handleFilterChange("enabled", e.target.value)
+                      }
                       className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
                     >
                       <option value="all">All Status</option>
@@ -243,10 +242,9 @@ export default function ProductsPage() {
                   <div className="relative">
                     <select
                       value={filterInstructor}
-                      onChange={(e) => {
-                        setFilterInstructor(e.target.value);
-                        handleFilterChange("instructor", e.target.value);
-                      }}
+                      onChange={(e) =>
+                        handleFilterChange("instructor", e.target.value)
+                      }
                       className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
                     >
                       <option value="all">All Instructors</option>
@@ -288,7 +286,7 @@ export default function ProductsPage() {
 
               <div className="relative">
                 <select
-                  value={limit}
+                  value={itemsPerPage}
                   onChange={(e) => handleFilterChange("limit", e.target.value)}
                   className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
                 >
@@ -378,8 +376,8 @@ export default function ProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-slate-200">
-                  {products.length > 0 ? (
-                    products.map((product) => (
+                  {paginatedProducts.length > 0 ? (
+                    paginatedProducts.map((product) => (
                       <tr
                         key={product._id}
                         className="hover:bg-blue-50/50 transition-all duration-300 group"
@@ -760,22 +758,22 @@ export default function ProductsPage() {
             <div className="text-sm text-slate-600">
               Showing{" "}
               <span className="font-semibold text-slate-900">
-                {Math.min((page - 1) * limit + 1, totalProducts)}
+                {Math.min((page - 1) * itemsPerPage + 1, sortedProducts.length)}
               </span>{" "}
               to{" "}
               <span className="font-semibold text-slate-900">
-                {Math.min(page * limit, totalProducts)}
+                {Math.min(page * itemsPerPage, sortedProducts.length)}
               </span>{" "}
               of{" "}
               <span className="font-semibold text-slate-900">
-                {totalProducts}
+                {sortedProducts.length}
               </span>{" "}
               products
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || totalProducts === 0}
+                disabled={page === 1 || totalPages === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Previous page"
               >
@@ -783,7 +781,7 @@ export default function ProductsPage() {
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || totalProducts === 0}
+                disabled={page === totalPages || totalPages === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Next page"
               >
