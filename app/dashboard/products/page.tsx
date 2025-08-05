@@ -39,7 +39,9 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
@@ -61,63 +63,87 @@ export default function ProductsPage() {
         setLoading(false);
         return;
       }
+
       try {
+        // Build query parameters for server-side pagination and filtering
+        const params = new URLSearchParams();
+        params.append("page", String(page));
+        params.append("limit", String(limit));
+        if (searchTerm) params.append("search", searchTerm);
+        if (filterType !== "all") params.append("productType", filterType);
+        if (filterEnabled !== "all") params.append("enabled", filterEnabled);
+        if (filterInstructor !== "all")
+          params.append("instructorId", filterInstructor);
+        if (sortKey) params.append("sortBy", sortKey);
+        if (sortDirection) params.append("sortOrder", sortDirection);
+
         const [productsRes, instructorsRes] = await Promise.all([
-          getApiRequest("/api/products/public", token),
+          getApiRequest(`/api/products/public?${params.toString()}`, token),
           getApiRequest("/api/users/admin/instructors", token),
         ]);
-        setProducts(productsRes?.data?.data?.products || []);
-        setInstructors(instructorsRes?.data?.data?.instructors || []);
+
+        if (productsRes?.data?.success) {
+          setProducts(productsRes.data.data.products || []);
+          setTotalPages(productsRes.data.meta?.totalPages || 1);
+          setTotalProducts(productsRes.data.meta?.total || 0);
+        } else {
+          setProducts([]);
+          setTotalPages(1);
+          setTotalProducts(0);
+        }
+
+        if (instructorsRes?.data?.success) {
+          setInstructors(instructorsRes.data.data.instructors || []);
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load products");
+        setProducts([]);
+        setTotalPages(1);
+        setTotalProducts(0);
       } finally {
         setLoading(false);
       }
     };
     fetchProducts();
-  }, []);
+  }, [
+    page,
+    limit,
+    searchTerm,
+    filterType,
+    filterEnabled,
+    filterInstructor,
+    sortKey,
+    sortDirection,
+  ]);
 
-  // Search, filter, and sort logic
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.productCategoryTitle
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      product.productSubcategoryName
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-    const matchesType =
-      filterType === "all" || product.productType === filterType;
-    const matchesEnabled =
-      filterEnabled === "all" ||
-      (filterEnabled === "enabled" && product.enabled) ||
-      (filterEnabled === "disabled" && !product.enabled);
-    const matchesInstructor =
-      filterInstructor === "all" || product.instructorId === filterInstructor;
-    return matchesSearch && matchesType && matchesEnabled && matchesInstructor;
-  });
-
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    let aVal = a[sortKey];
-    let bVal = b[sortKey];
-    if (typeof aVal === "string" && typeof bVal === "string") {
-      return sortDirection === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
+  // Reset page to 1 when filters change
+  const handleFilterChange = (filterName: string, value: string) => {
+    setPage(1);
+    switch (filterName) {
+      case "search":
+        setSearchTerm(value);
+        break;
+      case "type":
+        setFilterType(value);
+        break;
+      case "enabled":
+        setFilterEnabled(value);
+        break;
+      case "instructor":
+        setFilterInstructor(value);
+        break;
     }
-    if (typeof aVal === "number" && typeof bVal === "number") {
-      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
-    }
-    return 0;
-  });
+  };
 
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
-  const paginatedProducts = sortedProducts.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage
-  );
+  const handleSortChange = (key: string) => {
+    setPage(1);
+    if (sortKey === key) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -170,7 +196,7 @@ export default function ProductsPage() {
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    setPage(1);
+                    handleFilterChange("search", e.target.value);
                   }}
                   placeholder="Search products..."
                   className="w-full pl-12 pr-4 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 placeholder-slate-400"
@@ -185,7 +211,7 @@ export default function ProductsPage() {
                     value={filterType}
                     onChange={(e) => {
                       setFilterType(e.target.value);
-                      setPage(1);
+                      handleFilterChange("type", e.target.value);
                     }}
                     className="pl-10 pr-8 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
                   >
@@ -204,7 +230,7 @@ export default function ProductsPage() {
                       value={filterEnabled}
                       onChange={(e) => {
                         setFilterEnabled(e.target.value);
-                        setPage(1);
+                        handleFilterChange("enabled", e.target.value);
                       }}
                       className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
                     >
@@ -219,7 +245,7 @@ export default function ProductsPage() {
                       value={filterInstructor}
                       onChange={(e) => {
                         setFilterInstructor(e.target.value);
-                        setPage(1);
+                        handleFilterChange("instructor", e.target.value);
                       }}
                       className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
                     >
@@ -240,7 +266,7 @@ export default function ProductsPage() {
               <div className="relative">
                 <select
                   value={sortKey}
-                  onChange={(e) => setSortKey(e.target.value)}
+                  onChange={(e) => handleSortChange(e.target.value)}
                   className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
                 >
                   <option value="service">Sort by Service</option>
@@ -250,9 +276,7 @@ export default function ProductsPage() {
               </div>
 
               <button
-                onClick={() =>
-                  setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-                }
+                onClick={() => handleSortChange(sortKey)}
                 className="px-4 py-4 bg-white/50 border border-slate-200 rounded-2xl hover:bg-white/80 transition-all duration-300 flex items-center justify-center"
               >
                 {sortDirection === "asc" ? (
@@ -261,6 +285,20 @@ export default function ProductsPage() {
                   <SortDesc className="h-5 w-5 text-slate-600" />
                 )}
               </button>
+
+              <div className="relative">
+                <select
+                  value={limit}
+                  onChange={(e) => handleFilterChange("limit", e.target.value)}
+                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                >
+                  {[10, 20, 50, 100].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt} per page
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -340,8 +378,8 @@ export default function ProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-slate-200">
-                  {paginatedProducts.length > 0 ? (
-                    paginatedProducts.map((product) => (
+                  {products.length > 0 ? (
+                    products.map((product) => (
                       <tr
                         key={product._id}
                         className="hover:bg-blue-50/50 transition-all duration-300 group"
@@ -722,22 +760,22 @@ export default function ProductsPage() {
             <div className="text-sm text-slate-600">
               Showing{" "}
               <span className="font-semibold text-slate-900">
-                {Math.min((page - 1) * itemsPerPage + 1, sortedProducts.length)}
+                {Math.min((page - 1) * limit + 1, totalProducts)}
               </span>{" "}
               to{" "}
               <span className="font-semibold text-slate-900">
-                {Math.min(page * itemsPerPage, sortedProducts.length)}
+                {Math.min(page * limit, totalProducts)}
               </span>{" "}
               of{" "}
               <span className="font-semibold text-slate-900">
-                {sortedProducts.length}
+                {totalProducts}
               </span>{" "}
               products
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                disabled={page === 1 || totalProducts === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Previous page"
               >
@@ -745,7 +783,7 @@ export default function ProductsPage() {
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                disabled={page === totalPages || totalProducts === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Next page"
               >

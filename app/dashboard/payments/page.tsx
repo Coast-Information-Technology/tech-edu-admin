@@ -111,10 +111,17 @@ export default function AdminPaymentsPage() {
           `/api/payments?${params.toString()}`,
           token
         );
-        setPayments(res.data.data);
-        setTotalPages(res.data.meta.totalPages);
+        if (res?.data?.success) {
+          setPayments(res.data.data.payments || res.data.data || []);
+          setTotalPages(res.data.meta?.totalPages || 1);
+        } else {
+          setPayments([]);
+          setTotalPages(1);
+        }
       } catch (err: any) {
         setError(err.message || "Failed to fetch payments");
+        setPayments([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
@@ -132,6 +139,40 @@ export default function AdminPaymentsPage() {
     startDate,
     endDate,
   ]);
+
+  // Reset page to 1 when filters change
+  const handleFilterChange = (filterName: string, value: string) => {
+    setPage(1);
+    switch (filterName) {
+      case "status":
+        setStatus(value);
+        break;
+      case "provider":
+        setProvider(value);
+        break;
+      case "productType":
+        setProductType(value);
+        break;
+      case "platformRole":
+        setPlatformRole(value);
+        break;
+      case "currency":
+        setCurrency(value);
+        break;
+      case "search":
+        setSearch(value);
+        break;
+      case "startDate":
+        setStartDate(value);
+        break;
+      case "endDate":
+        setEndDate(value);
+        break;
+      case "limit":
+        setLimit(Number(value));
+        break;
+    }
+  };
 
   // Fetch single payment details
   const openPaymentModal = async (paymentId: string) => {
@@ -185,10 +226,7 @@ export default function AdminPaymentsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <select
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleFilterChange("status", e.target.value)}
               className="bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl p-3 text-sm"
             >
               <option value="">All Statuses</option>
@@ -200,10 +238,7 @@ export default function AdminPaymentsPage() {
             </select>
             <select
               value={provider}
-              onChange={(e) => {
-                setProvider(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleFilterChange("provider", e.target.value)}
               className="rounded-[10px] border p-2"
             >
               <option value="">All Providers</option>
@@ -216,29 +251,22 @@ export default function AdminPaymentsPage() {
             <Input
               type="date"
               value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleFilterChange("startDate", e.target.value)}
               className="rounded-[10px] border p-2"
               placeholder="Start Date"
             />
             <Input
               type="date"
               value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleFilterChange("endDate", e.target.value)}
               className="rounded-[10px] border p-2"
               placeholder="End Date"
             />
             <select
               value={productType}
-              onChange={(e) => {
-                setProductType(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) =>
+                handleFilterChange("productType", e.target.value)
+              }
               className="rounded-[10px] border p-2"
             >
               <option value="">All Product Types</option>
@@ -250,10 +278,9 @@ export default function AdminPaymentsPage() {
             </select>
             <select
               value={platformRole}
-              onChange={(e) => {
-                setPlatformRole(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) =>
+                handleFilterChange("platformRole", e.target.value)
+              }
               className="rounded-[10px] border p-2"
             >
               <option value="">All Platform Roles</option>
@@ -266,19 +293,13 @@ export default function AdminPaymentsPage() {
             <Input
               type="text"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
               className="rounded-[10px] border p-2"
               placeholder="Search transaction ID or service"
             />
             <select
               value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
+              onChange={(e) => handleFilterChange("limit", e.target.value)}
               className="rounded-[10px] border p-2"
             >
               {[10, 20, 50, 100].map((opt) => (
@@ -402,18 +423,27 @@ export default function AdminPaymentsPage() {
               Page <span className="font-semibold text-slate-900">{page}</span>{" "}
               of{" "}
               <span className="font-semibold text-slate-900">{totalPages}</span>
+              {payments.length > 0 && (
+                <span className="ml-2">
+                  • Showing{" "}
+                  <span className="font-semibold text-slate-900">
+                    {payments.length}
+                  </span>{" "}
+                  payments
+                </span>
+              )}
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || payments.length === 0}
+                disabled={page === 1 || totalPages === 0}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || payments.length === 0}
+                disabled={page === totalPages || totalPages === 0}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
               >
                 Next
