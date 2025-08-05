@@ -296,7 +296,7 @@ export default function AdminPaymentsPage() {
             <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  User
+                  User ID
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                   Amount
@@ -348,9 +348,7 @@ export default function AdminPaymentsPage() {
                     className="hover:bg-blue-50/50 transition-colors duration-200"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-medium">
-                        User ID: {payment.userId}
-                      </div>
+                      <div className="font-medium">{payment.userId}</div>
                       <div className="text-xs text-gray-500">
                         {payment.platformRole}
                       </div>
@@ -460,9 +458,6 @@ export default function AdminPaymentsPage() {
                     Payment Details
                   </h2>
                   <div className="mb-4 p-4 bg-slate-50 rounded-xl">
-                    <span className="font-semibold text-slate-700">
-                      User ID:
-                    </span>{" "}
                     <span className="text-slate-900">
                       {selectedPayment.userId}
                     </span>
