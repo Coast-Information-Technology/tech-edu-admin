@@ -190,7 +190,7 @@ export default function ProductsPage() {
 
         {/* Filters Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
-          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+          <div className="flex flex-col gap-6">
             <div className="flex flex-col lg:flex-row gap-4 flex-1">
               {/* Search Input */}
               <div className="relative flex-1 max-w-md">
@@ -265,11 +265,25 @@ export default function ProductsPage() {
                 <select
                   value={sortKey}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
                 >
                   <option value="service">Sort by Service</option>
                   <option value="price">Sort by Price</option>
                   <option value="productCategoryTitle">Sort by Category</option>
+                </select>
+              </div>
+
+              <div className="relative">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleFilterChange("limit", e.target.value)}
+                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
+                >
+                  {[10, 20, 50, 100].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt} per page
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -283,20 +297,6 @@ export default function ProductsPage() {
                   <SortDesc className="h-5 w-5 text-slate-600" />
                 )}
               </button>
-
-              <div className="relative">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => handleFilterChange("limit", e.target.value)}
-                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                >
-                  {[10, 20, 50, 100].map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt} per page
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
         </div>
