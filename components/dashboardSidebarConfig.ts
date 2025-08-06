@@ -149,12 +149,12 @@ export const dashboardSidebarConfig = {
           {
             label: "Classrooms",
             icon: BookOpen,
-            href: "/dashboard/classrooms",
+            href: "/dashboard/classrooms/instructor",
           },
           {
             label: "Sessions",
             icon: Video,
-            href: "/dashboard/sessions",
+            href: "/dashboard/sessions/instructor",
           },
         ],
       },
