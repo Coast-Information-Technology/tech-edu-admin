@@ -227,20 +227,6 @@ export default function ProductsPage() {
                 <div className="flex gap-3">
                   <div className="relative">
                     <select
-                      value={filterEnabled}
-                      onChange={(e) =>
-                        handleFilterChange("enabled", e.target.value)
-                      }
-                      className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="enabled">Enabled</option>
-                      <option value="disabled">Disabled</option>
-                    </select>
-                  </div>
-
-                  <div className="relative">
-                    <select
                       value={filterInstructor}
                       onChange={(e) =>
                         handleFilterChange("instructor", e.target.value)
@@ -261,6 +247,20 @@ export default function ProductsPage() {
 
             {/* Sort Controls */}
             <div className="flex gap-3">
+              <div className="relative">
+                <select
+                  value={filterEnabled}
+                  onChange={(e) =>
+                    handleFilterChange("enabled", e.target.value)
+                  }
+                  className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
+                >
+                  <option value="all">All Status</option>
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+
               <div className="relative">
                 <select
                   value={sortKey}
