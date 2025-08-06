@@ -4,6 +4,7 @@ import { getTokenFromCookies } from "@/lib/cookies";
 import { getApiRequest } from "@/lib/apiFetch";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Download } from "lucide-react";
 
 // Types
 interface Payment {
@@ -401,13 +402,13 @@ export default function AdminPaymentsPage() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <button
-                        className="text-blue-600 hover:text-blue-800 font-medium mr-3 transition-colors duration-200"
+                        className="text-blue-600 hover:text-blue-800 text-sm mr-3 transition-colors duration-200"
                         onClick={() => openPaymentModal(payment._id)}
                       >
                         View Details
                       </button>
-                      <button className="text-green-600 hover:text-green-800 font-medium transition-colors duration-200">
-                        Download Receipt
+                      <button className="text-green-600 hover:text-green-800 transition-colors duration-200">
+                        <Download className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
