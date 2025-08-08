@@ -91,6 +91,7 @@ export default function BookingDetailPage({
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchBooking();
@@ -153,8 +154,6 @@ export default function BookingDetailPage({
   const handleCancelBooking = async () => {
     if (!booking) return;
 
-    if (!confirm("Are you sure you want to cancel this booking?")) return;
-
     setCancelling(true);
     try {
       const token = getTokenFromCookies();
@@ -170,6 +169,7 @@ export default function BookingDetailPage({
       if (response?.data?.success) {
         toast.success("Booking cancelled successfully");
         fetchBooking(); // Refresh the booking data
+        setCancelDialogOpen(false);
       } else {
         toast.error(response?.data?.message || "Failed to cancel booking");
       }
@@ -299,7 +299,7 @@ export default function BookingDetailPage({
                 </Link>
                 <Button
                   variant="outline"
-                  onClick={handleCancelBooking}
+                  onClick={() => setCancelDialogOpen(true)}
                   disabled={cancelling}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
                 >
@@ -314,6 +314,93 @@ export default function BookingDetailPage({
             )}
           </div>
         </div>
+
+        {/* Cancel Confirmation Modal */}
+        {cancelDialogOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl max-w-md w-full mx-4">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Cancel Booking
+                    </h2>
+                    <p className="text-slate-500 text-sm">
+                      This action cannot be undone
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCancelDialogOpen(false)}
+                  className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center"
+                  aria-label="Close dialog"
+                  disabled={cancelling}
+                >
+                  <svg
+                    className="w-5 h-5 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                <p className="text-slate-700">
+                  Are you sure you want to cancel this booking?
+                </p>
+                <div className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-4 border border-red-100">
+                  <div className="text-sm text-slate-700">
+                    <div className="font-semibold text-slate-900">
+                      {booking.bookingPurpose}
+                    </div>
+                    <div className="text-slate-600 mt-1">
+                      {formatDateTime(booking.scheduleAt)} •{" "}
+                      {getDurationText(booking.durationInMinutes)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 pt-0 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCancelDialogOpen(false)}
+                  disabled={cancelling}
+                >
+                  Keep Booking
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800"
+                  onClick={handleCancelBooking}
+                  disabled={cancelling}
+                >
+                  {cancelling ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Cancelling...
+                    </span>
+                  ) : (
+                    "Cancel Booking"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}

@@ -70,7 +70,6 @@ export default function AdminPaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
-  const [totalPages, setTotalPages] = useState(1);
   const [status, setStatus] = useState("");
   const [provider, setProvider] = useState("");
   const [productType, setProductType] = useState("");
@@ -85,9 +84,9 @@ export default function AdminPaymentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
 
-  // Fetch payments
+  // Fetch all payments once (client-side pagination)
   useEffect(() => {
-    const fetchPayments = async () => {
+    const fetchAllPayments = async () => {
       setLoading(true);
       setError(null);
       const token = getTokenFromCookies();
@@ -96,50 +95,75 @@ export default function AdminPaymentsPage() {
         setLoading(false);
         return;
       }
-      const params = new URLSearchParams();
-      params.append("page", String(page));
-      params.append("limit", String(limit));
-      if (status) params.append("status", status);
-      if (provider) params.append("provider", provider);
-      if (productType) params.append("productType", productType);
-      if (platformRole) params.append("platformRole", platformRole);
-      if (currency) params.append("currency", currency);
-      if (search) params.append("search", search);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
       try {
-        const res = await getApiRequest(
-          `/api/payments?${params.toString()}`,
-          token
-        );
-        if (res?.data?.success) {
-          setPayments(res.data.data.payments || res.data.data || []);
-          setTotalPages(res.data.meta?.totalPages || 1);
-        } else {
-          setPayments([]);
-          setTotalPages(1);
-        }
+        const pageSize = 100;
+        let currentPage = 1;
+        let accumulated: Payment[] = [];
+        let totalPagesFromServer = 1;
+        do {
+          const params = new URLSearchParams();
+          params.append("page", String(currentPage));
+          params.append("limit", String(pageSize));
+          const res = await getApiRequest(
+            `/api/payments?${params.toString()}`,
+            token
+          );
+          if (res?.data?.success) {
+            const chunk: Payment[] =
+              res.data?.data?.payments || res.data?.data || [];
+            accumulated = accumulated.concat(chunk);
+            totalPagesFromServer = res.data?.meta?.totalPages || 1;
+          } else {
+            break;
+          }
+          currentPage += 1;
+        } while (currentPage <= totalPagesFromServer);
+        setPayments(accumulated);
       } catch (err: any) {
         setError(err.message || "Failed to fetch payments");
         setPayments([]);
-        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
-    fetchPayments();
-  }, [
-    page,
-    limit,
-    status,
-    provider,
-    productType,
-    platformRole,
-    currency,
-    search,
-    startDate,
-    endDate,
-  ]);
+    fetchAllPayments();
+  }, []);
+
+  // Client-side filtering and pagination
+  const filteredPayments = payments.filter((p) => {
+    const matchesStatus = !status || p.status === status;
+    const matchesProvider = !provider || p.provider === provider;
+    const matchesProductType = !productType || p.productType === productType;
+    const matchesPlatformRole =
+      !platformRole || p.platformRole === platformRole;
+    const matchesCurrency = !currency || p.currency === currency;
+    const matchesSearch =
+      !search ||
+      [p.transactionId, p.bookingService, p.userId]
+        .filter(Boolean)
+        .some((val) =>
+          String(val).toLowerCase().includes(search.toLowerCase())
+        );
+    const created = new Date(p.createdAt).getTime();
+    const matchesStart = !startDate || created >= new Date(startDate).getTime();
+    const matchesEnd = !endDate || created <= new Date(endDate).getTime();
+    return (
+      matchesStatus &&
+      matchesProvider &&
+      matchesProductType &&
+      matchesPlatformRole &&
+      matchesCurrency &&
+      matchesSearch &&
+      matchesStart &&
+      matchesEnd
+    );
+  });
+
+  const totalPagesComputed = Math.ceil(filteredPayments.length / limit);
+  const paginatedPayments = filteredPayments.slice(
+    (page - 1) * limit,
+    page * limit
+  );
 
   // Reset page to 1 when filters change
   const handleFilterChange = (filterName: string, value: string) => {
@@ -212,7 +236,7 @@ export default function AdminPaymentsPage() {
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="text-2xl font-bold text-slate-900">
-                {payments.length}
+                {filteredPayments.length}
               </div>
               <div className="text-sm text-slate-600">Total Payments</div>
             </div>
@@ -357,14 +381,14 @@ export default function AdminPaymentsPage() {
                     {error}
                   </td>
                 </tr>
-              ) : payments.length === 0 ? (
+              ) : filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8">
                     No payments found.
                   </td>
                 </tr>
               ) : (
-                payments.map((payment) => (
+                paginatedPayments.map((payment) => (
                   <tr
                     key={payment._id}
                     className="hover:bg-blue-50/50 transition-colors duration-200"
@@ -423,12 +447,14 @@ export default function AdminPaymentsPage() {
             <div className="text-slate-600">
               Page <span className="font-semibold text-slate-900">{page}</span>{" "}
               of{" "}
-              <span className="font-semibold text-slate-900">{totalPages}</span>
-              {payments.length > 0 && (
+              <span className="font-semibold text-slate-900">
+                {totalPagesComputed || 0}
+              </span>
+              {filteredPayments.length > 0 && (
                 <span className="ml-2">
                   • Showing{" "}
                   <span className="font-semibold text-slate-900">
-                    {payments.length}
+                    {paginatedPayments.length}
                   </span>{" "}
                   payments
                 </span>
@@ -437,14 +463,18 @@ export default function AdminPaymentsPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || payments.length === 0}
+                disabled={page === 1 || totalPagesComputed === 0}
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
               >
                 Previous
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || payments.length === 0}
+                onClick={() =>
+                  setPage((p) => Math.min(totalPagesComputed || 1, p + 1))
+                }
+                disabled={
+                  page === totalPagesComputed || totalPagesComputed === 0
+                }
                 className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
               >
                 Next
