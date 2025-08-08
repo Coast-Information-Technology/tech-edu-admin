@@ -50,6 +50,7 @@ export default function ProductsPage() {
   const [sortDirection, setSortDirection] = useState("asc");
   const [instructors, setInstructors] = useState<any[]>([]);
   const [filterInstructor, setFilterInstructor] = useState("all");
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -136,7 +137,13 @@ export default function ProductsPage() {
         setFilterInstructor(value);
         break;
       case "limit":
-        setItemsPerPage(Number(value));
+        if (value === "all") {
+          setShowAll(true);
+          setItemsPerPage(Number.MAX_SAFE_INTEGER);
+        } else {
+          setShowAll(false);
+          setItemsPerPage(Number(value));
+        }
         break;
     }
   };
@@ -275,15 +282,16 @@ export default function ProductsPage() {
 
               <div className="relative">
                 <select
-                  value={itemsPerPage}
+                  value={showAll ? "all" : String(itemsPerPage)}
                   onChange={(e) => handleFilterChange("limit", e.target.value)}
                   className="px-6 py-4 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer w-full"
                 >
                   {[10, 20, 50, 100].map((opt) => (
-                    <option key={opt} value={opt}>
+                    <option key={opt} value={String(opt)}>
                       {opt} per page
                     </option>
                   ))}
+                  <option value="all">All</option>
                 </select>
               </div>
 
