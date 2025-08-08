@@ -113,6 +113,7 @@ export default function CVBuilderPage() {
   );
   const [previewScale, setPreviewScale] = useState(1);
   const [cvImageObjectUrl, setCvImageObjectUrl] = useState<string | null>(null);
+  const [compactPreview, setCompactPreview] = useState(true);
 
   // Handlers
   const handleEdit = () => {
@@ -814,29 +815,46 @@ export default function CVBuilderPage() {
               >
                 +
               </Button>
+              <div className="mx-2 h-5 w-px bg-slate-200" />
+              <Button
+                variant={compactPreview ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCompactPreview((v) => !v)}
+                title="Toggle compact preview"
+              >
+                {compactPreview ? "Compact" : "Full"}
+              </Button>
             </div>
           </div>
           <div
-            className="flex justify-center cv-print-area"
-            style={{
-              transform: `scale(${previewScale})`,
-              transformOrigin: "top center",
-            }}
+            className={
+              compactPreview
+                ? "max-h-[75vh] overflow-auto rounded-xl border border-slate-200 bg-white/60 p-2"
+                : ""
+            }
           >
-            {isDraftEmpty ? (
-              <div className="cv-a4-page flex items-center justify-center text-gray-400 text-xl">
-                Start building your CV!
-              </div>
-            ) : (
-              <>
-                {selectedTemplate === "classic" && (
-                  <CVTemplateClassic data={draft} />
-                )}
-                {selectedTemplate === "professional" && (
-                  <CVTemplateProfessional data={draft} />
-                )}
-              </>
-            )}
+            <div
+              className="flex justify-center cv-print-area"
+              style={{
+                transform: `scale(${previewScale})`,
+                transformOrigin: "top center",
+              }}
+            >
+              {isDraftEmpty ? (
+                <div className="cv-a4-page flex items-center justify-center text-gray-400 text-xl">
+                  Start building your CV!
+                </div>
+              ) : (
+                <>
+                  {selectedTemplate === "classic" && (
+                    <CVTemplateClassic data={draft} />
+                  )}
+                  {selectedTemplate === "professional" && (
+                    <CVTemplateProfessional data={draft} />
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
