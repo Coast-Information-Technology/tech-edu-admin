@@ -6,38 +6,54 @@ import { CVData } from "@/types/cv";
 export function CVTemplateClassic({ data }: { data: CVData }) {
   return (
     <div className="cv-a4-page">
-      {data.fullName && (
-        <h1 className="text-3xl font-bold mb-2">{data.fullName}</h1>
-      )}
-      {data.bio && <p className="mb-4 text-gray-600">{data.bio}</p>}
-      {(data.email || data.phone || data.nationality) && (
-        <div className="mb-4 text-sm text-gray-700">
-          {data.email && (
-            <div>
-              <Mail className="inline w-4 h-4 mr-1" />
-              {data.email}
-            </div>
+      {(data.fullName ||
+        data.bio ||
+        data.email ||
+        data.phone ||
+        data.nationality) && (
+        <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 mb-6">
+          {data.fullName && (
+            <h1 className="text-3xl font-bold tracking-tight">
+              {data.fullName}
+            </h1>
           )}
-          {data.phone && (
-            <div>
-              <Phone className="inline w-4 h-4 mr-1" />
-              {data.phone}
-            </div>
-          )}
-          {data.nationality && (
-            <div>
-              <MapPin className="inline w-4 h-4 mr-1" />
-              {data.nationality}
+          {data.bio && <p className="mt-1 text-white/80">{data.bio}</p>}
+          {(data.email || data.phone || data.nationality) && (
+            <div className="mt-4 flex flex-wrap gap-4 text-sm text-white/90">
+              {data.email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  <span>{data.email}</span>
+                </div>
+              )}
+              {data.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>{data.phone}</span>
+                </div>
+              )}
+              {data.nationality && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>{data.nationality}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
       {data.skills && data.skills.some((s) => s) && (
         <div className="mb-4">
-          <h3 className="font-semibold mb-1">Skills</h3>
+          <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+            Skills
+          </h3>
           <div className="flex flex-wrap gap-2">
             {data.skills.filter(Boolean).map((skill) => (
-              <Badge key={skill} variant="secondary" className="text-xs">
+              <Badge
+                key={skill}
+                variant="secondary"
+                className="text-xs bg-blue-50 text-blue-700 border border-blue-200"
+              >
                 {skill}
               </Badge>
             ))}
@@ -49,7 +65,9 @@ export function CVTemplateClassic({ data }: { data: CVData }) {
           (e) => e.title || e.company || e.duration || e.description
         ) && (
           <div className="mb-4">
-            <h3 className="font-semibold mb-1">Experience</h3>
+            <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+              Experience
+            </h3>
             <div className="space-y-2">
               {data.experience
                 .filter(
@@ -57,17 +75,19 @@ export function CVTemplateClassic({ data }: { data: CVData }) {
                 )
                 .map((exp, idx) => (
                   <div key={idx}>
-                    <div className="flex justify-between text-sm font-medium">
+                    <div className="flex justify-between text-sm font-medium text-slate-900">
                       {exp.title && <span>{exp.title}</span>}
                       {exp.duration && (
-                        <span className="text-gray-500">{exp.duration}</span>
+                        <span className="text-slate-500">{exp.duration}</span>
                       )}
                     </div>
                     {exp.company && (
-                      <div className="text-sm text-gray-700">{exp.company}</div>
+                      <div className="text-sm text-slate-700">
+                        {exp.company}
+                      </div>
                     )}
                     {exp.description && (
-                      <div className="text-xs text-gray-600">
+                      <div className="text-xs text-slate-600">
                         {exp.description}
                       </div>
                     )}
@@ -81,13 +101,15 @@ export function CVTemplateClassic({ data }: { data: CVData }) {
           (e) => e.degree || e.field || e.school || e.year
         ) && (
           <div className="mb-4">
-            <h3 className="font-semibold mb-1">Education</h3>
+            <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+              Education
+            </h3>
             <div className="space-y-2">
               {data.education
                 .filter((e) => e.degree || e.field || e.school || e.year)
                 .map((edu, idx) => (
                   <div key={idx}>
-                    <div className="flex justify-between text-sm font-medium">
+                    <div className="flex justify-between text-sm font-medium text-slate-900">
                       {(edu.degree || edu.field) && (
                         <span>
                           {edu.degree}
@@ -96,11 +118,11 @@ export function CVTemplateClassic({ data }: { data: CVData }) {
                         </span>
                       )}
                       {edu.year && (
-                        <span className="text-gray-500">{edu.year}</span>
+                        <span className="text-slate-500">{edu.year}</span>
                       )}
                     </div>
                     {edu.school && (
-                      <div className="text-sm text-gray-700">{edu.school}</div>
+                      <div className="text-sm text-slate-700">{edu.school}</div>
                     )}
                   </div>
                 ))}
@@ -110,7 +132,9 @@ export function CVTemplateClassic({ data }: { data: CVData }) {
       {data.links &&
         (data.links.linkedIn || data.links.github || data.links.portfolio) && (
           <div className="mb-4">
-            <h3 className="font-semibold mb-1">Links</h3>
+            <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+              Links
+            </h3>
             <div className="flex gap-3">
               {data.links.linkedIn && (
                 <a
@@ -127,7 +151,7 @@ export function CVTemplateClassic({ data }: { data: CVData }) {
                   href={data.links.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-800"
+                  className="text-slate-800"
                 >
                   <Github className="w-5 h-5" />
                 </a>

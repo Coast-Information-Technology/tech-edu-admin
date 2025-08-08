@@ -111,6 +111,8 @@ export default function CVBuilderPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(
     templateFromUrl || "classic"
   );
+  const [previewScale, setPreviewScale] = useState(1);
+  const [cvImageObjectUrl, setCvImageObjectUrl] = useState<string | null>(null);
 
   // Handlers
   const handleEdit = () => {
@@ -119,6 +121,11 @@ export default function CVBuilderPage() {
   };
   const handleCancel = () => {
     setEditMode(false);
+    // Revoke any created object URLs to free memory
+    if (cvImageObjectUrl) {
+      URL.revokeObjectURL(cvImageObjectUrl);
+      setCvImageObjectUrl(null);
+    }
   };
   const handleSave = () => {
     setCVBuilder(draft);
@@ -191,6 +198,43 @@ export default function CVBuilderPage() {
     setDraft((prev) => ({ ...prev, education: newEdu }));
   };
 
+  // Reordering helpers
+  const moveItem = <T,>(arr: T[], from: number, to: number): T[] => {
+    const copy = [...arr];
+    const [item] = copy.splice(from, 1);
+    copy.splice(to, 0, item);
+    return copy;
+  };
+  const handleMoveExp = (idx: number, direction: "up" | "down") => {
+    const list = draft.experience || [];
+    const targetIndex = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+    setDraft((prev) => ({
+      ...prev,
+      experience: moveItem(list, idx, targetIndex),
+    }));
+  };
+  const handleMoveEdu = (idx: number, direction: "up" | "down") => {
+    const list = draft.education || [];
+    const targetIndex = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+    setDraft((prev) => ({
+      ...prev,
+      education: moveItem(list, idx, targetIndex),
+    }));
+  };
+
+  const handlePrint = () => {
+    const previous = previewScale;
+    setPreviewScale(1);
+    const restore = () => {
+      setPreviewScale(previous);
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    setTimeout(() => window.print(), 0);
+  };
+
   // Helper to check if all fields are empty
   const isDraftEmpty =
     !draft.fullName &&
@@ -218,8 +262,27 @@ export default function CVBuilderPage() {
   return (
     <div className="p-6 space-y-6">
       <style>{a4Styles}</style>
+      <style>{`
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .cv-editor, .cv-toolbar, .cv-header { display: none !important; }
+          .cv-preview-only { display: block !important; }
+          .cv-preview-only .cv-a4-page {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 auto !important;
+            box-shadow: none !important;
+            background: white !important;
+          }
+          /* Hide everything except the explicit print area */
+          body * { visibility: hidden !important; }
+          .cv-print-area, .cv-print-area * { visibility: visible !important; }
+          .cv-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+        @page { size: A4; margin: 10mm; }
+      `}</style>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between cv-header">
         <div>
           <h1 className="text-3xl font-bold">CV Builder</h1>
           <p className="text-gray-600 mt-2">
@@ -235,9 +298,22 @@ export default function CVBuilderPage() {
             <Edit2 className="w-4 h-4 mr-2" />
             Edit CV
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-[10px]">
+          <Button
+            onClick={handlePrint}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-[10px]"
+          >
             <Download className="w-4 h-4 mr-2" />
             Download PDF
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-[10px]"
+            onClick={() => {
+              setDraft(initialCVBuilder);
+              setCVBuilder(initialCVBuilder);
+            }}
+          >
+            Reset
           </Button>
         </div>
       </div>
@@ -248,7 +324,7 @@ export default function CVBuilderPage() {
         <Accordion
           type="multiple"
           defaultValue={["personal-info"]}
-          className="space-y-4"
+          className="space-y-4 cv-editor"
         >
           {/* Personal Information */}
           <AccordionItem
@@ -261,16 +337,37 @@ export default function CVBuilderPage() {
             <AccordionContent className="px-6 pb-6 pt-2">
               <div>
                 <Label htmlFor="cvbuilderImageUrl">Display Photo</Label>
-                <Input
-                  id="cvbuilderImageUrl"
-                  onChange={(e) => {
-                    // handle file upload here, e.g.:
-                    // if (e.target.files && e.target.files[0]) { ... }
-                  }}
-                  className="rounded-[10px] border-gray-500"
-                  disabled={!editMode}
-                  type="file"
-                />
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="cvbuilderImageUrl"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (cvImageObjectUrl) {
+                        URL.revokeObjectURL(cvImageObjectUrl);
+                      }
+                      const objectUrl = URL.createObjectURL(file);
+                      setCvImageObjectUrl(objectUrl);
+                      setDraft((prev) => ({
+                        ...prev,
+                        cvbuilderImageUrl: objectUrl,
+                      }));
+                    }}
+                    className="rounded-[10px] border-gray-500"
+                    disabled={!editMode}
+                    type="file"
+                    accept="image/*"
+                  />
+                  {draft.cvbuilderImageUrl && (
+                    <Avatar>
+                      <AvatarImage src={draft.cvbuilderImageUrl} />
+                      <AvatarFallback>CV</AvatarFallback>
+                    </Avatar>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  PNG or JPG, up to 2MB
+                </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -348,8 +445,12 @@ export default function CVBuilderPage() {
                   onChange={(e) => handleChange("bio", e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-[10px] resize-none bg-blue-50"
                   rows={3}
+                  maxLength={500}
                   disabled={!editMode}
                 />
+                <div className="text-xs text-gray-500 mt-1 text-right">
+                  {draft.bio?.length || 0}/500
+                </div>
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -456,15 +557,31 @@ export default function CVBuilderPage() {
                         placeholder="Job description"
                       />
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveExp(idx)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Remove
-                    </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveExp(idx)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMoveExp(idx, "up")}
+                      >
+                        Move Up
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMoveExp(idx, "down")}
+                      >
+                        Move Down
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 <Button
@@ -540,15 +657,31 @@ export default function CVBuilderPage() {
                         placeholder="University Name"
                       />
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveEdu(idx)}
-                      className="text-red-600 hover:text-red-700 rounded-[5px]"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Remove
-                    </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveEdu(idx)}
+                        className="text-red-600 hover:text-red-700 rounded-[5px]"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMoveEdu(idx, "up")}
+                      >
+                        Move Up
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMoveEdu(idx, "down")}
+                      >
+                        Move Down
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 <Button
@@ -633,37 +766,78 @@ export default function CVBuilderPage() {
         </Accordion>
 
         {/* Right Side - CV Preview */}
-        <div className="lg:sticky lg:top-6 overflow-x-auto">
-          <div className="mb-4 flex gap-2">
-            <Button
-              variant={selectedTemplate === "classic" ? "default" : "outline"}
-              onClick={() => setSelectedTemplate("classic")}
-            >
-              Classic
-            </Button>
-            <Button
-              variant={
-                selectedTemplate === "professional" ? "default" : "outline"
-              }
-              onClick={() => setSelectedTemplate("professional")}
-            >
-              Professional
-            </Button>
-          </div>
-          {isDraftEmpty ? (
-            <div className="cv-a4-page flex items-center justify-center text-gray-400 text-xl">
-              Start building your CV!
+        <div className="lg:sticky lg:top-6 overflow-x-auto cv-preview-only">
+          {/* Preview Toolbar */}
+          <div className="cv-toolbar mb-4 flex items-center gap-3 justify-between bg-white/70 backdrop-blur-sm border border-blue-100 rounded-[12px] p-3">
+            <div className="flex gap-2">
+              <Button
+                variant={selectedTemplate === "classic" ? "default" : "outline"}
+                onClick={() => setSelectedTemplate("classic")}
+              >
+                Classic
+              </Button>
+              <Button
+                variant={
+                  selectedTemplate === "professional" ? "default" : "outline"
+                }
+                onClick={() => setSelectedTemplate("professional")}
+              >
+                Professional
+              </Button>
             </div>
-          ) : (
-            <>
-              {selectedTemplate === "classic" && (
-                <CVTemplateClassic data={draft} />
-              )}
-              {selectedTemplate === "professional" && (
-                <CVTemplateProfessional data={draft} />
-              )}
-            </>
-          )}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Zoom</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPreviewScale((s) => Math.max(0.8, +(s - 0.05).toFixed(2)))
+                }
+              >
+                -
+              </Button>
+              <input
+                type="range"
+                min={0.8}
+                max={1.4}
+                step={0.05}
+                value={previewScale}
+                onChange={(e) => setPreviewScale(parseFloat(e.target.value))}
+                className="w-32"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPreviewScale((s) => Math.min(1.4, +(s + 0.05).toFixed(2)))
+                }
+              >
+                +
+              </Button>
+            </div>
+          </div>
+          <div
+            className="flex justify-center cv-print-area"
+            style={{
+              transform: `scale(${previewScale})`,
+              transformOrigin: "top center",
+            }}
+          >
+            {isDraftEmpty ? (
+              <div className="cv-a4-page flex items-center justify-center text-gray-400 text-xl">
+                Start building your CV!
+              </div>
+            ) : (
+              <>
+                {selectedTemplate === "classic" && (
+                  <CVTemplateClassic data={draft} />
+                )}
+                {selectedTemplate === "professional" && (
+                  <CVTemplateProfessional data={draft} />
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
