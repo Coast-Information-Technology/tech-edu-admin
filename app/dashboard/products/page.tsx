@@ -51,6 +51,9 @@ export default function ProductsPage() {
   const [instructors, setInstructors] = useState<any[]>([]);
   const [filterInstructor, setFilterInstructor] = useState("all");
   const [showAll, setShowAll] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(0);
+  const [useServerPagination, setUseServerPagination] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -63,12 +66,67 @@ export default function ProductsPage() {
         return;
       }
       try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        const effectiveLimit =
+          showAll && totalCount ? totalCount : itemsPerPage;
+        params.set("limit", String(effectiveLimit));
+        if (searchTerm) params.set("search", searchTerm);
+        if (filterType !== "all") params.set("productType", filterType);
+        if (filterEnabled !== "all")
+          params.set("enabled", filterEnabled === "enabled" ? "true" : "false");
+        if (filterInstructor !== "all")
+          params.set("instructorId", filterInstructor);
+
         const [productsRes, instructorsRes] = await Promise.all([
-          getApiRequest("/api/products/public", token),
+          getApiRequest(`/api/products/public?${params.toString()}`, token),
           getApiRequest("/api/users/admin/instructors", token),
         ]);
-        setProducts(productsRes?.data?.data?.products || []);
+
+        const root = productsRes?.data || {};
+        const data = root?.data ?? root;
+        const responseProducts = data?.products || [];
+        setProducts(responseProducts);
         setInstructors(instructorsRes?.data?.data?.instructors || []);
+
+        const totalNum = Number(
+          data?.total ?? data?.count ?? data?.Total ?? data?.Count
+        );
+        const pageNum = Number(
+          data?.page ?? data?.currentPage ?? data?.Page ?? data?.CurrentPage
+        );
+        const limitNum = Number(
+          data?.limit ?? data?.perPage ?? data?.Limit ?? data?.PerPage
+        );
+        let totalPagesNum = Number(
+          data?.totalPages ?? data?.TotalPages ?? data?.pages ?? data?.Pages
+        );
+        if (
+          !Number.isFinite(totalPagesNum) &&
+          Number.isFinite(totalNum) &&
+          Number.isFinite(limitNum) &&
+          limitNum > 0
+        ) {
+          totalPagesNum = Math.ceil(totalNum / limitNum);
+        }
+
+        const hasServerMeta =
+          Number.isFinite(pageNum) &&
+          Number.isFinite(limitNum) &&
+          (Number.isFinite(totalNum) || Number.isFinite(totalPagesNum));
+
+        setUseServerPagination(Boolean(hasServerMeta));
+        if (hasServerMeta) {
+          if (Number.isFinite(totalNum)) setTotalCount(totalNum);
+          if (Number.isFinite(totalPagesNum))
+            setServerTotalPages(totalPagesNum);
+          // Keep local state in sync with server
+          if (Number.isFinite(pageNum)) setPage(pageNum);
+          if (!showAll && Number.isFinite(limitNum)) setItemsPerPage(limitNum);
+        } else {
+          setTotalCount(responseProducts.length);
+          setServerTotalPages(1);
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load products");
       } finally {
@@ -76,29 +134,45 @@ export default function ProductsPage() {
       }
     };
     fetchProducts();
-  }, []);
+  }, [
+    page,
+    itemsPerPage,
+    searchTerm,
+    filterType,
+    filterEnabled,
+    filterInstructor,
+    showAll,
+    totalCount,
+  ]);
 
   // Search, filter, and sort logic
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.productCategoryTitle
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      product.productSubcategoryName
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-    const matchesType =
-      filterType === "all" || product.productType === filterType;
-    const matchesEnabled =
-      filterEnabled === "all" ||
-      (filterEnabled === "enabled" && product.enabled) ||
-      (filterEnabled === "disabled" && !product.enabled);
-    const matchesInstructor =
-      filterInstructor === "all" || product.instructorId === filterInstructor;
-    return matchesSearch && matchesType && matchesEnabled && matchesInstructor;
-  });
+  const filteredProducts = useServerPagination
+    ? products
+    : products.filter((product) => {
+        const matchesSearch =
+          product.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.productType
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          product.productCategoryTitle
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          product.productSubcategoryName
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+        const matchesType =
+          filterType === "all" || product.productType === filterType;
+        const matchesEnabled =
+          filterEnabled === "all" ||
+          (filterEnabled === "enabled" && product.enabled) ||
+          (filterEnabled === "disabled" && !product.enabled);
+        const matchesInstructor =
+          filterInstructor === "all" ||
+          product.instructorId === filterInstructor;
+        return (
+          matchesSearch && matchesType && matchesEnabled && matchesInstructor
+        );
+      });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     let aVal = a[sortKey];
@@ -114,11 +188,27 @@ export default function ProductsPage() {
     return 0;
   });
 
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
-  const paginatedProducts = sortedProducts.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage
-  );
+  const paginatedProducts = useServerPagination
+    ? sortedProducts
+    : sortedProducts.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const totalPagesToUse = useServerPagination
+    ? serverTotalPages ||
+      (itemsPerPage > 0 ? Math.ceil(totalCount / itemsPerPage) : 0)
+    : Math.ceil(sortedProducts.length / itemsPerPage);
+
+  const displayTotal = useServerPagination ? totalCount : sortedProducts.length;
+  const displayFrom =
+    displayTotal === 0
+      ? 0
+      : Math.min((page - 1) * itemsPerPage + 1, displayTotal);
+  const displayTo =
+    displayTotal === 0
+      ? 0
+      : Math.min(
+          (page - 1) * itemsPerPage + paginatedProducts.length,
+          displayTotal
+        );
 
   // Reset page to 1 when filters change
   const handleFilterChange = (filterName: string, value: string) => {
@@ -139,7 +229,6 @@ export default function ProductsPage() {
       case "limit":
         if (value === "all") {
           setShowAll(true);
-          setItemsPerPage(Number.MAX_SAFE_INTEGER);
         } else {
           setShowAll(false);
           setItemsPerPage(Number(value));
@@ -766,30 +855,28 @@ export default function ProductsPage() {
             <div className="text-sm text-slate-600">
               Showing{" "}
               <span className="font-semibold text-slate-900">
-                {Math.min((page - 1) * itemsPerPage + 1, sortedProducts.length)}
+                {displayFrom}
               </span>{" "}
               to{" "}
-              <span className="font-semibold text-slate-900">
-                {Math.min(page * itemsPerPage, sortedProducts.length)}
-              </span>{" "}
+              <span className="font-semibold text-slate-900">{displayTo}</span>{" "}
               of{" "}
               <span className="font-semibold text-slate-900">
-                {sortedProducts.length}
+                {displayTotal}
               </span>{" "}
               products
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || totalPages === 0}
+                disabled={page === 1 || totalPagesToUse === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Previous page"
               >
                 Previous
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || totalPages === 0}
+                onClick={() => setPage((p) => Math.min(totalPagesToUse, p + 1))}
+                disabled={page === totalPagesToUse || totalPagesToUse === 0}
                 className="px-6 py-3 text-slate-700 bg-white/50 border border-slate-200 hover:bg-white/80 font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
                 aria-label="Next page"
               >
