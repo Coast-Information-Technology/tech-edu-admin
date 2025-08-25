@@ -62,19 +62,12 @@ export default function CVStep4({
 }) {
   const [activeSection, setActiveSection] = useState<SectionKey>("education");
 
-  // Debug logging
-  console.log("CV4Step data:", data);
-  console.log("data.education:", data?.education);
-  console.log("typeof data.education:", typeof data?.education);
-
   // Initialize data if not exists with additional safety checks
   const education = Array.isArray(data?.education) ? data.education : [];
   const experience = Array.isArray(data?.experience) ? data.experience : [];
   const skills = Array.isArray(data?.skills) ? data.skills : [];
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const references = Array.isArray(data?.references) ? data.references : [];
-
-  console.log("Initialized education:", education);
 
   const addEducation = () => {
     const newEducation: Education = {

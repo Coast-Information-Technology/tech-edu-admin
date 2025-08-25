@@ -144,7 +144,6 @@ export default function AttendanceManagementPage() {
 
       const endpoint = `/api/attendance?${params}`;
       const response = await getApiRequest(endpoint, token);
-      console.log("Attendance API response:", response);
 
       if (response?.data?.success) {
         setAttendances(response.data.data);

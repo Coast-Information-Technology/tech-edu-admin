@@ -180,8 +180,6 @@ export default function EditJobPage() {
   };
 
   const handleSave = () => {
-    // TODO: Implement save API call
-    console.log("Saving job:", formData);
     router.push(`/dashboard/my-posted-jobs/${jobId}`);
   };
 

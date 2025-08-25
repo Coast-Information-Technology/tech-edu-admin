@@ -93,7 +93,6 @@ export default function EditSessionPage() {
           `/api/sessions/${params.id}`,
           token
         );
-        console.log("Session detail API response:", response);
 
         if (response?.data?.success) {
           const sessionData = response.data.data;
@@ -180,14 +179,11 @@ export default function EditSessionPage() {
         internalNotes: form.internalNotes,
       };
 
-      console.log("Updating session with payload:", payload);
-
       const response = await updateApiRequest(
         `/api/sessions/${params.id as string}`,
         token,
         payload
       );
-      console.log("Session update response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);

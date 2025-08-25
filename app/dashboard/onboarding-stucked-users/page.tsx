@@ -84,28 +84,14 @@ export default function OnboardingStuckUsersPage() {
           token
         );
         if (stuckUsersResponse.status === 200) {
-          console.log("Raw stuck users response:", stuckUsersResponse);
-          console.log("Response data:", stuckUsersResponse.data);
-          console.log("Response data.data:", stuckUsersResponse.data?.data);
-
           // Handle the array response directly
           const stuckUsers =
             stuckUsersResponse.data?.data || stuckUsersResponse.data || [];
-
-          console.log("Extracted stuck users array:", stuckUsers);
-          console.log("First user object:", stuckUsers[0]);
-          console.log(
-            "First user keys:",
-            stuckUsers[0] ? Object.keys(stuckUsers[0]) : "No users"
-          );
 
           // Filter out null/undefined values and ensure each item has required properties
           const validStuckUsers = Array.isArray(stuckUsers)
             ? stuckUsers
                 .filter((user) => {
-                  console.log("Checking user:", user);
-                  console.log("User userId:", user?.userId);
-                  console.log("User _id:", user?._id);
                   return user && (user.userId || user._id) && user.fullName;
                 })
                 .map((user) => ({
@@ -120,7 +106,6 @@ export default function OnboardingStuckUsersPage() {
                 }))
             : [];
 
-          console.log("Valid stuck users:", validStuckUsers);
           setOnboardingStuckUsers(validStuckUsers);
         }
       } catch (err: any) {

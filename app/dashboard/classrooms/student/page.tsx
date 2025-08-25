@@ -67,7 +67,6 @@ export default function StudentClassroomsPage() {
       try {
         const endpoint = "/api/classrooms/student/classroomm";
         const response = await getApiRequest(endpoint, token);
-        console.log("Student Classrooms API response:", response);
 
         if (response?.data?.success) {
           setClassrooms(response.data.data);

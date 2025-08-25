@@ -17,22 +17,8 @@ export default function ProtectedRoute({
   const pathname = usePathname();
   const { userRole, isAuthenticated, loading } = useRole();
 
-  console.log("ProtectedRoute ⏳", {
-    loading,
-    isAuthenticated,
-    userRole,
-    pathname,
-  });
-
   useEffect(() => {
     if (loading) return; // ⏳ WAIT until RoleContext finishes loading cookies
-
-    console.log("ProtectedRoute 2 ⏳", {
-      loading,
-      isAuthenticated,
-      userRole,
-      pathname,
-    });
 
     if (!isAuthenticated) {
       // Not logged in, redirect to login

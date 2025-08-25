@@ -97,9 +97,6 @@ const page = () => {
   }, []);
 
   useEffect(() => {
-    console.log("Current formData:", formData);
-    console.log("Current layout:", formData.layout);
-
     localStorage.setItem(
       "cv-builder-data",
       JSON.stringify({ data: formData, step: currentStep })

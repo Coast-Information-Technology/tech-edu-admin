@@ -236,14 +236,11 @@ export default function CreateClassroomAttendancePage() {
         numberOfExpectedParticipants: form.numberOfExpectedParticipants,
       };
 
-      console.log("Creating classroom attendance with payload:", payload);
-
       const response = await postApiRequest(
         "/api/classroom-attendance",
         token,
         payload
       );
-      console.log("Classroom attendance creation response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);

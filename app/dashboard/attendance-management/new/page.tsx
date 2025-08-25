@@ -229,10 +229,7 @@ export default function CreateAttendancePage() {
         numberOfExpectedParticipants: form.numberOfExpectedParticipants,
       };
 
-      console.log("Creating attendance with payload:", payload);
-
       const response = await postApiRequest("/api/attendance", token, payload);
-      console.log("Attendance creation response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);

@@ -82,12 +82,10 @@ export default function CompaniesDashboard() {
 
   // Fetch companies and analytics
   useEffect(() => {
-    console.log("Running fetchData effect");
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       const token = getTokenFromCookies();
-      console.log("Token:", token);
       if (!token) {
         setError("Authentication required. Please log in.");
         setLoading(false);
@@ -99,7 +97,6 @@ export default function CompaniesDashboard() {
           getApiRequest("/api/companies/admin/stats", token),
         ]);
         const companiesArray = companiesRes?.data?.data;
-        console.log("companiesArray:", companiesArray);
         if (!Array.isArray(companiesArray)) {
           setCompanies([]);
           setError("No companies found.");
@@ -112,7 +109,6 @@ export default function CompaniesDashboard() {
             typeof item.isActive === "boolean" &&
             typeof item.isVerified === "boolean"
         );
-        console.log("Filtered companies:", filteredCompanies);
         setCompanies(filteredCompanies);
         setAnalytics(analyticsRes.data);
       } catch (err: any) {
@@ -251,15 +247,7 @@ export default function CompaniesDashboard() {
     }
   };
 
-  useEffect(() => {
-    console.log("Companies State:", JSON.stringify(companies, null, 2)); // Debug: Log state updates
-  }, [companies]);
-
   const processedCompanies = useMemo(() => {
-    console.log("Companies state before filtering:", companies);
-    console.log("Filter Type:", filterType); // Debug: Log filter type
-    console.log("Search Term:", searchTerm); // Debug: Log search term
-
     const filtered = companies.filter((c) => {
       const nameMatch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
       const typeMatch =
@@ -267,7 +255,6 @@ export default function CompaniesDashboard() {
         c.type.toLowerCase() === filterType.toLowerCase();
       return nameMatch && typeMatch;
     });
-    console.log("Filtered companies after search/filter:", filtered);
 
     const sorted = filtered.sort((a, b) => {
       const aVal = a[sortKey];
@@ -297,16 +284,6 @@ export default function CompaniesDashboard() {
       (page - 1) * itemsPerPage,
       page * itemsPerPage
     );
-
-    console.log(
-      "Page:",
-      page,
-      "Items per page:",
-      itemsPerPage,
-      "Total filtered:",
-      filtered.length
-    );
-    console.log("Paginated Companies:", paginated);
 
     return { paginated, totalPages, filteredCount: sorted.length };
   }, [companies, searchTerm, filterType, sortKey, sortDirection, page]);
@@ -465,7 +442,6 @@ export default function CompaniesDashboard() {
           onValueChange={(val) => {
             setPage(1);
             setFilterType(val);
-            console.log("Selected Filter Type:", val); // Debug: Log filter type change
           }}
         >
           <SelectTrigger

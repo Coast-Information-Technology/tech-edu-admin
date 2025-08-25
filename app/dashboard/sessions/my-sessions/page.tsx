@@ -67,7 +67,6 @@ export default function StudentSessionsPage() {
       try {
         const endpoint = "/api/sessions/student/my-sessions";
         const response = await getApiRequest(endpoint, token);
-        console.log("Student Sessions API response:", response);
 
         if (response?.data?.success) {
           setSessions(response.data.data);

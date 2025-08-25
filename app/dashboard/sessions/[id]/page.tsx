@@ -66,7 +66,6 @@ export default function SessionDetailPage() {
           `/api/sessions/${params.id}`,
           token
         );
-        console.log("Session detail API response:", response);
 
         if (response?.data?.success) {
           setSession(response.data.data);

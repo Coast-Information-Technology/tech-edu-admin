@@ -90,7 +90,6 @@ export default function JobDetailPage() {
         if (response.status >= 200 && response.status < 300) {
           // Handle nested data structure: response.data.data contains the actual job
           const jobData = response.data?.data || response.data;
-          console.log("📋 Job data:", jobData);
           setJob(jobData);
         } else {
           setError(response.message || "Failed to fetch job details");

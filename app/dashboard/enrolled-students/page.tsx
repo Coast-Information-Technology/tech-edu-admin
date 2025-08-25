@@ -171,9 +171,6 @@ export default function EnrolledStudentsPage() {
       ]);
       const [sessionsResponse, classroomsResponse] = responses;
 
-      console.log("Sessions API response:", sessionsResponse);
-      console.log("Classrooms API response:", classroomsResponse);
-
       const sessions: Session[] = sessionsResponse?.data?.success
         ? sessionsResponse.data.data
         : [];

@@ -137,7 +137,6 @@ export default function CreateAcademicBookingPage() {
           (product: any) => product.productType === "Academic Support Services"
         );
         setProducts(academicProducts);
-        console.log("Fetched academic products:", academicProducts);
       } else {
         console.error("Failed to fetch products:", response?.data?.message);
       }
@@ -284,24 +283,6 @@ export default function CreateAcademicBookingPage() {
         endAt: new Date(form.endAt).toISOString(),
         attachments: attachmentUrls,
       };
-
-      console.log("Submitting booking data:", bookingData);
-      console.log(
-        "Product ID:",
-        bookingData.productId,
-        "Type:",
-        typeof bookingData.productId,
-        "Length:",
-        bookingData.productId?.length
-      );
-      console.log(
-        "Instructor ID:",
-        bookingData.instructorId,
-        "Type:",
-        typeof bookingData.instructorId,
-        "Length:",
-        bookingData.instructorId?.length
-      );
 
       const response = await postApiRequest(
         "/api/bookings",

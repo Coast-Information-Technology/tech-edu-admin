@@ -18,9 +18,6 @@ export async function PUT(
     const { id } = params;
     const body = await request.json();
 
-    // TODO: Implement actual database update for product metadata
-    console.log("Updating product metadata for", id, "with data:", body);
-
     return NextResponse.json({
       success: true,
       message: "Product metadata updated successfully",
@@ -39,4 +36,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}

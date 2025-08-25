@@ -115,7 +115,6 @@ export default function CreateTrainingBookingPage() {
         const instructorData =
           response.data.data?.users || response.data.users || [];
         setInstructors(instructorData);
-        console.log("Fetched instructors:", instructorData);
       } else {
         console.error("Failed to fetch instructors:", response?.data?.message);
       }
@@ -138,7 +137,6 @@ export default function CreateTrainingBookingPage() {
           (product: any) => product.productType === "Training & Certification"
         );
         setProducts(trainingProducts);
-        console.log("Fetched training products:", trainingProducts);
       } else {
         console.error("Failed to fetch products:", response?.data?.message);
       }
@@ -264,7 +262,6 @@ export default function CreateTrainingBookingPage() {
         setUploading(true);
         try {
           attachmentUrls = await uploadFilesToServer(uploadedFiles);
-          console.log("Uploaded files:", attachmentUrls);
         } catch (error) {
           console.error("File upload error:", error);
           toast.error("Failed to upload some files. Please try again.");
@@ -280,24 +277,6 @@ export default function CreateTrainingBookingPage() {
         endAt: new Date(form.endAt).toISOString(),
         attachments: attachmentUrls,
       };
-
-      console.log("Submitting booking data:", bookingData);
-      console.log(
-        "Product ID:",
-        bookingData.productId,
-        "Type:",
-        typeof bookingData.productId,
-        "Length:",
-        bookingData.productId?.length
-      );
-      console.log(
-        "Instructor ID:",
-        bookingData.instructorId,
-        "Type:",
-        typeof bookingData.instructorId,
-        "Length:",
-        bookingData.instructorId?.length
-      );
 
       const response = await postApiRequest(
         "/api/bookings",

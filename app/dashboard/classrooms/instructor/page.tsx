@@ -69,7 +69,6 @@ export default function InstructorClassroomsPage() {
       try {
         const endpoint = "/api/classrooms/instructor/my-instructor-classroom";
         const response = await getApiRequest(endpoint, token);
-        console.log("Instructor Classrooms API response:", response);
 
         if (response?.data?.success) {
           setClassrooms(response.data.data);

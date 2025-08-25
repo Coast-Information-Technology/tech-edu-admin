@@ -86,7 +86,6 @@ export default function CompleteClassroomPage() {
           `/api/classrooms/${params.id}`,
           token
         );
-        console.log("Classroom API response:", response);
 
         if (response?.data?.success) {
           const classroomData = response.data.data;
@@ -176,8 +175,6 @@ export default function CompleteClassroomPage() {
         completionNotes: form.completionNotes,
         attendance: form.attendance,
       };
-
-      console.log("Completing classroom with payload:", payload);
 
       const response = await updateApiRequest(
         `/api/classrooms/${params.id}/complete-session`,

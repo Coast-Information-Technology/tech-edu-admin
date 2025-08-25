@@ -59,7 +59,6 @@ export default function EditAttendancePage() {
         `/api/attendance/${params.id}`,
         token
       );
-      console.log("Attendance API response:", response);
 
       if (response?.data?.success) {
         const attendanceData = response.data.data;
@@ -135,14 +134,11 @@ export default function EditAttendancePage() {
         remarks: form.remarks,
       };
 
-      console.log("Updating attendance with payload:", payload);
-
       const response = await updateApiRequest(
         `/api/attendance/${params.id}`,
         token,
         payload
       );
-      console.log("Attendance update response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);

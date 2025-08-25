@@ -85,7 +85,6 @@ export default function EditClassroomPage() {
           `/api/classrooms/${params.id}`,
           token
         );
-        console.log("Classroom API response:", response);
 
         if (response?.data?.success) {
           const classroomData = response.data.data;
@@ -187,8 +186,6 @@ export default function EditClassroomPage() {
       const cleanPayload = Object.fromEntries(
         Object.entries(payload).filter(([_, value]) => value !== undefined)
       ) as any;
-
-      console.log("Updating classroom with payload:", cleanPayload);
 
       const response = await updateApiRequest(
         `/api/classrooms/${params.id}`,

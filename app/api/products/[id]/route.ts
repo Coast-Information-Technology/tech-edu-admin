@@ -19,11 +19,15 @@ export async function GET(
 
     // TODO: Implement actual database query to fetch product by ID for admin
     // This should include admin-specific fields like createdBy, etc.
-    
-    return NextResponse.json({
-      success: false,
-      message: "Admin product by ID endpoint not implemented yet. Use /api/products/public/[id] for public access.",
-    }, { status: 501 });
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Admin product by ID endpoint not implemented yet. Use /api/products/public/[id] for public access.",
+      },
+      { status: 501 }
+    );
   } catch (error: any) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -49,9 +53,6 @@ export async function PUT(
 
     const { id } = params;
     const body = await request.json();
-
-    // TODO: Implement actual database update
-    console.log("Updating product", id, "with data:", body);
 
     return NextResponse.json({
       success: true,
@@ -88,9 +89,6 @@ export async function DELETE(
     }
 
     const { id } = params;
-
-    // TODO: Implement actual database deletion
-    console.log("Deleting product:", id);
 
     return NextResponse.json({
       success: true,

@@ -183,8 +183,6 @@ export default function SingleJobPage() {
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically save to your backend
-    console.log("Updated job data:", editForm);
     setIsEditOpen(false);
     // You could add a toast notification here
   };

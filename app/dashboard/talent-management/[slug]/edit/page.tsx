@@ -238,8 +238,6 @@ export default function EditTalentPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the updated data to your API
-    console.log("Updated talent data:", formData);
     // Redirect back to the talent profile page
     router.push(`/dashboard/talent-management/${slug}`);
   };

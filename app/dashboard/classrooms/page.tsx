@@ -87,7 +87,6 @@ export default function ClassroomsPage() {
         }
 
         const response = await getApiRequest(endpoint, token);
-        console.log("Classrooms API response:", response);
 
         if (response?.data?.success) {
           setClassrooms(response.data.data);

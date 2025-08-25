@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        return NextResponse.json(
+          { success: false, message: `Unhandled event type: ${event.type}` },
+          { status: 400 }
+        );
     }
 
     return NextResponse.json({ received: true });
@@ -48,17 +51,14 @@ export async function POST(req: NextRequest) {
 }
 
 async function handlePaymentSuccess(paymentIntent: any) {
-  console.log("Payment succeeded:", paymentIntent.id);
   // Payment success handling - could send confirmation email, update order status, etc.
   // Booking creation has been removed from admin dashboard
 }
 
 async function handlePaymentFailure(paymentIntent: any) {
-  console.log("Payment failed:", paymentIntent.id);
   // Handle payment failure - could send notification to user, etc.
 }
 
 async function handleCheckoutCompleted(session: any) {
-  console.log("Checkout completed:", session.id);
   // Additional handling for checkout completion if needed
 }

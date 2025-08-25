@@ -111,17 +111,9 @@ export default function EditJobPage() {
           meta?: any;
         }>(`/api/ats/job-posts/${jobId}`, token);
 
-        console.log("📋 Edit Job Response:", {
-          status: response.status,
-          message: response.message,
-          data: response.data,
-          fullResponse: response,
-        });
-
         if (response.status >= 200 && response.status < 300) {
           // Handle nested data structure: response.data.data contains the actual job
           const job = response.data?.data || response.data;
-          console.log("📋 Job data for form:", job);
 
           setFormData({
             title: job.title || "",

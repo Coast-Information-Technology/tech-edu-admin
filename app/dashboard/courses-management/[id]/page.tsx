@@ -272,7 +272,6 @@ export default function AdminCourseDetailPage({
   const handleSave = () => {
     setCourse(editData);
     setIsEditing(false);
-    console.log("Saving course changes:", editData);
   };
 
   const handleCancel = () => {

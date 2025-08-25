@@ -75,8 +75,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("Creating product with data:", body);
-
     return NextResponse.json({
       success: true,
       message: "Product created successfully",

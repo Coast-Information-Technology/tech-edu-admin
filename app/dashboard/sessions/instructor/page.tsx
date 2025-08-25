@@ -69,7 +69,6 @@ export default function InstructorSessionsPage() {
       try {
         const endpoint = "/api/sessions/instructor/my-sessions";
         const response = await getApiRequest(endpoint, token);
-        console.log("Instructor Sessions API response:", response);
 
         if (response?.data?.success) {
           setSessions(response.data.data);

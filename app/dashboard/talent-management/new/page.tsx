@@ -241,8 +241,6 @@ export default function AddTalentPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the data to your API
-    console.log("Talent data:", formData);
     // For now, just redirect back to the talent management page
     router.push("/dashboard/talent-management");
   };

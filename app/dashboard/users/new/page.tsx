@@ -62,15 +62,6 @@ export default function NewUserPage() {
     isLoading: tokenLoading,
   } = useTokenManagement();
 
-  // Debug: Check all cookies on component mount
-  React.useEffect(() => {
-    console.log("=== COOKIE DEBUG ===");
-    console.log("All cookies:", document.cookie);
-    console.log("Token from cookies:", getTokenFromCookies());
-    console.log("Refresh token from cookies:", getRefreshTokenFromCookies());
-    console.log("===================");
-  }, []);
-
   const [activeTab, setActiveTab] = useState("instructor");
   const [loading, setLoading] = useState(false);
   const [newSpecialization, setNewSpecialization] = useState("");
@@ -305,18 +296,11 @@ export default function NewUserPage() {
       return;
     }
 
-    console.log("Token loading state:", tokenLoading);
-    console.log("Current access token:", accessToken);
-
     let token = await getValidToken();
-    console.log("Valid token result:", token ? "Token found" : "No token");
 
     // Fallback: try to get token directly from cookies
     if (!token) {
-      console.log("Trying fallback token from cookies...");
-      console.log("All cookies:", document.cookie);
       token = getTokenFromCookies();
-      console.log("Fallback token result:", token ? "Token found" : "No token");
     }
 
     if (!token) {
@@ -380,24 +364,11 @@ export default function NewUserPage() {
       return;
     }
 
-    console.log("Customer Care - Token loading state:", tokenLoading);
-    console.log("Customer Care - Current access token:", accessToken);
-
     let token = await getValidToken();
-    console.log(
-      "Customer Care - Valid token result:",
-      token ? "Token found" : "No token"
-    );
 
     // Fallback: try to get token directly from cookies
     if (!token) {
-      console.log("Customer Care - Trying fallback token from cookies...");
-      console.log("Customer Care - All cookies:", document.cookie);
       token = getTokenFromCookies();
-      console.log(
-        "Customer Care - Fallback token result:",
-        token ? "Token found" : "No token"
-      );
     }
 
     if (!token) {

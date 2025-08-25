@@ -106,7 +106,6 @@ export default function ViewAttendancePage() {
         `/api/attendance/${params.id}`,
         token
       );
-      console.log("Attendance API response:", response);
 
       if (response?.data?.success) {
         setAttendance(response.data.data);
@@ -136,7 +135,6 @@ export default function ViewAttendancePage() {
         `/api/attendance/${params.id}`,
         token
       );
-      console.log("Delete attendance response:", response);
 
       if (response?.data?.success) {
         router.push("/dashboard/attendance-management");

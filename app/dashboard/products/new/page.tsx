@@ -431,15 +431,11 @@ export default function CreateProductPage() {
           (typeof value === "number" && value <= 0);
       }
 
-      // Debug: Log each field check
-      console.log(`Field ${field} (${label}):`, value, "Missing:", isMissing);
-
       return isMissing;
     });
 
     if (missingFields.length > 0) {
       const missingLabels = missingFields.map((f) => f.label).join(", ");
-      console.log("Missing fields:", missingFields);
       setError(`Please fill all required fields: ${missingLabels}`);
       return;
     }
@@ -501,11 +497,6 @@ export default function CreateProductPage() {
         enabled: form.enabled !== undefined ? form.enabled : true,
         instructorId: form.instructorId || null, // Add instructor ID
       };
-
-      // Debug: Log the payload being sent
-      console.log("Submitting payload:", payload);
-      console.log("Selected category:", selectedCategory);
-      console.log("Selected subcategory:", selectedSubcategory);
 
       const response = await postApiRequest("/api/products", token, payload);
 

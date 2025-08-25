@@ -65,7 +65,6 @@ export default function CancelSessionPage() {
           `/api/sessions/${params.id}`,
           token
         );
-        console.log("Session detail API response:", response);
 
         if (response?.data?.success) {
           const sessionData = response.data.data;
@@ -112,14 +111,11 @@ export default function CancelSessionPage() {
         cancellationReason: cancellationReason.trim(),
       };
 
-      console.log("Cancelling session with payload:", payload);
-
       const response = await updateApiRequest(
         `/api/sessions/${params.id as string}/cancel`,
         token,
         payload
       );
-      console.log("Session cancellation response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);

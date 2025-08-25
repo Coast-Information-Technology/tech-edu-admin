@@ -72,7 +72,6 @@ export default function ClassroomDetailPage() {
           `/api/classrooms/${params.id}`,
           token
         );
-        console.log("Classroom API response:", response);
 
         if (response?.data?.success) {
           setClassroom(response.data.data);

@@ -230,10 +230,7 @@ export default function CreateSessionPage() {
         internalNotes: form.internalNotes,
       };
 
-      console.log("Creating session with payload:", payload);
-
       const response = await postApiRequest("/api/sessions", token, payload);
-      console.log("Session creation response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);

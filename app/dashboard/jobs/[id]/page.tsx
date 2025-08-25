@@ -291,7 +291,6 @@ export default function SingleJobPage({
 
   const handleApply = () => {
     setIsApplying(true);
-    console.log("Applying to job:", job.id, applicationData);
   };
 
   const handleInputChange = (field: string, value: any) => {

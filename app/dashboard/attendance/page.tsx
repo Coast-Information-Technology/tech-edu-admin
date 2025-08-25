@@ -147,7 +147,6 @@ export default function InstructorAttendancePage() {
       // Instructor-specific endpoint - they only see their own sessions
       const endpoint = `/api/attendance?${params}`;
       const response = await getApiRequest(endpoint, token);
-      console.log("Instructor Attendance API response:", response);
 
       if (response?.data?.success) {
         setAttendances(response.data.data);

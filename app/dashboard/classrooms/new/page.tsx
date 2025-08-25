@@ -179,8 +179,6 @@ export default function CreateClassroomPage() {
         Object.entries(payload).filter(([_, value]) => value !== undefined)
       ) as any;
 
-      console.log("Creating classroom with payload:", cleanPayload);
-
       const response = await postApiRequest(
         "/api/classrooms",
         token,

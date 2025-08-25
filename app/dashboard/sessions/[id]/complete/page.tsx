@@ -84,7 +84,6 @@ export default function CompleteSessionPage() {
           `/api/sessions/${sessionId}`,
           token
         );
-        console.log("Session API response:", response);
 
         if (response?.data?.success) {
           const sessionData = response.data.data;
@@ -197,14 +196,11 @@ export default function CompleteSessionPage() {
         attendance: form.attendance,
       };
 
-      console.log("Completing session with payload:", payload);
-
       const response = await updateApiRequest(
         `/api/sessions/${sessionId}/complete`,
         token,
         payload
       );
-      console.log("Session completion response:", response);
 
       if (response?.data?.success) {
         setSuccess(true);
