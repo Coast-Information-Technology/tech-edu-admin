@@ -50,8 +50,8 @@ import {
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { JobFormData } from "@/types/jobs";
-import { postApiRequest } from "@/lib/apiFetch";
-import { getTokenFromCookies } from "@/lib/cookies";
+import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
+import { getCookie, getTokenFromCookies } from "@/lib/cookies";
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -59,6 +59,8 @@ export default function NewJobPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
   const [formData, setFormData] = useState<JobFormData>({
     title: "",
     description: "",
@@ -68,6 +70,7 @@ export default function NewJobPage() {
     tags: [],
     salaryRange: "",
     company: "",
+    companyId: "",
     department: "",
     contactEmail: "",
     contactPhone: "",
@@ -115,13 +118,63 @@ export default function NewJobPage() {
     }
   }, []);
 
+  // Fetch companies from API
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const token = getCookie("token");
+      setCompaniesLoading(true);
+      try {
+        const response = await getApiRequest("api/companies", token as string);
+        const result = response.data;
+
+        if (result.success && result.data?.companies) {
+          // Filter out companies without valid names or IDs
+          const validCompanies = result.data.companies.filter(
+            (company: any) =>
+              company._id && company.name && company.name.trim() !== ""
+          );
+          setCompanies(validCompanies);
+        } else {
+          console.error("Failed to fetch companies:", result.message);
+          setCompanies([]);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+        setCompanies([]);
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
   // Save draft to cookies whenever form data changes
   useEffect(() => {
     localStorage.setItem("jobDraft", JSON.stringify(formData));
   }, [formData]);
 
   const handleInputChange = (field: keyof JobFormData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "company") {
+      // Skip if value is empty or invalid
+      if (!value || value === "loading" || value === "no-companies") {
+        return;
+      }
+
+      // Find the selected company and set both company name and ID
+      const selectedCompany = companies.find(
+        (comp) => comp.name === value || comp._id === value
+      );
+      if (selectedCompany) {
+        setFormData((prev) => ({
+          ...prev,
+          company: selectedCompany.name || selectedCompany._id,
+          companyId: selectedCompany._id,
+        }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const addSkill = () => {
@@ -175,16 +228,30 @@ export default function NewJobPage() {
     setError(null);
 
     try {
-      const token = getTokenFromCookies();
+      const token = getCookie("token");
       if (!token) {
         setError("Authentication required. Please log in.");
         return;
       }
 
+      // Validate required fields
+      if (!formData.companyId) {
+        setError("Please select a company");
+        toast.error("Please select a company");
+        setLoading(false);
+        return;
+      }
+
+      // Prepare the data for API submission
+      const jobData = {
+        ...formData,
+        companyId: formData.companyId, // Ensure companyId is included
+      };
+
       const response = await postApiRequest(
         "/api/ats/job-posts",
         token,
-        formData
+        jobData
       );
 
       if (response?.data?.success) {
@@ -199,6 +266,7 @@ export default function NewJobPage() {
         toast.error("Failed to post job");
       }
     } catch (error: any) {
+      console.error("Job submission error:", error); // Debug log
       setError(error.message || "An error occurred while posting the job");
       toast.error("An error occurred while posting the job");
     } finally {
@@ -262,6 +330,7 @@ export default function NewJobPage() {
         tags: [],
         salaryRange: "",
         company: "",
+        companyId: "",
         department: "",
         contactEmail: "",
         contactPhone: "",
@@ -277,7 +346,7 @@ export default function NewJobPage() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(formData.title && formData.location);
+        return !!(formData.title && formData.location && formData.companyId);
       case 2:
         return !!(formData.description && formData.requiredSkills.length > 0);
       case 3:
@@ -419,17 +488,65 @@ export default function NewJobPage() {
                       htmlFor="company"
                       className="text-sm font-semibold text-slate-700"
                     >
-                      Company
+                      Company *
                     </Label>
-                    <Input
-                      className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      id="company"
-                      placeholder="e.g., TechCorp Solutions"
+                    <Select
                       value={formData.company}
-                      onChange={(e) =>
-                        handleInputChange("company", e.target.value)
+                      onValueChange={(value) =>
+                        handleInputChange("company", value)
                       }
-                    />
+                    >
+                      <SelectTrigger className="rounded-2xl border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+                        <SelectValue placeholder="Select a company" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white rounded-2xl">
+                        {companiesLoading ? (
+                          <SelectItem value="loading" disabled>
+                            Loading companies...
+                          </SelectItem>
+                        ) : companies.length === 0 ? (
+                          <SelectItem value="no-companies" disabled>
+                            No companies found.
+                          </SelectItem>
+                        ) : (
+                          companies.map((company) => (
+                            <SelectItem
+                              key={company._id}
+                              value={company.name || company._id}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {company.name || "Unnamed Company"}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {company.industry || "Unknown Industry"} •{" "}
+                                  {company.type || "Unknown Type"}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {formData.company && formData.companyId && (
+                      <div className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Company selected: {formData.company} (ID:{" "}
+                        {formData.companyId})
+                      </div>
+                    )}
+                    {formData.company && !formData.companyId && (
+                      <div className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Company ID not found. Please select again.
+                      </div>
+                    )}
+                    {!formData.company && formData.companyId && (
+                      <div className="text-xs text-orange-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Company name missing. Please select again.
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
