@@ -32,9 +32,25 @@ import Link from "next/link";
 
 interface Booking {
   _id: string;
-  productId: string;
-  productType: "AcademicService" | "TrainingProgram";
-  instructorId: string;
+  productId?: {
+    _id: string;
+    service?: string;
+    productType?: string;
+    price?: number;
+  };
+  productType:
+    | "Training & Certification"
+    | "Academic Support Services"
+    | "Career Development & Mentorship"
+    | "Institutional & Team Services"
+    | "AI-Powered or Automation Services"
+    | "Recruitment & Job Matching"
+    | "Marketing, Consultation & Free Services";
+  instructorId?: {
+    _id: string;
+    fullName?: string;
+    email?: string;
+  };
   bookingPurpose: string;
   scheduleAt: string;
   endAt: string;
@@ -45,22 +61,35 @@ interface Booking {
   isSession: boolean;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   paymentStatus: "unpaid" | "paid" | "refunded";
+  schedulingStatus?: string;
   meetingLink?: string;
   userNotes?: string;
   internalNotes?: string;
   attachments?: string[];
-  participantType: "individual" | "team";
+  cancellation?: {
+    isCancelled: boolean;
+    cancelledBy?: string;
+    reason?: string;
+    cancelledAt?: string;
+  };
+  participantType:
+    | "individual"
+    | "team"
+    | "institution"
+    | "recruiter"
+    | "visitor";
   platformRole: string;
   email: string;
   fullName: string;
+  createdBy?: {
+    _id: string;
+    fullName?: string;
+    email?: string;
+  };
+  participants?: any[];
+  actualDaysAndTime?: any[];
   createdAt: string;
   updatedAt: string;
-  cancellation?: {
-    isCancelled: boolean;
-    cancelledBy: string;
-    reason: string;
-    cancelledAt: string;
-  };
 }
 
 interface Instructor {
@@ -112,11 +141,27 @@ export default function BookingDetailPage({
         setBooking(bookingData);
 
         // Fetch instructor and product details
-        if (bookingData.instructorId) {
+        if (
+          bookingData.instructorId &&
+          typeof bookingData.instructorId === "string"
+        ) {
           fetchInstructor(bookingData.instructorId, token);
+        } else if (
+          bookingData.instructorId &&
+          typeof bookingData.instructorId === "object"
+        ) {
+          setInstructor(bookingData.instructorId);
         }
-        if (bookingData.productId) {
+        if (
+          bookingData.productId &&
+          typeof bookingData.productId === "string"
+        ) {
           fetchProduct(bookingData.productId, token);
+        } else if (
+          bookingData.productId &&
+          typeof bookingData.productId === "object"
+        ) {
+          setProduct(bookingData.productId);
         }
       } else {
         toast.error(response?.data?.message || "Failed to fetch booking");
@@ -203,6 +248,32 @@ export default function BookingDetailPage({
 
     const config =
       statusConfig[status as keyof typeof statusConfig] || statusConfig.unpaid;
+    return <Badge className={config.color}>{config.label}</Badge>;
+  };
+
+  const getSchedulingStatusBadge = (status: string) => {
+    if (!status) return null;
+
+    const statusConfig: { [key: string]: { color: string; label: string } } = {
+      "eligible-to-schedule": {
+        color: "bg-green-100 text-green-800",
+        label: "Eligible to Schedule",
+      },
+      scheduled: { color: "bg-blue-100 text-blue-800", label: "Scheduled" },
+      "not-eligible": {
+        color: "bg-red-100 text-red-800",
+        label: "Not Eligible",
+      },
+      "pending-approval": {
+        color: "bg-yellow-100 text-yellow-800",
+        label: "Pending Approval",
+      },
+    };
+
+    const config = statusConfig[status] || {
+      color: "bg-gray-100 text-gray-800",
+      label: status,
+    };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
@@ -409,7 +480,7 @@ export default function BookingDetailPage({
             <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
-                  {booking.productType === "AcademicService" ? (
+                  {booking.productType === "Academic Support Services" ? (
                     <BookOpen className="w-5 h-5" />
                   ) : (
                     <GraduationCap className="w-5 h-5" />
@@ -434,6 +505,17 @@ export default function BookingDetailPage({
                     </div>
                   </div>
                 </div>
+
+                {booking.schedulingStatus && (
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">
+                      Scheduling Status
+                    </Label>
+                    <div className="mt-1">
+                      {getSchedulingStatusBadge(booking.schedulingStatus)}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <Label className="text-sm font-semibold text-slate-700">
@@ -523,6 +605,34 @@ export default function BookingDetailPage({
                     </Label>
                   </div>
                 </div>
+
+                {booking.attachments && booking.attachments.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">
+                      Attachments
+                    </Label>
+                    <div className="mt-1">
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <span>
+                          📎 {booking.attachments.length} attachment
+                          {booking.attachments.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-2">
+                        {booking.attachments.map((attachment, index) => (
+                          <div
+                            key={index}
+                            className="text-sm text-slate-600 bg-slate-50 p-2 rounded border"
+                          >
+                            {attachment.includes("blob:")
+                              ? "File uploaded"
+                              : attachment}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -551,6 +661,113 @@ export default function BookingDetailPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Participants Information */}
+            {booking.participants && booking.participants.length > 0 && (
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-slate-900">
+                    <Users className="w-5 h-5" />
+                    Participants
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {booking.participants.map(
+                      (participant: any, index: number) => (
+                        <div
+                          key={index}
+                          className="bg-slate-50 p-3 rounded-lg border"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-sm font-semibold text-slate-700">
+                                Name
+                              </Label>
+                              <p className="mt-1 text-slate-900">
+                                {participant.fullName || "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-semibold text-slate-700">
+                                Email
+                              </Label>
+                              <p className="mt-1 text-slate-900">
+                                {participant.email || "N/A"}
+                              </p>
+                            </div>
+                            {participant.platformRole && (
+                              <div>
+                                <Label className="text-sm font-semibold text-slate-700">
+                                  Platform Role
+                                </Label>
+                                <p className="mt-1 text-slate-900 capitalize">
+                                  {participant.platformRole}
+                                </p>
+                              </div>
+                            )}
+                            {participant.participantType && (
+                              <div>
+                                <Label className="text-sm font-semibold text-slate-700">
+                                  Type
+                                </Label>
+                                <p className="mt-1 text-slate-900 capitalize">
+                                  {participant.participantType}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Actual Days and Time */}
+            {booking.actualDaysAndTime &&
+              booking.actualDaysAndTime.length > 0 && (
+                <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-slate-900">
+                      <Calendar className="w-5 h-5" />
+                      Scheduled Days & Times
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      {booking.actualDaysAndTime.map(
+                        (schedule: any, index: number) => (
+                          <div
+                            key={index}
+                            className="bg-slate-50 p-3 rounded-lg border"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm font-semibold text-slate-700">
+                                  Day
+                                </Label>
+                                <p className="mt-1 text-slate-900">
+                                  {schedule.day || "N/A"}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-semibold text-slate-700">
+                                  Time
+                                </Label>
+                                <p className="mt-1 text-slate-900">
+                                  {schedule.time || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Notes */}
             {(booking.userNotes || booking.internalNotes) && (
@@ -601,7 +818,9 @@ export default function BookingDetailPage({
                       Cancelled At
                     </Label>
                     <p className="mt-1 text-slate-900">
-                      {formatDateTime(booking.cancellation.cancelledAt)}
+                      {booking.cancellation.cancelledAt
+                        ? formatDateTime(booking.cancellation.cancelledAt)
+                        : "N/A"}
                     </p>
                   </div>
                   <div>
@@ -703,6 +922,36 @@ export default function BookingDetailPage({
                     <ExternalLink className="w-4 h-4" />
                     Join Meeting
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Created By Information */}
+            {booking.createdBy && (
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-slate-900">
+                    <User className="w-5 h-5" />
+                    Created By
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">
+                      Name
+                    </Label>
+                    <p className="mt-1 text-slate-900">
+                      {booking.createdBy.fullName || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">
+                      Email
+                    </Label>
+                    <p className="mt-1 text-slate-900">
+                      {booking.createdBy.email || "N/A"}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}

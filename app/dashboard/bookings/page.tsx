@@ -34,18 +34,11 @@ import { toast } from "react-toastify";
 
 interface Booking {
   _id: string;
-  productId: {
+  productId?: {
     _id: string;
-    service: string;
-    productType:
-      | "Training & Certification"
-      | "Academic Support Services"
-      | "Career Development & Mentorship"
-      | "Institutional & Team Services"
-      | "AI-Powered or Automation Services"
-      | "Recruitment & Job Matching"
-      | "Marketing, Consultation & Free Services";
-    price: number;
+    service?: string;
+    productType?: string;
+    price?: number;
   };
   productType:
     | "Training & Certification"
@@ -55,10 +48,10 @@ interface Booking {
     | "AI-Powered or Automation Services"
     | "Recruitment & Job Matching"
     | "Marketing, Consultation & Free Services";
-  instructorId: {
+  instructorId?: {
     _id: string;
-    fullName: string;
-    email: string;
+    fullName?: string;
+    email?: string;
   };
   bookingPurpose: string;
   scheduleAt: string;
@@ -70,10 +63,14 @@ interface Booking {
   isSession: boolean;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   paymentStatus: "unpaid" | "paid" | "refunded";
+  schedulingStatus?: string;
   meetingLink?: string;
   userNotes?: string;
   internalNotes?: string;
   attachments?: string[];
+  cancellation?: {
+    isCancelled: boolean;
+  };
   participantType:
     | "individual"
     | "team"
@@ -83,11 +80,13 @@ interface Booking {
   platformRole: string;
   email: string;
   fullName: string;
-  createdBy: {
+  createdBy?: {
     _id: string;
-    fullName: string;
-    email: string;
+    fullName?: string;
+    email?: string;
   };
+  participants?: any[];
+  actualDaysAndTime?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -98,6 +97,8 @@ export default function AdminBookingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [schedulingStatusFilter, setSchedulingStatusFilter] =
+    useState<string>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -168,8 +169,14 @@ export default function AdminBookingsPage() {
       statusFilter === "all" || booking.status === statusFilter;
     const matchesType =
       typeFilter === "all" || booking.productType === typeFilter;
+    const matchesSchedulingStatus =
+      schedulingStatusFilter === "all" ||
+      (booking.schedulingStatus &&
+        booking.schedulingStatus === schedulingStatusFilter);
 
-    return matchesSearch && matchesStatus && matchesType;
+    return (
+      matchesSearch && matchesStatus && matchesType && matchesSchedulingStatus
+    );
   });
 
   const getStatusBadge = (status: string) => {
@@ -194,6 +201,32 @@ export default function AdminBookingsPage() {
 
     const config =
       statusConfig[status as keyof typeof statusConfig] || statusConfig.unpaid;
+    return <Badge className={config.color}>{config.label}</Badge>;
+  };
+
+  const getSchedulingStatusBadge = (status: string) => {
+    if (!status) return null;
+
+    const statusConfig: { [key: string]: { color: string; label: string } } = {
+      "eligible-to-schedule": {
+        color: "bg-green-100 text-green-800",
+        label: "Eligible",
+      },
+      scheduled: { color: "bg-blue-100 text-blue-800", label: "Scheduled" },
+      "not-eligible": {
+        color: "bg-red-100 text-red-800",
+        label: "Not Eligible",
+      },
+      "pending-approval": {
+        color: "bg-yellow-100 text-yellow-800",
+        label: "Pending Approval",
+      },
+    };
+
+    const config = statusConfig[status] || {
+      color: "bg-gray-100 text-gray-800",
+      label: status,
+    };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
@@ -265,7 +298,7 @@ export default function AdminBookingsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -335,12 +368,34 @@ export default function AdminBookingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    Eligible to Schedule
+                  </p>
+                  <p className="text-2xl font-bold text-emerald-600">
+                    {
+                      bookings.filter(
+                        (b) => b.schedulingStatus === "eligible-to-schedule"
+                      ).length
+                    }
+                  </p>
+                </div>
+                <div className="p-3 bg-emerald-100 rounded-full">
+                  <Calendar className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
         <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <Input
@@ -390,6 +445,26 @@ export default function AdminBookingsPage() {
                   </SelectItem>
                   <SelectItem value="Marketing, Consultation & Free Services">
                     Marketing, Consultation & Free Services
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={schedulingStatusFilter}
+                onValueChange={setSchedulingStatusFilter}
+              >
+                <SelectTrigger className="bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <SelectValue placeholder="Filter by scheduling status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Scheduling Status</SelectItem>
+                  <SelectItem value="eligible-to-schedule">
+                    Eligible to Schedule
+                  </SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="not-eligible">Not Eligible</SelectItem>
+                  <SelectItem value="pending-approval">
+                    Pending Approval
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -448,7 +523,7 @@ export default function AdminBookingsPage() {
                           {booking.fullName}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge
                           variant={
                             booking.productType === "Academic Support Services"
@@ -464,6 +539,13 @@ export default function AdminBookingsPage() {
                         </Badge>
                         {getStatusBadge(booking.status)}
                         {getPaymentStatusBadge(booking.paymentStatus)}
+                        {booking.schedulingStatus &&
+                          getSchedulingStatusBadge(booking.schedulingStatus)}
+                        {booking.cancellation?.isCancelled && (
+                          <Badge className="bg-red-100 text-red-800">
+                            Cancelled
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -488,10 +570,37 @@ export default function AdminBookingsPage() {
                     </span>
                   </div>
 
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <MapPin className="w-4 h-4" />
+                    <span>
+                      {booking.isClassroom ? "Classroom" : "Online"} •{" "}
+                      {booking.isSession ? "Session" : "No Session"}
+                    </span>
+                  </div>
+
+                  {booking.instructorId && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <User className="w-4 h-4" />
+                      <span className="truncate">
+                        Instructor:{" "}
+                        {booking.instructorId.fullName || "Assigned"}
+                      </span>
+                    </div>
+                  )}
+
                   {booking.meetingLink && (
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Video className="w-4 h-4" />
                       <span className="truncate">Meeting link available</span>
+                    </div>
+                  )}
+
+                  {booking.attachments && booking.attachments.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <span className="text-blue-600">
+                        📎 {booking.attachments.length} attachment
+                        {booking.attachments.length !== 1 ? "s" : ""}
+                      </span>
                     </div>
                   )}
 

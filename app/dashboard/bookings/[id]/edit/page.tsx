@@ -35,9 +35,25 @@ import { toast } from "react-toastify";
 
 interface Booking {
   _id: string;
-  productId: string;
-  productType: "AcademicService" | "TrainingProgram";
-  instructorId: string;
+  productId?: {
+    _id: string;
+    service?: string;
+    productType?: string;
+    price?: number;
+  };
+  productType:
+    | "Training & Certification"
+    | "Academic Support Services"
+    | "Career Development & Mentorship"
+    | "Institutional & Team Services"
+    | "AI-Powered or Automation Services"
+    | "Recruitment & Job Matching"
+    | "Marketing, Consultation & Free Services";
+  instructorId?: {
+    _id: string;
+    fullName?: string;
+    email?: string;
+  };
   bookingPurpose: string;
   scheduleAt: string;
   endAt: string;
@@ -48,14 +64,33 @@ interface Booking {
   isSession: boolean;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   paymentStatus: "unpaid" | "paid" | "refunded";
+  schedulingStatus?: string;
   meetingLink?: string;
   userNotes?: string;
   internalNotes?: string;
   attachments?: string[];
-  participantType: "individual" | "team";
+  cancellation?: {
+    isCancelled: boolean;
+    cancelledBy?: string;
+    reason?: string;
+    cancelledAt?: string;
+  };
+  participantType:
+    | "individual"
+    | "team"
+    | "institution"
+    | "recruiter"
+    | "visitor";
   platformRole: string;
   email: string;
   fullName: string;
+  createdBy?: {
+    _id: string;
+    fullName?: string;
+    email?: string;
+  };
+  participants?: any[];
+  actualDaysAndTime?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -99,6 +134,11 @@ export default function EditBookingPage({
     numberOfExpectedParticipants: 1,
     minutesPerSession: 60,
     durationInMinutes: 60,
+    schedulingStatus: "",
+    participantType: "individual" as const,
+    platformRole: "",
+    isClassroom: false,
+    isSession: false,
   });
 
   useEffect(() => {
@@ -136,6 +176,11 @@ export default function EditBookingPage({
             bookingData.numberOfExpectedParticipants,
           minutesPerSession: bookingData.minutesPerSession,
           durationInMinutes: bookingData.durationInMinutes,
+          schedulingStatus: bookingData.schedulingStatus || "",
+          participantType: bookingData.participantType || "individual",
+          platformRole: bookingData.platformRole || "",
+          isClassroom: bookingData.isClassroom || false,
+          isSession: bookingData.isSession || false,
         });
       } else {
         toast.error(response?.data?.message || "Failed to fetch booking");
@@ -233,6 +278,11 @@ export default function EditBookingPage({
         numberOfExpectedParticipants: form.numberOfExpectedParticipants,
         minutesPerSession: form.minutesPerSession,
         durationInMinutes: form.durationInMinutes,
+        schedulingStatus: form.schedulingStatus,
+        participantType: form.participantType,
+        platformRole: form.platformRole,
+        isClassroom: form.isClassroom,
+        isSession: form.isSession,
       };
 
       const response = await putApiRequest(
@@ -446,6 +496,121 @@ export default function EditBookingPage({
                   placeholder="https://meet.google.com/abc-defg-hij"
                   className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional Booking Properties */}
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <User className="w-5 h-5" />
+                Additional Booking Properties
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label
+                    htmlFor="schedulingStatus"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Scheduling Status
+                  </Label>
+                  <Select
+                    value={form.schedulingStatus}
+                    onValueChange={(value) =>
+                      handleChange("schedulingStatus", value)
+                    }
+                  >
+                    <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <SelectValue placeholder="Select scheduling status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="eligible-to-schedule">
+                        Eligible to Schedule
+                      </SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="not-eligible">Not Eligible</SelectItem>
+                      <SelectItem value="pending-approval">
+                        Pending Approval
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="participantType"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Participant Type
+                  </Label>
+                  <Select
+                    value={form.participantType}
+                    onValueChange={(value) =>
+                      handleChange("participantType", value as any)
+                    }
+                  >
+                    <SelectTrigger className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <SelectValue placeholder="Select participant type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="team">Team</SelectItem>
+                      <SelectItem value="institution">Institution</SelectItem>
+                      <SelectItem value="recruiter">Recruiter</SelectItem>
+                      <SelectItem value="visitor">Visitor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label
+                  htmlFor="platformRole"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  Platform Role
+                </Label>
+                <Input
+                  id="platformRole"
+                  type="text"
+                  value={form.platformRole}
+                  onChange={(e) => handleChange("platformRole", e.target.value)}
+                  placeholder="e.g., student, instructor, admin"
+                  className="mt-1 bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isClassroom"
+                    checked={form.isClassroom}
+                    onCheckedChange={(checked) =>
+                      handleChange("isClassroom", checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor="isClassroom"
+                    className="text-sm text-slate-700"
+                  >
+                    Classroom Session
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isSession"
+                    checked={form.isSession}
+                    onCheckedChange={(checked) =>
+                      handleChange("isSession", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="isSession" className="text-sm text-slate-700">
+                    Individual Session
+                  </Label>
+                </div>
               </div>
             </CardContent>
           </Card>
