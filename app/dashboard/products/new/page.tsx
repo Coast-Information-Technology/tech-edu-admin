@@ -126,6 +126,27 @@ export default function CreateProductPage() {
     }
   };
 
+  // Helper function to determine if service is bookable based on product type
+  const isBookableServiceType = (productType: string) => {
+    return [
+      "Training & Certification",
+      "Academic Support Services",
+      "Career Development & Mentorship",
+      "Institutional & Team Services",
+    ].includes(productType);
+  };
+
+  // Helper function to get service type description
+  const getServiceTypeDescription = () => {
+    if (!form.productType) return "";
+
+    if (isBookableServiceType(form.productType)) {
+      return "This is a bookable service that requires an instructor. Users can book sessions with specific instructors.";
+    } else {
+      return "This is a non-bookable service. Users can access this service without booking with a specific instructor.";
+    }
+  };
+
   // Fetch categories and services when productType changes
   React.useEffect(() => {
     const fetchCategoriesAndServices = async () => {
@@ -394,9 +415,6 @@ export default function CreateProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Only submit on the final step (step 4)
-    if (step !== steps.length - 1) return;
-
     // Enhanced validation for all required fields
     const requiredFields = [
       { field: "productType", label: "Product Type" },
@@ -409,10 +427,14 @@ export default function CreateProductPage() {
       { field: "mode", label: "Mode" },
       { field: "durationInMinutes", label: "Duration in Minutes" },
       { field: "minutesPerSession", label: "Minutes Per Session" },
-      { field: "price", label: "Price" },
       { field: "description", label: "Description" },
       { field: "slug", label: "Slug" },
     ];
+
+    // Add instructor validation for bookable services
+    if (isBookableServiceType(form.productType) && !form.instructorId) {
+      requiredFields.push({ field: "instructorId", label: "Instructor" });
+    }
 
     const missingFields = requiredFields.filter(({ field, label }) => {
       const value = form[field];
@@ -437,6 +459,12 @@ export default function CreateProductPage() {
     if (missingFields.length > 0) {
       const missingLabels = missingFields.map((f) => f.label).join(", ");
       setError(`Please fill all required fields: ${missingLabels}`);
+      return;
+    }
+
+    // Additional validation for bookable services
+    if (isBookableServiceType(form.productType) && !form.instructorId) {
+      setError("Bookable services require an instructor to be assigned.");
       return;
     }
 
@@ -489,13 +517,15 @@ export default function CreateProductPage() {
         hasClassroom: form.hasClassroom || false,
         hasSession: form.hasSession || true,
         hasAssessment: form.hasAssessment || false,
-        isBookableService: form.isBookableService || false,
+        isBookableService: isBookableServiceType(form.productType),
         requiresBooking: form.requiresBooking || false,
         requiresEnrollment: form.requiresEnrollment || false,
         hasCertificate: form.hasCertificate || false,
         isRecurring: form.isRecurring || false,
         enabled: form.enabled !== undefined ? form.enabled : true,
-        instructorId: form.instructorId || null, // Add instructor ID
+        instructorId: isBookableServiceType(form.productType)
+          ? form.instructorId || null
+          : null,
       };
 
       const response = await postApiRequest("/api/products", token, payload);
@@ -594,9 +624,35 @@ export default function CreateProductPage() {
                   <h2 className="text-2xl font-bold text-slate-900 mb-2">
                     Basic Information
                   </h2>
-                  <p className="text-slate-600">
+                  <p className="text-slate-600 mb-4">
                     Let's start with the fundamental details of your product
                   </p>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <h3 className="font-semibold text-slate-800 mb-2">
+                      Service Types:
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span className="text-blue-700 font-medium">
+                          Bookable Services:
+                        </span>
+                        <span className="text-slate-600">
+                          Training, Academic Support, Career Development,
+                          Institutional Services
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="text-green-700 font-medium">
+                          Non-Bookable Services:
+                        </span>
+                        <span className="text-slate-600">
+                          AI Services, Career Connect, Marketing & Free Services
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -622,6 +678,47 @@ export default function CreateProductPage() {
                         </option>
                       ))}
                     </select>
+
+                    {/* Service Type Indicator */}
+                    {form.productType && (
+                      <div
+                        className={`p-4 rounded-2xl border-2 ${
+                          isBookableServiceType(form.productType)
+                            ? "bg-blue-50 border-blue-200"
+                            : "bg-green-50 border-green-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              isBookableServiceType(form.productType)
+                                ? "bg-blue-500"
+                                : "bg-green-500"
+                            }`}
+                          ></div>
+                          <span
+                            className={`font-semibold text-sm ${
+                              isBookableServiceType(form.productType)
+                                ? "text-blue-700"
+                                : "text-green-700"
+                            }`}
+                          >
+                            {isBookableServiceType(form.productType)
+                              ? "Bookable Service with Instructor"
+                              : "Non-Bookable Service"}
+                          </span>
+                        </div>
+                        <p
+                          className={`text-sm ${
+                            isBookableServiceType(form.productType)
+                              ? "text-blue-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {getServiceTypeDescription()}
+                        </p>
+                      </div>
+                    )}
 
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Service Name *
@@ -792,18 +889,29 @@ export default function CreateProductPage() {
                     )}
 
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Assign Instructor
+                      Assign Instructor{" "}
+                      {isBookableServiceType(form.productType) && (
+                        <span className="text-red-500">*</span>
+                      )}
                     </label>
                     <select
                       name="instructorId"
                       value={form.instructorId}
                       onChange={handleChange}
-                      className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      className={`w-full px-4 py-6 bg-white/50 border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
+                        isBookableServiceType(form.productType) &&
+                        !form.instructorId
+                          ? "border-red-300 focus:ring-red-500"
+                          : "border-slate-200"
+                      }`}
                       disabled={instructorsLoading}
+                      required={isBookableServiceType(form.productType)}
                     >
                       <option value="">
                         {instructorsLoading
                           ? "Loading instructors..."
+                          : isBookableServiceType(form.productType)
+                          ? "Select Instructor (Required)"
                           : "Select Instructor (Optional)"}
                       </option>
                       {instructors.map((instructor) => (
@@ -974,16 +1082,33 @@ export default function CreateProductPage() {
                 <h2 className="text-lg font-semibold mb-2">
                   Pricing & Duration
                 </h2>
-                <label className="block text-sm font-medium mb-1">Price</label>
+                <label className="block text-sm font-medium mb-1">
+                  Price{" "}
+                  {!isBookableServiceType(form.productType) && (
+                    <span className="text-slate-500 text-xs">
+                      (Can be 0 for free services)
+                    </span>
+                  )}
+                </label>
                 <Input
                   name="price"
                   value={form.price}
                   onChange={handleChange}
-                  placeholder="Enter price in dollars (e.g., 99.99)"
+                  placeholder={
+                    isBookableServiceType(form.productType)
+                      ? "Enter price in dollars (e.g., 99.99)"
+                      : "Enter price in dollars (0 for free services)"
+                  }
                   type="number"
                   min={0}
                   className="rounded-[10px]"
                 />
+                {!isBookableServiceType(form.productType) &&
+                  form.price === 0 && (
+                    <div className="text-green-600 text-sm bg-green-50 p-3 rounded-xl border border-green-200">
+                      ✓ This will be marked as a free service
+                    </div>
+                  )}
                 <label className="block text-sm font-medium mb-1">
                   Discount Percentage
                 </label>
@@ -1231,6 +1356,13 @@ export default function CreateProductPage() {
             {step === 4 && (
               <div className="bg-gray-50 p-4 rounded-[10px]">
                 <h2 className="text-lg font-semibold mb-4">Review & Submit</h2>
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-blue-700 text-sm">
+                    <strong>Ready to create your product?</strong> Review all
+                    the information above and click the "Create Product" button
+                    below when you're satisfied with all the details.
+                  </p>
+                </div>
                 {/* Basic Info */}
                 <div className="mb-4">
                   <h3 className="font-semibold text-blue-700 mb-2">
@@ -1240,6 +1372,20 @@ export default function CreateProductPage() {
                     <div>
                       <span className="font-medium">Product Type:</span>{" "}
                       {form.productType}
+                    </div>
+                    <div>
+                      <span className="font-medium">Service Type:</span>{" "}
+                      <span
+                        className={`font-semibold ${
+                          isBookableServiceType(form.productType)
+                            ? "text-blue-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {isBookableServiceType(form.productType)
+                          ? "Bookable Service with Instructor"
+                          : "Non-Bookable Service"}
+                      </span>
                     </div>
                     <div>
                       <span className="font-medium">Service:</span>{" "}
@@ -1253,6 +1399,15 @@ export default function CreateProductPage() {
                       <span className="font-medium">Subcategory:</span>{" "}
                       {form.subcategory}
                     </div>
+                    {isBookableServiceType(form.productType) && (
+                      <div>
+                        <span className="font-medium">Instructor:</span>{" "}
+                        {form.instructorId
+                          ? instructors.find((i) => i._id === form.instructorId)
+                              ?.fullName || "Selected"
+                          : "Not assigned"}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Delivery & Session */}
