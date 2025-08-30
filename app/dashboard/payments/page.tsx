@@ -51,8 +51,7 @@ const PRODUCT_TYPE_OPTIONS = [
   "Institutional & Team Services",
   "AI-Powered or Automation Services",
   "Career Connect",
-  "Marketing",
-  "Consultation & Free Services",
+  "Marketing, Consultation & Free Services",
 ];
 const PLATFORM_ROLE_OPTIONS = [
   "student",
@@ -400,7 +399,7 @@ export default function AdminPaymentsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap font-semibold">
-                      {payment.currency} {payment.amount.toFixed(2)}
+                      {payment.currency} {(payment.amount / 100).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
