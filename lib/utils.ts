@@ -81,6 +81,51 @@ export function convertCloudinaryConsoleUrl(consoleUrl: string): string {
 }
 
 /**
+ * Checks if a Cloudinary URL is accessible and returns appropriate status
+ * @param url - The URL to check
+ * @returns Promise with accessibility status
+ */
+export async function checkCloudinaryUrlAccess(url: string): Promise<{
+  accessible: boolean;
+  error?: string;
+  status?: number;
+}> {
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    return {
+      accessible: response.ok,
+      status: response.status,
+      error: response.ok
+        ? undefined
+        : `HTTP ${response.status}: ${response.statusText}`,
+    };
+  } catch (error) {
+    return {
+      accessible: false,
+      error: error instanceof Error ? error.message : "Network error",
+    };
+  }
+}
+
+/**
+ * Generates a more accessible Cloudinary URL by removing version parameters
+ * @param url - Original Cloudinary URL
+ * @returns Modified URL that might be more accessible
+ */
+export function generateAlternativeCloudinaryUrl(url: string): string {
+  try {
+    if (url.includes("res.cloudinary.com")) {
+      // Remove version parameter (v1756634345) to try accessing without version
+      const urlWithoutVersion = url.replace(/\/v\d+\//, "/");
+      return urlWithoutVersion;
+    }
+    return url;
+  } catch (error) {
+    return url;
+  }
+}
+
+/**
  * Extracts file information from Cloudinary console URLs for display purposes
  * @param consoleUrl - Cloudinary console URL or direct URL
  * @returns Object with file information or null if extraction fails

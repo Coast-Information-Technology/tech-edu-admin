@@ -495,12 +495,12 @@ export default function AdminBookingsPage() {
                     ? "No bookings have been created yet."
                     : "No bookings match your current filters."}
                 </p>
-                <Link href="/dashboard/bookings/academic/new">
+                {/* <Link href="/dashboard/bookings/academic/new">
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                     <Plus className="w-4 h-4 mr-2" />
                     Create First Booking
                   </Button>
-                </Link>
+                </Link> */}
               </div>
             </CardContent>
           </Card>

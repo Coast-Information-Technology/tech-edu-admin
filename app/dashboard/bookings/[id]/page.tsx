@@ -29,7 +29,7 @@ import { toast } from "react-toastify";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
-import { cleanAttachmentUrl, extractCloudinaryFileInfo } from "@/lib/utils";
+import { cleanAttachmentUrl } from "@/lib/utils";
 
 interface Booking {
   _id: string;
@@ -622,40 +622,16 @@ export default function BookingDetailPage({
                       <div className="mt-2 space-y-2">
                         {booking.attachments.map((attachment, index) => {
                           const cleanUrl = cleanAttachmentUrl(attachment);
-                          const fileInfo =
-                            extractCloudinaryFileInfo(attachment);
-
-                          // Determine display text
-                          let displayText = attachment;
-                          if (attachment.includes("blob:")) {
-                            displayText = "File uploaded";
-                          } else if (fileInfo) {
-                            displayText = fileInfo.fileName;
-                          } else if (cleanUrl !== attachment) {
-                            // If we cleaned the URL, try to extract filename from the cleaned URL
-                            const cleanedFileInfo =
-                              extractCloudinaryFileInfo(cleanUrl);
-                            if (cleanedFileInfo) {
-                              displayText = cleanedFileInfo.fileName;
-                            } else {
-                              displayText = cleanUrl;
-                            }
-                          }
-
                           return (
                             <Link
                               key={index}
                               href={cleanUrl}
                               target="_blank"
-                              className="text-sm text-slate-600 bg-slate-50 p-2 rounded border flex items-center gap-2 hover:bg-slate-100 transition-colors"
+                              className="text-sm text-slate-600 bg-slate-50 p-2 rounded border flex items-center gap-2"
                             >
-                              <span className="text-blue-600">📎</span>
-                              {displayText}
-                              {fileInfo && (
-                                <span className="text-xs text-slate-500 ml-auto">
-                                  {fileInfo.fileType}
-                                </span>
-                              )}
+                              {attachment.includes("blob:")
+                                ? "File uploaded"
+                                : cleanUrl}
                             </Link>
                           );
                         })}

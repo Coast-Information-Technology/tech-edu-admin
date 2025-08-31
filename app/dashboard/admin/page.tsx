@@ -275,40 +275,6 @@ export default function AdminDashboard() {
     ].filter((item) => item.value > 0);
   };
 
-  // Recent activity
-  const recentActivity = [
-    {
-      type: "user",
-      text: "New user registration: Sarah Johnson",
-      date: "2 minutes ago",
-      icon: <Users size={16} className="text-blue-600" />,
-    },
-    {
-      type: "course",
-      text: "Course published: Advanced React Development",
-      date: "15 minutes ago",
-      icon: <BookOpen size={16} className="text-green-600" />,
-    },
-    {
-      type: "job",
-      text: "Job posting approved: Senior Frontend Developer",
-      date: "1 hour ago",
-      icon: <Briefcase size={16} className="text-purple-600" />,
-    },
-    {
-      type: "payment",
-      text: "Payment processed: ₦150,000 for Premium Course",
-      date: "2 hours ago",
-      icon: <DollarSign size={16} className="text-orange-600" />,
-    },
-    {
-      type: "support",
-      text: "Support ticket resolved: #TKT-2024-001",
-      date: "3 hours ago",
-      icon: <MessageCircle size={16} className="text-indigo-600" />,
-    },
-  ];
-
   // Quick actions
   const quickActions = [
     {
@@ -354,15 +320,6 @@ export default function AdminDashboard() {
       color: "bg-gray-50 text-gray-700 hover:bg-gray-100",
     },
   ];
-
-  // System health indicators
-  const systemHealth = {
-    status: "Healthy",
-    uptime: "99.9%",
-    lastBackup: "2 hours ago",
-    activeUsers: 847,
-    serverLoad: "23%",
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
@@ -511,7 +468,7 @@ export default function AdminDashboard() {
                     Total Revenue
                   </p>
                   <p className="text-2xl font-bold text-orange-600">
-                    ₦{(paymentStats?.totalAmount || 0).toLocaleString()}
+                    £{(paymentStats?.totalAmount || 0).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">All time</p>
                 </div>
