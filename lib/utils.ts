@@ -66,7 +66,8 @@ export function convertCloudinaryConsoleUrl(consoleUrl: string): string {
         const cloudMatch = consoleUrl.match(/app\/(c-[a-f0-9]+)/);
         const cloudName = cloudMatch ? cloudMatch[1] : "drjdziur7"; // fallback to your cloud name
 
-        // Convert to direct Cloudinary URL
+        // Convert to direct Cloudinary URL - we'll need to get the actual filename from Cloudinary API
+        // For now, return a placeholder that the extractCloudinaryFileInfo function can handle
         return `https://res.cloudinary.com/${cloudName}/image/upload/${assetId}`;
       }
     }
@@ -81,13 +82,14 @@ export function convertCloudinaryConsoleUrl(consoleUrl: string): string {
 
 /**
  * Extracts file information from Cloudinary console URLs for display purposes
- * @param consoleUrl - Cloudinary console URL
+ * @param consoleUrl - Cloudinary console URL or direct URL
  * @returns Object with file information or null if extraction fails
  */
 export function extractCloudinaryFileInfo(
   consoleUrl: string
 ): { fileName: string; fileType: string } | null {
   try {
+    // Handle Cloudinary console URLs
     if (consoleUrl.includes("console.cloudinary.com/app/")) {
       // Extract asset ID
       const assetMatch = consoleUrl.match(/asset\/([a-f0-9]+)/);
@@ -101,11 +103,78 @@ export function extractCloudinaryFileInfo(
         };
       }
     }
+
+    // Handle direct Cloudinary URLs
+    if (consoleUrl.includes("res.cloudinary.com")) {
+      // Extract filename from URL path
+      const urlParts = consoleUrl.split("/");
+      const lastPart = urlParts[urlParts.length - 1];
+
+      // Check if it's a versioned URL (v1756634345/filename.pdf)
+      if (lastPart && lastPart.includes(".")) {
+        // This is already a filename
+        return {
+          fileName: lastPart,
+          fileType: getFileTypeFromExtension(lastPart),
+        };
+      } else if (urlParts.length > 1) {
+        // Look for the part before the last (filename part)
+        const filenamePart = urlParts[urlParts.length - 2];
+        if (filenamePart && filenamePart.includes(".")) {
+          return {
+            fileName: filenamePart,
+            fileType: getFileTypeFromExtension(filenamePart),
+          };
+        }
+      }
+
+      // Fallback: extract from the end of the URL
+      const filenameMatch = consoleUrl.match(/\/([^\/]+\.[^\/]+)$/);
+      if (filenameMatch) {
+        return {
+          fileName: filenameMatch[1],
+          fileType: getFileTypeFromExtension(filenameMatch[1]),
+        };
+      }
+    }
+
     return null;
   } catch (error) {
     console.warn("Failed to extract Cloudinary file info:", error);
     return null;
   }
+}
+
+/**
+ * Helper function to determine file type from extension
+ * @param filename - The filename with extension
+ * @returns File type string
+ */
+function getFileTypeFromExtension(filename: string): string {
+  const extension = filename.split(".").pop()?.toLowerCase();
+
+  const fileTypes: { [key: string]: string } = {
+    pdf: "PDF Document",
+    doc: "Word Document",
+    docx: "Word Document",
+    txt: "Text File",
+    jpg: "Image",
+    jpeg: "Image",
+    png: "Image",
+    gif: "Image",
+    webp: "Image",
+    mp4: "Video",
+    avi: "Video",
+    mov: "Video",
+    zip: "Archive",
+    rar: "Archive",
+    xlsx: "Excel Spreadsheet",
+    xls: "Excel Spreadsheet",
+    ppt: "PowerPoint",
+    pptx: "PowerPoint",
+  };
+
+  return fileTypes[extension || ""] || "File";
 }
 
 /**

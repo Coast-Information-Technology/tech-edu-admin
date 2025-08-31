@@ -632,7 +632,14 @@ export default function BookingDetailPage({
                           } else if (fileInfo) {
                             displayText = fileInfo.fileName;
                           } else if (cleanUrl !== attachment) {
-                            displayText = cleanUrl;
+                            // If we cleaned the URL, try to extract filename from the cleaned URL
+                            const cleanedFileInfo =
+                              extractCloudinaryFileInfo(cleanUrl);
+                            if (cleanedFileInfo) {
+                              displayText = cleanedFileInfo.fileName;
+                            } else {
+                              displayText = cleanUrl;
+                            }
                           }
 
                           return (
