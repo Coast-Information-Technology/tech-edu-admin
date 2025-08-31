@@ -510,7 +510,6 @@ export default function NewUserPage() {
                     }
                     placeholder="Enter password"
                     className="mt-1 rounded-[10px]"
-                    disabled
                   />
                 </div>
                 <div>
