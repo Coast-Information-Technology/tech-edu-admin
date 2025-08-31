@@ -620,14 +620,16 @@ export default function BookingDetailPage({
                       </div>
                       <div className="mt-2 space-y-2">
                         {booking.attachments.map((attachment, index) => (
-                          <div
+                          <Link
                             key={index}
+                            href={attachment}
+                            target="_blank"
                             className="text-sm text-slate-600 bg-slate-50 p-2 rounded border"
                           >
                             {attachment.includes("blob:")
                               ? "File uploaded"
                               : attachment}
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
