@@ -18,6 +18,10 @@ import {
   XCircle,
   Play,
   Star,
+  User,
+  Users2,
+  Building,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,20 +30,28 @@ interface Session {
   bookingId: string;
   productId: string;
   productType: string;
-  bookingPurpose?: string;
-  instructorId?: string;
+  bookingPurpose: string;
+  instructorId: string;
   scheduleAt: string;
   endAt?: string;
-  minutesPerSession?: number;
-  numberOfExpectedParticipants?: number;
+  minutesPerSession: number;
+  numberOfExpectedParticipants: number;
   meetingLink?: string;
-  sessionType?: string;
-  status: string;
+  sessionType: "group" | "1-on-1";
+  status: "upcoming" | "confirmed" | "completed" | "cancelled";
+  avgRating?: number;
   userNotes?: string;
   internalNotes?: string;
-  avgRating?: number;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+  }>;
+  createdBy: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export default function InstructorSessionsPage() {
@@ -175,6 +187,53 @@ export default function InstructorSessionsPage() {
         return "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-200";
       default:
         return "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-800 border-slate-200";
+    }
+  };
+
+  // Get session type icon
+  const getSessionTypeIcon = (sessionType: string) => {
+    switch (sessionType) {
+      case "group":
+        return <Users className="w-4 h-4" />;
+      case "1-on-1":
+        return <User className="w-4 h-4" />;
+      default:
+        return <Users className="w-4 h-4" />;
+    }
+  };
+
+  // Format time until session
+  const getTimeUntilSession = (scheduleAt: string) => {
+    const now = new Date();
+    const sessionTime = new Date(scheduleAt);
+    const diffMs = sessionTime.getTime() - now.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(
+      (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
+
+    if (diffMs < 0) {
+      return "Past";
+    } else if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? "s" : ""}`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""}`;
+    } else {
+      return "Starting soon";
+    }
+  };
+
+  // Get participant type icon
+  const getParticipantTypeIcon = (participantType: string) => {
+    switch (participantType) {
+      case "institution":
+        return <Building className="w-4 h-4" />;
+      case "team":
+        return <Users2 className="w-4 h-4" />;
+      case "individual":
+        return <User className="w-4 h-4" />;
+      default:
+        return <Users className="w-4 h-4" />;
     }
   };
 
@@ -339,9 +398,12 @@ export default function InstructorSessionsPage() {
                       Participants
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Rating
+                      Meeting
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Rating
+                    </th>
+                    <th className="px-8 py-6 text-left text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -369,23 +431,33 @@ export default function InstructorSessionsPage() {
                           </span>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${getSessionTypeColor(
-                              session.sessionType || ""
-                            )}`}
-                          >
-                            {session.sessionType || "N/A"}
-                          </span>
+                          <div className="space-y-1">
+                            <span
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border ${getSessionTypeColor(
+                                session.sessionType
+                              )}`}
+                            >
+                              {getSessionTypeIcon(session.sessionType)}
+                              {session.sessionType}
+                            </span>
+                            {session.participants &&
+                              session.participants.length > 0 && (
+                                <div className="text-xs text-slate-500">
+                                  {session.participants.length} registered
+                                </div>
+                              )}
+                          </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm text-slate-900">
                             {formatDate(session.scheduleAt)}
                           </div>
-                          {session.minutesPerSession && (
-                            <div className="text-xs text-slate-500 mt-1">
-                              {session.minutesPerSession} minutes
-                            </div>
-                          )}
+                          <div className="text-xs text-slate-500 mt-1">
+                            {session.minutesPerSession} minutes
+                          </div>
+                          <div className="text-xs text-slate-500 font-medium">
+                            {getTimeUntilSession(session.scheduleAt)}
+                          </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <span
@@ -398,12 +470,37 @@ export default function InstructorSessionsPage() {
                           </span>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm font-semibold text-slate-900">
-                              {session.numberOfExpectedParticipants || 0}
-                            </span>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-slate-500" />
+                              <span className="text-sm font-semibold text-slate-900">
+                                {session.numberOfExpectedParticipants}
+                              </span>
+                            </div>
+                            {session.participants &&
+                              session.participants.length > 0 && (
+                                <div className="text-xs text-slate-500">
+                                  {session.participants.length} confirmed
+                                </div>
+                              )}
                           </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          {session.meetingLink ? (
+                            <a
+                              href={session.meetingLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300"
+                            >
+                              <Video className="w-4 h-4" />
+                              Join
+                            </a>
+                          ) : (
+                            <span className="text-sm text-slate-500">
+                              No link
+                            </span>
+                          )}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           {session.avgRating ? (
@@ -450,7 +547,7 @@ export default function InstructorSessionsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-8 py-16 text-center">
+                      <td colSpan={9} className="px-8 py-16 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
                             <BookOpen className="w-10 h-10 text-slate-400" />

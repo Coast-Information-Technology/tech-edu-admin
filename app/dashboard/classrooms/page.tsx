@@ -29,22 +29,33 @@ interface Classroom {
   bookingId: string;
   productId: string;
   productType: string;
-  bookingPurpose?: string;
-  instructorId?: string;
-  scheduleAt: string;
-  endAt?: string;
-  minutesPerSession?: number;
-  numberOfExpectedParticipants?: number;
+  bookingPurpose: string;
+  instructorId: string;
+  minutesPerSession: number;
+  numberOfExpectedParticipants: number;
   meetingLink?: string;
-  status: string;
-  instructorNotes?: string;
-  internalNotes?: string;
-  actualDaysAndTime?: Array<{
-    day: string;
-    time: string;
+  actualDaysAndTime: Array<{
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
   }>;
+  sessionType: "group" | "1-on-1";
+  participantType: "institution" | "team" | "individual";
+  sessionsCompleted: number;
+  sessionsRemaining: number;
+  avgRating?: number;
+  userNotes?: string;
+  internalNotes?: string;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+  }>;
+  createdBy: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 interface UserRole {
@@ -55,10 +66,10 @@ export default function ClassroomsPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<UserRole["role"]>("instructor");
+  const [userRole, setUserRole] = useState<UserRole["role"]>("admin");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortKey, setSortKey] = useState("scheduleAt");
+  const [sortKey, setSortKey] = useState("createdAt");
   const [sortDirection, setSortDirection] = useState("asc");
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
@@ -83,7 +94,7 @@ export default function ClassroomsPage() {
           endpoint = "/api/classrooms/student/my-classrooms";
         } else {
           // For admin, you might want to fetch all classrooms
-          endpoint = "/api/classrooms/instructor/my-classrooms";
+          endpoint = "/api/classrooms/admin/all";
         }
 
         const response = await getApiRequest(endpoint, token);
@@ -105,15 +116,16 @@ export default function ClassroomsPage() {
 
   // Filter and sort logic
   const filteredClassrooms = classrooms.filter((classroom) => {
+    const classroomStatus = getClassroomStatus(classroom);
     const matchesSearch =
       classroom.bookingPurpose
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       classroom.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classroom.status.toLowerCase().includes(searchTerm.toLowerCase());
+      classroomStatus.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      filterStatus === "all" || classroom.status === filterStatus;
+      filterStatus === "all" || classroomStatus === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
@@ -181,6 +193,41 @@ export default function ClassroomsPage() {
     }
   };
 
+  // Derive classroom status from sessions data
+  const getClassroomStatus = (classroom: Classroom): string => {
+    if (classroom.sessionsRemaining === 0) {
+      return "completed";
+    } else if (classroom.sessionsCompleted > 0) {
+      return "active";
+    } else {
+      return "upcoming";
+    }
+  };
+
+  // Format recurring session information
+  const formatRecurringSessions = (
+    actualDaysAndTime: Array<{
+      dayOfWeek: string;
+      startTime: string;
+      endTime: string;
+    }>
+  ) => {
+    if (!actualDaysAndTime || actualDaysAndTime.length === 0) {
+      return "No schedule set";
+    }
+
+    const sessions = actualDaysAndTime.map(
+      (session) =>
+        `${session.dayOfWeek} ${session.startTime}-${session.endTime}`
+    );
+
+    if (sessions.length === 1) {
+      return sessions[0];
+    } else {
+      return `${sessions.length} recurring sessions`;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -197,7 +244,7 @@ export default function ClassroomsPage() {
             </div>
             <div className="flex gap-3">
               {/* Role Toggle */}
-              <div className="flex bg-slate-100 rounded-2xl p-1">
+              {/* <div className="flex bg-slate-100 rounded-2xl p-1">
                 {["instructor", "student"].map((role) => (
                   <button
                     key={role}
@@ -211,7 +258,7 @@ export default function ClassroomsPage() {
                     {role.charAt(0).toUpperCase() + role.slice(1)}
                   </button>
                 ))}
-              </div>
+              </div> */}
               <Link href="/dashboard/classrooms/new">
                 <button className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
                   <span className="flex items-center gap-2">
@@ -275,9 +322,9 @@ export default function ClassroomsPage() {
                   onChange={(e) => setSortKey(e.target.value)}
                   className="px-6 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
                 >
-                  <option value="scheduleAt">Sort by Date</option>
-                  <option value="status">Sort by Status</option>
+                  <option value="createdAt">Sort by Created Date</option>
                   <option value="productType">Sort by Type</option>
+                  <option value="sessionType">Sort by Session Type</option>
                   {userRole === "instructor" && (
                     <option value="numberOfExpectedParticipants">
                       Sort by Participants
@@ -373,31 +420,51 @@ export default function ClassroomsPage() {
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
-                            {classroom.productType}
-                          </span>
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                              {classroom.productType}
+                            </span>
+                            <div className="text-xs text-slate-500">
+                              {classroom.sessionType} •{" "}
+                              {classroom.participantType}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm text-slate-900">
-                            {formatDate(classroom.scheduleAt)}
+                            {formatDate(classroom.createdAt)}
                           </div>
                           {classroom.actualDaysAndTime &&
                             classroom.actualDaysAndTime.length > 0 && (
                               <div className="text-xs text-slate-500 mt-1">
-                                {classroom.actualDaysAndTime.length} recurring
-                                sessions
+                                {formatRecurringSessions(
+                                  classroom.actualDaysAndTime
+                                )}
                               </div>
                             )}
+                          <div className="text-xs text-slate-500 mt-1">
+                            {classroom.sessionsCompleted}/
+                            {classroom.sessionsCompleted +
+                              classroom.sessionsRemaining}{" "}
+                            sessions
+                          </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(
-                              classroom.status
-                            )}`}
-                          >
-                            {getStatusIcon(classroom.status)}
-                            {classroom.status}
-                          </span>
+                          <div className="space-y-2">
+                            <span
+                              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(
+                                getClassroomStatus(classroom)
+                              )}`}
+                            >
+                              {getStatusIcon(getClassroomStatus(classroom))}
+                              {getClassroomStatus(classroom)}
+                            </span>
+                            {classroom.avgRating && (
+                              <div className="text-xs text-slate-500">
+                                ⭐ {classroom.avgRating.toFixed(1)} rating
+                              </div>
+                            )}
+                          </div>
                         </td>
                         {userRole === "instructor" && (
                           <td className="px-8 py-6 whitespace-nowrap">
@@ -438,7 +505,7 @@ export default function ClassroomsPage() {
                               </button>
                             </Link>
                             {userRole === "instructor" &&
-                              classroom.status === "upcoming" && (
+                              getClassroomStatus(classroom) === "upcoming" && (
                                 <Link
                                   href={`/dashboard/classrooms/${classroom._id}/edit`}
                                 >
@@ -448,7 +515,7 @@ export default function ClassroomsPage() {
                                 </Link>
                               )}
                             {userRole === "instructor" &&
-                              classroom.status === "active" && (
+                              getClassroomStatus(classroom) === "active" && (
                                 <Link
                                   href={`/dashboard/classrooms/${classroom._id}/complete`}
                                 >

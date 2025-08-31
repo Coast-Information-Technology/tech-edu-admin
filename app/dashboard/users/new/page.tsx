@@ -84,7 +84,7 @@ export default function NewUserPage() {
   // Instructor form data
   const [instructorData, setInstructorData] = useState<InstructorFormData>({
     email: "",
-    password: process.env.NEXT_PUBLIC_ISSTAFF_PASSWORD!,
+    password: "",
     fullName: "",
     profileImageUrl: "",
     title: "",
@@ -331,7 +331,7 @@ export default function NewUserPage() {
         // Reset form
         setInstructorData({
           email: "",
-          password: process.env.NEXT_PUBLIC_ISSTAFF_PASSWORD!,
+          password: "",
           fullName: "",
           profileImageUrl: "",
           title: "",

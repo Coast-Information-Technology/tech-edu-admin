@@ -22,7 +22,6 @@ import {
 import Link from "next/link";
 
 interface SessionForm {
-  sessionCategory: "academic" | "group";
   bookingId: string;
   productId: string;
   productType: string;
@@ -33,9 +32,17 @@ interface SessionForm {
   minutesPerSession: number;
   numberOfExpectedParticipants: number;
   meetingLink: string;
-  sessionType: string;
+  sessionType: "group" | "1-on-1";
+  status: "upcoming";
   userNotes: string;
   internalNotes: string;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+  }>;
 }
 
 interface Product {
@@ -74,7 +81,6 @@ export default function CreateSessionPage() {
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
   const [form, setForm] = useState<SessionForm>({
-    sessionCategory: "academic",
     bookingId: "",
     productId: "",
     productType: "Academic Support Services", // Default for academic
@@ -86,9 +92,42 @@ export default function CreateSessionPage() {
     numberOfExpectedParticipants: 1,
     meetingLink: "",
     sessionType: "1-on-1",
+    status: "upcoming",
     userNotes: "",
     internalNotes: "",
+    participants: [],
   });
+
+  // Participant management functions
+  const addParticipant = () => {
+    const newParticipant = {
+      participantType: "individual",
+      platformRole: "student",
+      profileId: "",
+      email: "",
+      fullName: "",
+    };
+    setForm((prev) => ({
+      ...prev,
+      participants: [...prev.participants, newParticipant],
+    }));
+  };
+
+  const removeParticipant = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      participants: prev.participants.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateParticipant = (index: number, field: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      participants: prev.participants.map((participant, i) =>
+        i === index ? { ...participant, [field]: value } : participant
+      ),
+    }));
+  };
 
   // Fetch product subcategories by type
   const fetchProductSubcategories = async (productType: string) => {
@@ -141,23 +180,10 @@ export default function CreateSessionPage() {
     >
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => {
-      const updatedForm = { ...prev, [name]: value };
-
-      // Update product type when session category changes
-      if (name === "sessionCategory") {
-        if (value === "academic") {
-          updatedForm.productType = "Academic Support Services";
-        } else if (value === "group") {
-          updatedForm.productType = "Training & Certification";
-        }
-        // Clear product/booking selection when category changes
-        updatedForm.productId = "";
-        updatedForm.bookingId = "";
-      }
-
-      return updatedForm;
-    });
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,11 +198,7 @@ export default function CreateSessionPage() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        if (form.sessionCategory === "academic") {
-          return !!(form.productType && form.productId && form.bookingPurpose);
-        } else {
-          return !!(form.productType && form.bookingId && form.bookingPurpose);
-        }
+        return !!(form.productType && form.productId && form.bookingPurpose);
       case 2:
         return !!(form.scheduleAt && form.endAt && form.minutesPerSession > 0);
       case 3:
@@ -225,9 +247,11 @@ export default function CreateSessionPage() {
         minutesPerSession: form.minutesPerSession,
         numberOfExpectedParticipants: form.numberOfExpectedParticipants,
         meetingLink: form.meetingLink,
-        sessionType: form.sessionType,
+        sessionType: form.sessionType as "group" | "1-on-1",
+        status: "upcoming",
         userNotes: form.userNotes,
         internalNotes: form.internalNotes,
+        participants: form.participants,
       };
 
       const response = await postApiRequest("/api/sessions", token, payload);
@@ -355,152 +379,79 @@ export default function CreateSessionPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Session Category Selection */}
+                {/* Product Type Selection */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Session Category *
+                    Product Type *
                   </label>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          sessionCategory: "academic",
-                        }))
-                      }
-                      className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
-                        form.sessionCategory === "academic"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-slate-200 bg-white/50 hover:border-blue-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            form.sessionCategory === "academic"
-                              ? "bg-blue-100"
-                              : "bg-slate-100"
-                          }`}
-                        >
-                          <GraduationCap
-                            className={`w-5 h-5 ${
-                              form.sessionCategory === "academic"
-                                ? "text-blue-600"
-                                : "text-slate-600"
-                            }`}
-                          />
-                        </div>
-                        <div className="text-left">
-                          <h3 className="font-semibold text-slate-900">
-                            Academic Session
-                          </h3>
-                          <p className="text-sm text-slate-600">
-                            Academic Support Services
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          sessionCategory: "group",
-                        }))
-                      }
-                      className={`p-4 rounded-2xl border-2 transition-all duration-300 ${
-                        form.sessionCategory === "group"
-                          ? "border-green-500 bg-green-50"
-                          : "border-slate-200 bg-white/50 hover:border-green-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            form.sessionCategory === "group"
-                              ? "bg-green-100"
-                              : "bg-slate-100"
-                          }`}
-                        >
-                          <Users2
-                            className={`w-5 h-5 ${
-                              form.sessionCategory === "group"
-                                ? "text-green-600"
-                                : "text-slate-600"
-                            }`}
-                          />
-                        </div>
-                        <div className="text-left">
-                          <h3 className="font-semibold text-slate-900">
-                            Group Session
-                          </h3>
-                          <p className="text-sm text-slate-600">
-                            Training & certification programs
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
+                  <select
+                    name="productType"
+                    value={form.productType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  >
+                    <option value="">Select Product Type</option>
+                    <option value="Academic Support Services">
+                      Academic Support Services
+                    </option>
+                    <option value="Training & Certification">
+                      Training & Certification
+                    </option>
+                    <option value="Career Development">
+                      Career Development
+                    </option>
+                    <option value="Technical Skills">Technical Skills</option>
+                  </select>
                 </div>
 
-                {/* Dynamic Fields based on Session Category */}
-                {form.sessionCategory === "academic" && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Academic Service Subcategory *
-                    </label>
-                    <select
-                      name="productId"
-                      value={form.productId}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                      required
-                      disabled={productsLoading}
-                    >
-                      <option value="">
-                        {productsLoading
-                          ? "Loading subcategories..."
-                          : "Select an academic service subcategory"}
+                {/* Product Selection */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Product/Service *
+                  </label>
+                  <select
+                    name="productId"
+                    value={form.productId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                    required
+                    disabled={productsLoading}
+                  >
+                    <option value="">
+                      {productsLoading
+                        ? "Loading products..."
+                        : "Select a product or service"}
+                    </option>
+                    {products.map((product) => (
+                      <option key={product._id} value={product._id}>
+                        {product.productSubcategoryName} - ${product.price}
                       </option>
-                      {products.map((product) => (
-                        <option key={product._id} value={product._id}>
-                          {product.productSubcategoryName} - ${product.price}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                    ))}
+                  </select>
+                </div>
 
-                {form.sessionCategory === "group" && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Training Booking *
-                    </label>
-                    <select
-                      name="bookingId"
-                      value={form.bookingId}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                      required
-                      disabled={bookingsLoading}
-                    >
-                      <option value="">
-                        {bookingsLoading
-                          ? "Loading bookings..."
-                          : "Select a training booking"}
+                {/* Booking Selection (Optional) */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Associated Booking (Optional)
+                  </label>
+                  <select
+                    name="bookingId"
+                    value={form.bookingId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                    disabled={bookingsLoading}
+                  >
+                    <option value="">No booking associated</option>
+                    {bookings.map((booking) => (
+                      <option key={booking._id} value={booking._id}>
+                        {booking.productId.productSubcategoryName} -{" "}
+                        {booking.instructorId.fullName} (
+                        {new Date(booking.scheduleAt).toLocaleDateString()})
                       </option>
-                      {bookings.map((booking) => (
-                        <option key={booking._id} value={booking._id}>
-                          {booking.productId.productSubcategoryName} -{" "}
-                          {booking.instructorId.fullName} (
-                          {new Date(booking.scheduleAt).toLocaleDateString()})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                    ))}
+                  </select>
+                </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -510,11 +461,7 @@ export default function CreateSessionPage() {
                     name="bookingPurpose"
                     value={form.bookingPurpose}
                     onChange={handleChange}
-                    placeholder={
-                      form.sessionCategory === "academic"
-                        ? "Describe the academic purpose of this session"
-                        : "Describe the training purpose of this session"
-                    }
+                    placeholder="Describe the purpose of this session"
                     rows={3}
                     className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
                     required
@@ -656,6 +603,146 @@ export default function CreateSessionPage() {
                     rows={3}
                     className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
                   />
+                </div>
+
+                {/* Participant Management */}
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Participants
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addParticipant}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-300 text-sm"
+                    >
+                      + Add Participant
+                    </button>
+                  </div>
+
+                  {form.participants.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl">
+                      <Users className="w-12 h-12 mx-auto mb-2 text-slate-400" />
+                      <p>No participants added yet</p>
+                      <p className="text-sm">
+                        Click "Add Participant" to get started
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {form.participants.map((participant, index) => (
+                        <div
+                          key={index}
+                          className="border border-slate-200 rounded-2xl p-4 bg-white/50"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium text-slate-700">
+                              Participant {index + 1}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => removeParticipant(index)}
+                              className="text-red-500 hover:text-red-700 transition-colors duration-300"
+                            >
+                              Remove
+                            </button>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                Participant Type
+                              </label>
+                              <select
+                                value={participant.participantType}
+                                onChange={(e) =>
+                                  updateParticipant(
+                                    index,
+                                    "participantType",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                <option value="individual">Individual</option>
+                                <option value="team">Team</option>
+                                <option value="institution">Institution</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                Platform Role
+                              </label>
+                              <select
+                                value={participant.platformRole}
+                                onChange={(e) =>
+                                  updateParticipant(
+                                    index,
+                                    "platformRole",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                <option value="student">Student</option>
+                                <option value="individualTechProfessional">
+                                  Tech Professional
+                                </option>
+                                <option value="teamTechProfessional">
+                                  Team Tech Professional
+                                </option>
+                                <option value="recruiter">Recruiter</option>
+                                <option value="institution">Institution</option>
+                                <option value="admin">Admin</option>
+                                <option value="visitor">Visitor</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                Full Name *
+                              </label>
+                              <input
+                                type="text"
+                                value={participant.fullName}
+                                onChange={(e) =>
+                                  updateParticipant(
+                                    index,
+                                    "fullName",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Enter full name"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                required
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                Email *
+                              </label>
+                              <input
+                                type="email"
+                                value={participant.email}
+                                onChange={(e) =>
+                                  updateParticipant(
+                                    index,
+                                    "email",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Enter email address"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                required
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">

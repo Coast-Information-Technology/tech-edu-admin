@@ -23,14 +23,23 @@ interface SessionForm {
   productId: string;
   productType: string;
   bookingPurpose: string;
+  instructorId: string;
   scheduleAt: string;
   endAt: string;
   minutesPerSession: number;
   numberOfExpectedParticipants: number;
   meetingLink: string;
-  sessionType: string;
+  sessionType: "group" | "1-on-1";
+  status: "upcoming" | "confirmed" | "completed" | "cancelled";
   userNotes: string;
   internalNotes: string;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+  }>;
 }
 
 const PRODUCT_TYPE_OPTIONS = [
@@ -46,13 +55,7 @@ const PRODUCT_TYPE_OPTIONS = [
   "Evaluation",
 ];
 
-const SESSION_TYPE_OPTIONS = [
-  "1-on-1",
-  "group",
-  "workshop",
-  "seminar",
-  "webinar",
-];
+const SESSION_TYPE_OPTIONS = ["1-on-1", "group"];
 
 export default function EditSessionPage() {
   const params = useParams();
@@ -66,14 +69,17 @@ export default function EditSessionPage() {
     productId: "",
     productType: "",
     bookingPurpose: "",
+    instructorId: "",
     scheduleAt: "",
     endAt: "",
     minutesPerSession: 60,
     numberOfExpectedParticipants: 1,
     meetingLink: "",
     sessionType: "1-on-1",
+    status: "upcoming",
     userNotes: "",
     internalNotes: "",
+    participants: [],
   });
 
   useEffect(() => {
@@ -101,6 +107,7 @@ export default function EditSessionPage() {
             productId: sessionData.productId || "",
             productType: sessionData.productType || "",
             bookingPurpose: sessionData.bookingPurpose || "",
+            instructorId: sessionData.instructorId || "",
             scheduleAt: sessionData.scheduleAt
               ? new Date(sessionData.scheduleAt).toISOString().slice(0, 16)
               : "",
@@ -112,8 +119,10 @@ export default function EditSessionPage() {
               sessionData.numberOfExpectedParticipants || 1,
             meetingLink: sessionData.meetingLink || "",
             sessionType: sessionData.sessionType || "1-on-1",
+            status: sessionData.status || "upcoming",
             userNotes: sessionData.userNotes || "",
             internalNotes: sessionData.internalNotes || "",
+            participants: sessionData.participants || [],
           });
         } else {
           setError(response?.data?.message || "Failed to load session");
@@ -151,6 +160,37 @@ export default function EditSessionPage() {
     }));
   };
 
+  // Participant management functions
+  const addParticipant = () => {
+    const newParticipant = {
+      participantType: "individual",
+      platformRole: "student",
+      profileId: "",
+      email: "",
+      fullName: "",
+    };
+    setForm((prev) => ({
+      ...prev,
+      participants: [...prev.participants, newParticipant],
+    }));
+  };
+
+  const removeParticipant = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      participants: prev.participants.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateParticipant = (index: number, field: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      participants: prev.participants.map((participant, i) =>
+        i === index ? { ...participant, [field]: value } : participant
+      ),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -169,14 +209,17 @@ export default function EditSessionPage() {
         productId: form.productId,
         productType: form.productType,
         bookingPurpose: form.bookingPurpose,
+        instructorId: form.instructorId,
         scheduleAt: form.scheduleAt,
         endAt: form.endAt,
         minutesPerSession: form.minutesPerSession,
         numberOfExpectedParticipants: form.numberOfExpectedParticipants,
         meetingLink: form.meetingLink,
         sessionType: form.sessionType,
+        status: form.status,
         userNotes: form.userNotes,
         internalNotes: form.internalNotes,
+        participants: form.participants,
       };
 
       const response = await updateApiRequest(
@@ -331,6 +374,21 @@ export default function EditSessionPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Instructor ID *
+                </label>
+                <input
+                  type="text"
+                  name="instructorId"
+                  value={form.instructorId}
+                  onChange={handleChange}
+                  placeholder="Enter instructor ID"
+                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Product Type *
                 </label>
                 <select
@@ -469,6 +527,24 @@ export default function EditSessionPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Status *
+                </label>
+                <select
+                  name="status"
+                  value={form.status}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
+                  required
+                >
+                  <option value="upcoming">Upcoming</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Expected Participants *
                 </label>
                 <input
@@ -509,6 +585,146 @@ export default function EditSessionPage() {
                   rows={3}
                   className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
                 />
+              </div>
+
+              {/* Participant Management */}
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Participants
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addParticipant}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-300 text-sm"
+                  >
+                    + Add Participant
+                  </button>
+                </div>
+
+                {form.participants.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl">
+                    <Users className="w-12 h-12 mx-auto mb-2 text-slate-400" />
+                    <p>No participants added yet</p>
+                    <p className="text-sm">
+                      Click "Add Participant" to get started
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {form.participants.map((participant, index) => (
+                      <div
+                        key={index}
+                        className="border border-slate-200 rounded-2xl p-4 bg-white/50"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-slate-700">
+                            Participant {index + 1}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => removeParticipant(index)}
+                            className="text-red-500 hover:text-red-700 transition-colors duration-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              Participant Type
+                            </label>
+                            <select
+                              value={participant.participantType}
+                              onChange={(e) =>
+                                updateParticipant(
+                                  index,
+                                  "participantType",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="individual">Individual</option>
+                              <option value="team">Team</option>
+                              <option value="institution">Institution</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              Platform Role
+                            </label>
+                            <select
+                              value={participant.platformRole}
+                              onChange={(e) =>
+                                updateParticipant(
+                                  index,
+                                  "platformRole",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="student">Student</option>
+                              <option value="individualTechProfessional">
+                                Tech Professional
+                              </option>
+                              <option value="teamTechProfessional">
+                                Team Tech Professional
+                              </option>
+                              <option value="recruiter">Recruiter</option>
+                              <option value="institution">Institution</option>
+                              <option value="admin">Admin</option>
+                              <option value="visitor">Visitor</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              Full Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={participant.fullName}
+                              onChange={(e) =>
+                                updateParticipant(
+                                  index,
+                                  "fullName",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Enter full name"
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              Email *
+                            </label>
+                            <input
+                              type="email"
+                              value={participant.email}
+                              onChange={(e) =>
+                                updateParticipant(
+                                  index,
+                                  "email",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Enter email address"
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -78,6 +78,21 @@ export const dashboardSidebarConfig = {
             icon: ShoppingCart,
             href: "/dashboard/payments",
           },
+          {
+            label: "Classrooms",
+            icon: BookOpen,
+            href: "/dashboard/classrooms",
+          },
+          {
+            label: "Attendance",
+            icon: FileText,
+            href: "/dashboard/attendance",
+          },
+          {
+            label: "Live Sessions",
+            icon: Calendar,
+            href: "/dashboard/sessions",
+          },
         ],
       },
       {

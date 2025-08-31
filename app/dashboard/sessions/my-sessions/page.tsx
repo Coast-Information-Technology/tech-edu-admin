@@ -16,6 +16,7 @@ import {
   Play,
   CheckCircle,
   Star,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,20 +25,28 @@ interface Session {
   bookingId: string;
   productId: string;
   productType: string;
-  bookingPurpose?: string;
-  instructorId?: string;
+  bookingPurpose: string;
+  instructorId: string;
   scheduleAt: string;
   endAt?: string;
-  minutesPerSession?: number;
-  numberOfExpectedParticipants?: number;
+  minutesPerSession: number;
+  numberOfExpectedParticipants: number;
   meetingLink?: string;
-  sessionType?: string;
-  status: string;
+  sessionType: "group" | "1-on-1";
+  status: "upcoming" | "confirmed" | "completed" | "cancelled";
+  avgRating?: number;
   userNotes?: string;
   internalNotes?: string;
-  avgRating?: number;
+  participants: Array<{
+    participantType: string;
+    platformRole: string;
+    profileId?: string;
+    email: string;
+    fullName: string;
+  }>;
+  createdBy: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export default function StudentSessionsPage() {
@@ -326,6 +335,9 @@ export default function StudentSessionsPage() {
                       Meeting Link
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Participants
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Rating
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
@@ -402,6 +414,19 @@ export default function StudentSessionsPage() {
                           )}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-slate-400" />
+                            <div>
+                              <div className="text-sm font-medium text-slate-900">
+                                {session.participants?.length || 0} registered
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {session.numberOfExpectedParticipants} expected
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
                           {session.avgRating ? (
                             <div className="flex items-center gap-1">
                               <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -428,7 +453,7 @@ export default function StudentSessionsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-8 py-16 text-center">
+                      <td colSpan={9} className="px-8 py-16 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
                             <BookOpen className="w-10 h-10 text-slate-400" />
