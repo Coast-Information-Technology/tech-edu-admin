@@ -71,14 +71,20 @@ export default function CalendlyCallbackPage() {
           setMessage("Calendly connected successfully!");
 
           // Log the Calendly data for debugging
+          console.log("Calendly response:", response);
+          console.log("Response data:", response.data);
           console.log("Calendly OAuth completed:", response.data.data);
 
           // You can access the Calendly data here:
           const calendlyData = response.data.data;
-          console.log("Calendly User ID:", calendlyData.calendlyUserId);
-          console.log("Calendly User URI:", calendlyData.calendlyUserUri);
-          console.log("Timezone:", calendlyData.timezone);
-          console.log("Working Hours:", calendlyData.workingHours);
+          if (calendlyData) {
+            console.log("Calendly User ID:", calendlyData.calendlyUserId);
+            console.log("Calendly User URI:", calendlyData.calendlyUserUri);
+            console.log("Timezone:", calendlyData.timezone);
+            console.log("Working Hours:", calendlyData.workingHours);
+          } else {
+            console.log("No Calendly data found in response");
+          }
 
           // Redirect to instructor availability page after 2 seconds
           setTimeout(() => {
