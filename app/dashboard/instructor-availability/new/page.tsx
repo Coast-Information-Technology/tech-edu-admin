@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { useRole } from "@/contexts/RoleContext";
 import {
   Calendar,
   Clock,
@@ -35,13 +36,6 @@ interface InstructorAvailabilityForm {
   calendlyUserUri: string;
 }
 
-interface Instructor {
-  _id: string;
-  fullName: string;
-  email: string;
-  profilePicture?: string;
-}
-
 const DAYS_OF_WEEK = [
   "Sunday",
   "Monday",
@@ -69,13 +63,12 @@ const TIMEZONES = [
 
 export default function NewInstructorAvailabilityPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { userData } = useRole();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [form, setForm] = useState<InstructorAvailabilityForm>({
-    instructorId: "",
+    instructorId: userData._id || userData.id || "", // Get from user data
     isActive: true,
     workingHours: [
       { dayOfWeek: 1, startTime: "09:00", endTime: "17:00", isAvailable: true }, // Monday
@@ -90,35 +83,15 @@ export default function NewInstructorAvailabilityPage() {
     calendlyUserUri: "",
   });
 
+  // Update instructorId when userData changes
   useEffect(() => {
-    const fetchInstructors = async () => {
-      setLoading(true);
-      setError(null);
-
-      const token = getTokenFromCookies();
-      if (!token) {
-        setError("Authentication required. Please log in.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await getApiRequest("/api/instructors", token);
-
-        if (response?.data?.success) {
-          setInstructors(response.data.data);
-        } else {
-          setError(response?.data?.message || "Failed to load instructors");
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load instructors");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInstructors();
-  }, []);
+    if (userData._id || userData.id) {
+      setForm((prev) => ({
+        ...prev,
+        instructorId: userData._id || userData.id || "",
+      }));
+    }
+  }, [userData._id, userData.id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -160,7 +133,7 @@ export default function NewInstructorAvailabilityPage() {
     e.preventDefault();
 
     if (!form.instructorId) {
-      setError("Please select an instructor");
+      setError("Instructor ID not found. Please try refreshing the page.");
       return;
     }
 
@@ -205,24 +178,7 @@ export default function NewInstructorAvailabilityPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-12">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="ml-4 text-slate-600 text-lg">
-                Loading instructors...
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !loading) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -304,26 +260,6 @@ export default function NewInstructorAvailabilityPage() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Instructor *
-                </label>
-                <select
-                  name="instructorId"
-                  value={form.instructorId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none cursor-pointer"
-                  required
-                >
-                  <option value="">Select an instructor</option>
-                  {instructors.map((instructor) => (
-                    <option key={instructor._id} value={instructor._id}>
-                      {instructor.fullName} ({instructor.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Timezone *
