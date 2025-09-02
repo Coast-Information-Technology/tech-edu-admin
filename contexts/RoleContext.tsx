@@ -29,6 +29,7 @@ interface RoleContextType {
     avatar?: string;
     role?: UserRole;
     _id?: string;
+    id?: string;
     isVerified?: boolean;
     onboardingStatus?: string;
   };
