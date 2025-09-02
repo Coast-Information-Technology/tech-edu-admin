@@ -49,7 +49,7 @@ export default function CalendlyCallbackPage() {
 
       try {
         // Complete the OAuth flow
-        const response = await postApiRequest(
+        const response: any = await postApiRequest(
           `/api/instructors/${
             userData._id || userData.id
           }/calendly-oauth/complete`,
@@ -57,12 +57,25 @@ export default function CalendlyCallbackPage() {
           {
             code,
             state,
+            // Add ownerUri if backend requires it
+            // ownerUri: "https://api.calendly.com/users/{calendly_user_id}",
+            // scope: "default" // or remove if not needed
           }
         );
 
         if (response?.data?.success) {
           setStatus("success");
           setMessage("Calendly connected successfully!");
+
+          // Log the Calendly data for debugging
+          console.log("Calendly OAuth completed:", response.data.data);
+
+          // You can access the Calendly data here:
+          const calendlyData = response.data.data;
+          console.log("Calendly User ID:", calendlyData.calendlyUserId);
+          console.log("Calendly User URI:", calendlyData.calendlyUserUri);
+          console.log("Timezone:", calendlyData.timezone);
+          console.log("Working Hours:", calendlyData.workingHours);
 
           // Redirect to instructor availability page after 2 seconds
           setTimeout(() => {
