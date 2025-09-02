@@ -35,6 +35,9 @@ export default function CalendlyCallbackPage() {
       const state = searchParams.get("state");
       const error = searchParams.get("error");
 
+      // Debug OAuth parameters
+      console.log("OAuth parameters:", { code, state, error });
+
       if (error) {
         setStatus("error");
         setMessage(`OAuth error: ${error}`);
@@ -58,8 +61,8 @@ export default function CalendlyCallbackPage() {
             code,
             state,
             // Add ownerUri if backend requires it
-            // ownerUri: "https://api.calendly.com/users/{calendly_user_id}",
-            // scope: "default" // or remove if not needed
+            ownerUri: `https://api.calendly.com/users/${userData.id}`,
+            scope: "user", // or remove if not needed
           }
         );
 
