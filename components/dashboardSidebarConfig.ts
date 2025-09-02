@@ -147,6 +147,11 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/instructor",
           },
           {
+            label: "Instructor Availability",
+            icon: BookOpen,
+            href: "/dashboard/instructor-availability",
+          },
+          {
             label: "Student",
             icon: BookOpen,
             href: "/dashboard/users",
