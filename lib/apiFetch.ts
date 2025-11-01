@@ -10,11 +10,18 @@ import {
   deleteUserIdFromCookies,
 } from "@/lib/cookies";
 import { getDeviceInfo } from "@/utils/getDeviceInfo";
+import { safeConsole } from "@/lib/console";
+import { debug } from "@/lib/debug";
+import { isDevelopment } from "@/lib/env";
 
 /**
  * Base URL for API requests. For Next.js API routes, we use relative URLs
  */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Empty string for relative URLs to Next.js API routes
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Default to backend URL
+
+// Debug logging for BASE_URL
+console.log("API BASE_URL:", BASE_URL);
+console.log("NEXT_PUBLIC_API_URL env var:", process.env.NEXT_PUBLIC_API_URL);
 
 /**
  * Generic API response type
@@ -95,11 +102,25 @@ export const apiRequest = async <T = any>(
     body: method !== "GET" && body ? JSON.stringify(body) : undefined,
   };
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, requestOptions);
+    // Debug logging for development
+    debug.api.request(endpoint, method, body);
+
+    const fullUrl = `${BASE_URL}${endpoint}`;
+    console.log("🚀 API Request Debug:");
+    console.log("- BASE_URL:", BASE_URL);
+    console.log("- endpoint:", endpoint);
+    console.log("- fullUrl:", fullUrl);
+    console.log("- method:", method);
+    console.log("- body:", body);
+
+    const response = await fetch(fullUrl, requestOptions);
     const contentType = response.headers.get("content-type");
     const isJson = contentType && contentType.includes("application/json");
     const responseText = await response.text();
     const data = isJson && responseText ? JSON.parse(responseText) : {};
+
+    // Debug logging for development
+    debug.api.response(endpoint, response.status, data);
 
     if (!response.ok) {
       // Throw the entire backend error object if available
@@ -108,6 +129,8 @@ export const apiRequest = async <T = any>(
 
     return { data, status: response.status, message: data.message };
   } catch (error: any) {
+    // Debug logging for development
+    debug.api.error(endpoint, error);
     // If error is already an object from backend, just throw it
     if (error && typeof error === "object") {
       throw error;
@@ -198,27 +221,37 @@ export const loginUser = async (
 export const logoutUser = async (): Promise<ApiResponse<any>> => {
   const accessToken = getCookie("accessToken");
   const refreshToken = getCookie("refreshToken");
+  const token = getTokenFromCookies();
 
   const requestBody = {
     reason: "user_initiated",
     deviceInfo: getDeviceInfo(),
-    location: "New York, NY, USA", // Replace with real location if you implement IP-based lookup
+    location: "", // Replace with real location if you implement IP-based lookup
     accessToken,
     refreshToken,
   };
 
   try {
     // Try to call the logout API endpoint
+    if (!token) {
+      // If no token, just return a success response for local logout
+      return {
+        data: null,
+        status: 200,
+        message: "Logged out successfully (no token found)",
+      };
+    }
+
     const response = await postApiRequest(
       "/api/auth/logout",
-      accessToken || "",
+      token,
       requestBody
     );
     return response;
   } catch (error) {
     // If the API call fails, we still want to logout locally
     // This handles cases where the API endpoint doesn't exist or is down
-    console.warn(
+    safeConsole.warn(
       "Logout API call failed, proceeding with local logout:",
       error
     );
@@ -403,7 +436,7 @@ export const apiRequestWithRefresh = async <T = any>(
           }
         }
       } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
+        safeConsole.error("Token refresh failed:", refreshError);
         // If refresh fails, clear tokens and throw original error
         throw error;
       }

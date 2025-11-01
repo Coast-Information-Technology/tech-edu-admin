@@ -22,8 +22,10 @@ import {
   Users2,
   Building,
   Video,
+  X,
 } from "lucide-react";
 import Link from "next/link";
+import StarRating from "@/components/ui/star-rating";
 
 interface Session {
   _id: string;
@@ -31,27 +33,19 @@ interface Session {
   productId: string;
   productType: string;
   bookingPurpose: string;
-  instructorId: string;
+  instructorId?: string;
   scheduleAt: string;
   endAt?: string;
-  minutesPerSession: number;
+  minutesPerSession?: number;
   numberOfExpectedParticipants: number;
   meetingLink?: string;
+  materialUrl?: string;
   sessionType: "group" | "1-on-1";
   status: "upcoming" | "confirmed" | "completed" | "cancelled";
   avgRating?: number;
-  userNotes?: string;
   internalNotes?: string;
-  participants: Array<{
-    participantType: string;
-    platformRole: string;
-    profileId?: string;
-    email: string;
-    fullName: string;
-  }>;
-  createdBy: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export default function InstructorSessionsPage() {
@@ -65,6 +59,17 @@ export default function InstructorSessionsPage() {
   const [sortDirection, setSortDirection] = useState("asc");
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Modal states
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [completing, setCompleting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  // Form states for completion
+  const [avgRating, setAvgRating] = useState("");
+  const [internalNotes, setInternalNotes] = useState("");
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -97,15 +102,112 @@ export default function InstructorSessionsPage() {
     fetchSessions();
   }, []);
 
+  // Handle session completion
+  const handleCompleteSession = async () => {
+    if (!selectedSession) return;
+
+    setCompleting(true);
+    try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        setError("Authentication required. Please log in.");
+        return;
+      }
+
+      const { updateApiRequest } = await import("@/lib/apiFetch");
+      const response = await updateApiRequest(
+        `/api/sessions/${selectedSession._id}/complete`,
+        token,
+        {
+          avgRating: avgRating ? parseFloat(avgRating) : undefined,
+          internalNotes: internalNotes || undefined,
+        }
+      );
+
+      if (response?.data?.success) {
+        // Update the session in the list
+        setSessions((prev) =>
+          prev.map((session) =>
+            session._id === selectedSession._id
+              ? { ...session, ...response.data.data }
+              : session
+          )
+        );
+        setShowCompleteModal(false);
+        setSelectedSession(null);
+        setAvgRating("");
+        setInternalNotes("");
+        setError(null);
+      } else {
+        setError(response?.data?.message || "Failed to complete session");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to complete session");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  // Handle session cancellation
+  const handleCancelSession = async () => {
+    if (!selectedSession) return;
+
+    setCancelling(true);
+    try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        setError("Authentication required. Please log in.");
+        return;
+      }
+
+      const { updateApiRequest } = await import("@/lib/apiFetch");
+      const response = await updateApiRequest(
+        `/api/sessions/${selectedSession._id}/cancel`,
+        token,
+        {}
+      );
+
+      if (response?.data?.success) {
+        // Update the session in the list
+        setSessions((prev) =>
+          prev.map((session) =>
+            session._id === selectedSession._id
+              ? { ...session, ...response.data.data }
+              : session
+          )
+        );
+        setShowCancelModal(false);
+        setSelectedSession(null);
+        setError(null);
+      } else {
+        setError(response?.data?.message || "Failed to cancel session");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to cancel session");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // Open complete modal
+  const openCompleteModal = (session: Session) => {
+    setSelectedSession(session);
+    setShowCompleteModal(true);
+  };
+
+  // Open cancel modal
+  const openCancelModal = (session: Session) => {
+    setSelectedSession(session);
+    setShowCancelModal(true);
+  };
+
   // Filter and sort logic
   const filteredSessions = sessions.filter((session) => {
     const matchesSearch =
-      session.bookingPurpose
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      session.bookingPurpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.sessionType?.toLowerCase().includes(searchTerm.toLowerCase());
+      session.sessionType.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       filterStatus === "all" || session.status === filterStatus;
@@ -365,8 +467,8 @@ export default function InstructorSessionsPage() {
           </div>
         )}
 
-        {/* Sessions Table */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+        {/* Sessions Cards */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6">
           {loading ? (
             <div className="p-12 text-center">
               <div className="inline-flex items-center gap-3">
@@ -374,198 +476,168 @@ export default function InstructorSessionsPage() {
                 <p className="text-slate-600 text-lg">Loading sessions...</p>
               </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-slate-50 to-blue-50">
-                  <tr>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Session
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Product Type
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Session Type
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Schedule
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Participants
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Meeting
-                    </th>
-                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Rating
-                    </th>
-                    <th className="px-8 py-6 text-left text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white/50 divide-y divide-slate-200">
-                  {paginatedSessions.length > 0 ? (
-                    paginatedSessions.map((session) => (
-                      <tr
-                        key={session._id}
-                        className="hover:bg-blue-50/50 transition-all duration-300 group"
+          ) : paginatedSessions.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {paginatedSessions.map((session) => (
+                <div
+                  key={session._id}
+                  className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 p-6 hover:shadow-xl hover:border-blue-200 transition-all duration-300 group"
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300 mb-1">
+                        {session.bookingPurpose}
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        ID: {session._id.slice(-8)}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(
+                        session.status
+                      )}`}
+                    >
+                      {getStatusIcon(session.status)}
+                      {session.status}
+                    </span>
+                  </div>
+
+                  {/* Product Type & Session Type */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                      {session.productType}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border ${getSessionTypeColor(
+                        session.sessionType
+                      )}`}
+                    >
+                      {getSessionTypeIcon(session.sessionType)}
+                      {session.sessionType}
+                    </span>
+                  </div>
+
+                  {/* Schedule */}
+                  <div className="mb-4 p-4 bg-slate-50/80 rounded-[12px]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-slate-600" />
+                      <span className="text-sm font-medium text-slate-700">
+                        Schedule
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-900 font-medium">
+                      {formatDate(session.scheduleAt)}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {session.minutesPerSession
+                        ? `${session.minutesPerSession} minutes • `
+                        : ""}
+                      {getTimeUntilSession(session.scheduleAt)}
+                    </div>
+                  </div>
+
+                  {/* Participants */}
+                  <div className="mb-4 p-4 bg-slate-50/80 rounded-[12px]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-4 h-4 text-slate-600" />
+                      <span className="text-sm font-medium text-slate-700">
+                        Participants
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-900">
+                        {session.numberOfExpectedParticipants} expected
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Meeting Link & Rating */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1">
+                      {session.meetingLink ? (
+                        <a
+                          href={session.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300"
+                        >
+                          <Video className="w-4 h-4" />
+                          Join Meeting
+                        </a>
+                      ) : (
+                        <span className="text-sm text-slate-500">
+                          Meeting link will be provided
+                        </span>
+                      )}
+                    </div>
+                    {session.avgRating && (
+                      <StarRating
+                        value={session.avgRating}
+                        onChange={() => {}}
+                        size="sm"
+                        showValue={true}
+                        readonly={true}
+                        className="justify-start"
+                      />
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-4 border-t border-slate-200">
+                    <Link href={`/dashboard/sessions/${session._id}`}>
+                      <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white/50 border border-slate-200 rounded-[12px] hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all duration-300">
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                    </Link>
+                    {session.status === "upcoming" && (
+                      <Link href={`/dashboard/sessions/${session._id}/edit`}>
+                        <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white/50 border border-slate-200 rounded-[12px] hover:bg-yellow-50 hover:border-yellow-200 hover:text-yellow-700 transition-all duration-300">
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </button>
+                      </Link>
+                    )}
+                    {(session.status === "confirmed" ||
+                      session.status === "upcoming") && (
+                      <button
+                        onClick={() => openCompleteModal(session)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-[12px] hover:from-green-700 hover:to-emerald-700 transition-all duration-300"
                       >
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
-                              {session.bookingPurpose || "Mentoring Session"}
-                            </div>
-                            <div className="text-sm text-slate-500">
-                              ID: {session._id.slice(-8)}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
-                            {session.productType}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="space-y-1">
-                            <span
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border ${getSessionTypeColor(
-                                session.sessionType
-                              )}`}
-                            >
-                              {getSessionTypeIcon(session.sessionType)}
-                              {session.sessionType}
-                            </span>
-                            {session.participants &&
-                              session.participants.length > 0 && (
-                                <div className="text-xs text-slate-500">
-                                  {session.participants.length} registered
-                                </div>
-                              )}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm text-slate-900">
-                            {formatDate(session.scheduleAt)}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-1">
-                            {session.minutesPerSession} minutes
-                          </div>
-                          <div className="text-xs text-slate-500 font-medium">
-                            {getTimeUntilSession(session.scheduleAt)}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusColor(
-                              session.status
-                            )}`}
-                          >
-                            {getStatusIcon(session.status)}
-                            {session.status}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-slate-500" />
-                              <span className="text-sm font-semibold text-slate-900">
-                                {session.numberOfExpectedParticipants}
-                              </span>
-                            </div>
-                            {session.participants &&
-                              session.participants.length > 0 && (
-                                <div className="text-xs text-slate-500">
-                                  {session.participants.length} confirmed
-                                </div>
-                              )}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          {session.meetingLink ? (
-                            <a
-                              href={session.meetingLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300"
-                            >
-                              <Video className="w-4 h-4" />
-                              Join
-                            </a>
-                          ) : (
-                            <span className="text-sm text-slate-500">
-                              No link
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          {session.avgRating ? (
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                              <span className="text-sm font-semibold text-slate-900">
-                                {session.avgRating.toFixed(1)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-slate-500">
-                              No rating
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Link href={`/dashboard/sessions/${session._id}`}>
-                              <button className="p-2 rounded-full hover:bg-blue-100 transition-all duration-300 group-hover:bg-blue-100">
-                                <Eye className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors duration-300" />
-                              </button>
-                            </Link>
-                            {session.status === "upcoming" && (
-                              <Link
-                                href={`/dashboard/sessions/${session._id}/edit`}
-                              >
-                                <button className="p-2 rounded-full hover:bg-yellow-100 transition-all duration-300 group-hover:bg-yellow-100">
-                                  <Edit className="w-4 h-4 text-slate-600 group-hover:text-yellow-600 transition-colors duration-300" />
-                                </button>
-                              </Link>
-                            )}
-                            {session.status === "confirmed" && (
-                              <Link
-                                href={`/dashboard/sessions/${session._id}/complete`}
-                              >
-                                <button className="p-2 rounded-full hover:bg-green-100 transition-all duration-300 group-hover:bg-green-100">
-                                  <CheckCircle className="w-4 h-4 text-slate-600 group-hover:text-green-600 transition-colors duration-300" />
-                                </button>
-                              </Link>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={9} className="px-8 py-16 text-center">
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
-                            <BookOpen className="w-10 h-10 text-slate-400" />
-                          </div>
-                          <div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                              No sessions found
-                            </h3>
-                            <p className="text-slate-600">
-                              Get started by creating your first session
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        <CheckCircle className="w-4 h-4" />
+                        Complete
+                      </button>
+                    )}
+                    {(session.status === "upcoming" ||
+                      session.status === "confirmed") && (
+                      <button
+                        onClick={() => openCancelModal(session)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-pink-600 rounded-[12px] hover:from-red-700 hover:to-pink-700 transition-all duration-300"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-16 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
+                  <BookOpen className="w-10 h-10 text-slate-400" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                    No sessions found
+                  </h3>
+                  <p className="text-slate-600">
+                    Get started by creating your first session
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -608,6 +680,176 @@ export default function InstructorSessionsPage() {
                   aria-label="Next page"
                 >
                   Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Complete Session Modal */}
+        {showCompleteModal && selectedSession && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-slate-900">
+                  Complete Session
+                </h3>
+                <button
+                  onClick={() => setShowCompleteModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors duration-200"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Session:{" "}
+                    <span className="font-medium">
+                      {selectedSession.bookingPurpose}
+                    </span>
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Scheduled:{" "}
+                    <span className="font-medium">
+                      {formatDate(selectedSession.scheduleAt)}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    Average Rating (Optional)
+                  </label>
+                  <div className="bg-white/50 border border-slate-200 rounded-2xl p-4">
+                    <StarRating
+                      value={parseFloat(avgRating) || 0}
+                      onChange={(rating) => setAvgRating(rating.toString())}
+                      max={5}
+                      size="lg"
+                      showValue={true}
+                      allowHalf={true}
+                      className="justify-center"
+                    />
+                    <p className="text-xs text-slate-500 text-center mt-2">
+                      Click on a star to rate the session
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Internal Notes (Optional)
+                  </label>
+                  <textarea
+                    value={internalNotes}
+                    onChange={(e) => setInternalNotes(e.target.value)}
+                    placeholder="Session completed successfully. Student showed good understanding of the concepts."
+                    rows={3}
+                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCompleteModal(false)}
+                  className="flex-1 px-4 py-3 text-slate-700 bg-slate-100 hover:bg-slate-200 font-semibold rounded-2xl transition-all duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCompleteSession}
+                  disabled={completing}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {completing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Completing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Complete Session
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Session Modal */}
+        {showCancelModal && selectedSession && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-slate-900">
+                  Cancel Session
+                </h3>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors duration-200"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Session:{" "}
+                    <span className="font-medium">
+                      {selectedSession.bookingPurpose}
+                    </span>
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Scheduled:{" "}
+                    <span className="font-medium">
+                      {formatDate(selectedSession.scheduleAt)}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="p-4 bg-red-50 border border-red-200 rounded-[12px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    <span className="text-sm font-medium text-red-800">
+                      Warning
+                    </span>
+                  </div>
+                  <p className="text-sm text-red-700">
+                    Are you sure you want to cancel this session? This action
+                    cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-3 text-slate-700 bg-slate-100 hover:bg-slate-200 font-semibold rounded-2xl transition-all duration-300"
+                >
+                  Keep Session
+                </button>
+                <button
+                  onClick={handleCancelSession}
+                  disabled={cancelling}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold rounded-2xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {cancelling ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Cancelling...
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-4 h-4" />
+                      Cancel Session
+                    </>
+                  )}
                 </button>
               </div>
             </div>

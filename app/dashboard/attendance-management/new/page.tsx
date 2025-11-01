@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
 import {
   Calendar,
   Clock,
@@ -44,15 +45,7 @@ interface AttendanceForm {
   numberOfExpectedParticipants: number;
 }
 
-const PRODUCT_TYPE_OPTIONS = [
-  "Training & Certification",
-  "Academic Support Services",
-  "Career Development & Mentorship",
-  "Institutional & Team Services",
-  "AI-Powered or Automation Services",
-  "Career Connect",
-  "Marketing, Consultation & Free Services",
-];
+// Using centralized constants from lib/constants/products.ts
 
 const BOOKER_TYPE_OPTIONS = ["individual", "group", "organization"];
 const PLATFORM_ROLE_OPTIONS = ["student", "instructor", "admin", "coordinator"];
@@ -369,12 +362,12 @@ export default function CreateAttendancePage() {
                   ))}
                 </select>
                 {instructorsLoading && (
-                  <div className="text-blue-600 text-sm bg-blue-50 p-3 rounded-xl border border-blue-200 mt-2">
+                  <div className="text-blue-600 text-sm bg-blue-50 p-3 rounded-[12px] border border-blue-200 mt-2">
                     Loading instructors...
                   </div>
                 )}
                 {!instructorsLoading && instructors.length === 0 && (
-                  <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2">
+                  <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-[12px] border border-slate-200 mt-2">
                     No instructors found
                   </div>
                 )}
@@ -547,7 +540,7 @@ export default function CreateAttendancePage() {
               <button
                 type="button"
                 onClick={addParticipant}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-[12px] hover:bg-blue-700 transition-all duration-300 flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add Participant

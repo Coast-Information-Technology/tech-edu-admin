@@ -41,8 +41,9 @@ import {
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
 
-// Import only the AdminProfile component for all roles
+// Import both profile components
 import AdminProfile from "./components/AdminProfile";
+import InstructorProfile from "@/components/InstructorProfile";
 
 // Role icon mapping for the four main roles
 const roleIcons: Record<string, React.ComponentType<any>> = {
@@ -177,25 +178,22 @@ export default function ProfilePage() {
     return role?.toLowerCase()?.replace(/[_-]/g, "");
   };
 
-  // Render profile component for all roles (using AdminProfile for all)
+  // Render profile component based on role
   const renderProfileComponent = () => {
     const currentRole = getCurrentRole();
     const normalizedRole = normalizeRole(currentRole);
-    const RoleIcon = roleIcons[currentRole] || User;
 
-    // Check if the role is one of the supported roles
-    const supportedRoles = [
-      "admin",
-      "moderator",
-      "instructor",
-      "customerrepresentative",
-    ];
+    // Use InstructorProfile for instructors
+    if (normalizedRole === "instructor") {
+      return <InstructorProfile />;
+    }
 
-    if (supportedRoles.includes(normalizedRole)) {
+    // Use AdminProfile for admin, moderator, and customerRepresentative
+    const adminRoles = ["admin", "moderator", "customerrepresentative"];
+    if (adminRoles.includes(normalizedRole)) {
       return (
         <AdminProfile
           userProfile={userProfile}
-          // onUpdate={handleProfileUpdate}
           userId={userProfile._id || userProfile.id || userProfile.userId || ""}
           token={getTokenFromCookies() || ""}
         />

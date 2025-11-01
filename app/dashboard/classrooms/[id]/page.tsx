@@ -352,7 +352,7 @@ export default function ClassroomDetailPage() {
                         {classroom.actualDaysAndTime.map((schedule, index) => (
                           <div
                             key={index}
-                            className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl"
+                            className="flex items-center gap-2 p-3 bg-slate-50 rounded-[12px]"
                           >
                             <CalendarDays className="w-4 h-4 text-slate-500" />
                             <span className="text-sm font-semibold text-slate-900">
@@ -387,7 +387,7 @@ export default function ClassroomDetailPage() {
                         <User className="w-4 h-4" />
                         Instructor Notes
                       </label>
-                      <p className="text-slate-900 mt-2 p-4 bg-slate-50 rounded-xl">
+                      <p className="text-slate-900 mt-2 p-4 bg-slate-50 rounded-[12px]">
                         {classroom.instructorNotes}
                       </p>
                     </div>
@@ -399,7 +399,7 @@ export default function ClassroomDetailPage() {
                         <Info className="w-4 h-4" />
                         Internal Notes
                       </label>
-                      <p className="text-slate-900 mt-2 p-4 bg-slate-50 rounded-xl">
+                      <p className="text-slate-900 mt-2 p-4 bg-slate-50 rounded-[12px]">
                         {classroom.internalNotes}
                       </p>
                     </div>
@@ -415,7 +415,7 @@ export default function ClassroomDetailPage() {
             {classroom.meetingLink && (
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-[12px] flex items-center justify-center">
                     <Video className="w-5 h-5 text-green-600" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">
@@ -439,7 +439,7 @@ export default function ClassroomDetailPage() {
             {/* Status Card */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-[12px] flex items-center justify-center">
                   <Tag className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Status</h3>
@@ -457,7 +457,7 @@ export default function ClassroomDetailPage() {
             {/* Timestamps */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-slate-100 to-gray-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-slate-100 to-gray-100 rounded-[12px] flex items-center justify-center">
                   <Clock className="w-5 h-5 text-slate-600" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Timestamps</h3>
@@ -487,7 +487,7 @@ export default function ClassroomDetailPage() {
             {/* Quick Actions */}
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-[12px] flex items-center justify-center">
                   <MessageSquare className="w-5 h-5 text-yellow-600" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -497,7 +497,7 @@ export default function ClassroomDetailPage() {
               <div className="space-y-3">
                 {classroom.status === "upcoming" && (
                   <Link href={`/dashboard/classrooms/${classroom._id}/edit`}>
-                    <button className="w-full px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300">
+                    <button className="w-full px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-[12px] hover:from-yellow-600 hover:to-orange-600 transition-all duration-300">
                       <span className="flex items-center justify-center gap-2">
                         <Edit className="w-4 h-4" />
                         Edit Classroom
@@ -506,7 +506,7 @@ export default function ClassroomDetailPage() {
                   </Link>
                 )}
                 <Link href="/dashboard/classrooms">
-                  <button className="w-full px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all duration-300">
+                  <button className="w-full px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-[12px] hover:bg-slate-200 transition-all duration-300">
                     <span className="flex items-center justify-center gap-2">
                       <ArrowLeft className="w-4 h-4" />
                       Back to Classrooms

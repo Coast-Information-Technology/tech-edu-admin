@@ -17,31 +17,11 @@ import {
   CheckCircle,
   XCircle,
   Play,
+  X,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
-
-interface Classroom {
-  _id: string;
-  bookingId: string;
-  productId: string;
-  productType: string;
-  bookingPurpose?: string;
-  instructorId?: string;
-  scheduleAt: string;
-  endAt?: string;
-  minutesPerSession?: number;
-  numberOfExpectedParticipants?: number;
-  meetingLink?: string;
-  status: string;
-  instructorNotes?: string;
-  internalNotes?: string;
-  actualDaysAndTime?: Array<{
-    day: string;
-    time: string;
-  }>;
-  createdAt: string;
-  updatedAt?: string;
-}
+import { Classroom } from "@/lib/classroom";
 
 export default function InstructorClassroomsPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -53,6 +33,18 @@ export default function InstructorClassroomsPage() {
   const [sortDirection, setSortDirection] = useState("asc");
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Modal states
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(
+    null
+  );
+  const [completing, setCompleting] = useState(false);
+
+  // Form states for completion
+  const [completionNotes, setCompletionNotes] = useState("");
+  const [attendancePresent, setAttendancePresent] = useState("");
+  const [attendanceAbsent, setAttendanceAbsent] = useState("");
 
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -67,7 +59,7 @@ export default function InstructorClassroomsPage() {
       }
 
       try {
-        const endpoint = "/api/classrooms/instructor/my-instructor-classroom";
+        const endpoint = "/api/classrooms/instructor/my-classrooms";
         const response = await getApiRequest(endpoint, token);
 
         if (response?.data?.success) {
@@ -85,12 +77,72 @@ export default function InstructorClassroomsPage() {
     fetchClassrooms();
   }, []);
 
+  // Handle classroom completion
+  const handleCompleteClassroom = async () => {
+    if (!selectedClassroom) return;
+
+    setCompleting(true);
+    try {
+      const token = getTokenFromCookies();
+      if (!token) {
+        setError("Authentication required. Please log in.");
+        return;
+      }
+
+      const present = parseInt(attendancePresent) || 0;
+      const absent = parseInt(attendanceAbsent) || 0;
+      const total = present + absent;
+
+      const { updateApiRequest } = await import("@/lib/apiFetch");
+      const response = await updateApiRequest(
+        `/api/classrooms/${selectedClassroom._id}/complete-session`,
+        token,
+        {
+          completionNotes: completionNotes || undefined,
+          attendance: {
+            present,
+            absent,
+            total,
+          },
+        }
+      );
+
+      if (response?.data?.success) {
+        // Update the classroom in the list
+        setClassrooms((prev) =>
+          prev.map((classroom) =>
+            classroom._id === selectedClassroom._id
+              ? { ...classroom, ...response.data.data }
+              : classroom
+          )
+        );
+        setShowCompleteModal(false);
+        setSelectedClassroom(null);
+        setCompletionNotes("");
+        setAttendancePresent("");
+        setAttendanceAbsent("");
+        setError(null);
+      } else {
+        setError(
+          response?.data?.message || "Failed to complete classroom session"
+        );
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to complete classroom session");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  // Open complete modal
+  const openCompleteModal = (classroom: Classroom) => {
+    setSelectedClassroom(classroom);
+    setShowCompleteModal(true);
+  };
+
   // Filter and sort logic
   const filteredClassrooms = classrooms.filter((classroom) => {
     const matchesSearch =
-      classroom.bookingPurpose
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
       classroom.productType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       classroom.status.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -320,7 +372,7 @@ export default function InstructorClassroomsPage() {
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-300">
-                              {classroom.bookingPurpose || "Training Session"}
+                              Training Session
                             </div>
                             <div className="text-sm text-slate-500">
                               ID: {classroom._id.slice(-8)}
@@ -336,13 +388,11 @@ export default function InstructorClassroomsPage() {
                           <div className="text-sm text-slate-900">
                             {formatDate(classroom.scheduleAt)}
                           </div>
-                          {classroom.actualDaysAndTime &&
-                            classroom.actualDaysAndTime.length > 0 && (
-                              <div className="text-xs text-slate-500 mt-1">
-                                {classroom.actualDaysAndTime.length} recurring
-                                sessions
-                              </div>
-                            )}
+                          {classroom.minutesPerSession && (
+                            <div className="text-xs text-slate-500 mt-1">
+                              {classroom.minutesPerSession} minutes
+                            </div>
+                          )}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <span
@@ -357,9 +407,18 @@ export default function InstructorClassroomsPage() {
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm font-semibold text-slate-900">
-                              {classroom.numberOfExpectedParticipants || 0}
-                            </span>
+                            <div>
+                              <span className="text-sm font-semibold text-slate-900">
+                                {classroom.numberOfExpectedParticipants}{" "}
+                                expected
+                              </span>
+                              {classroom.attendance && (
+                                <div className="text-xs text-slate-500 mt-1">
+                                  {classroom.attendance.present} present,{" "}
+                                  {classroom.attendance.absent} absent
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
@@ -380,14 +439,15 @@ export default function InstructorClassroomsPage() {
                                 </button>
                               </Link>
                             )}
-                            {classroom.status === "active" && (
-                              <Link
-                                href={`/dashboard/classrooms/${classroom._id}/complete`}
+                            {(classroom.status === "active" ||
+                              classroom.status === "upcoming") && (
+                              <button
+                                onClick={() => openCompleteModal(classroom)}
+                                className="p-2 rounded-full hover:bg-green-100 transition-all duration-300 group-hover:bg-green-100"
+                                title="Complete Session"
                               >
-                                <button className="p-2 rounded-full hover:bg-green-100 transition-all duration-300 group-hover:bg-green-100">
-                                  <CheckCircle className="w-4 h-4 text-slate-600 group-hover:text-green-600 transition-colors duration-300" />
-                                </button>
-                              </Link>
+                                <CheckCircle className="w-4 h-4 text-slate-600 group-hover:text-green-600 transition-colors duration-300" />
+                              </button>
                             )}
                           </div>
                         </td>
@@ -456,6 +516,126 @@ export default function InstructorClassroomsPage() {
                   aria-label="Next page"
                 >
                   Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Complete Classroom Session Modal */}
+        {showCompleteModal && selectedClassroom && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-slate-900">
+                  Complete Classroom Session
+                </h3>
+                <button
+                  onClick={() => setShowCompleteModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors duration-200"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Session:{" "}
+                    <span className="font-medium">Training Session</span>
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Scheduled:{" "}
+                    <span className="font-medium">
+                      {formatDate(selectedClassroom.scheduleAt)}
+                    </span>
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Expected Participants:{" "}
+                    <span className="font-medium">
+                      {selectedClassroom.numberOfExpectedParticipants}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Completion Notes (Optional)
+                  </label>
+                  <textarea
+                    value={completionNotes}
+                    onChange={(e) => setCompletionNotes(e.target.value)}
+                    placeholder="Classroom session completed successfully. All participants engaged well in the practical exercises."
+                    rows={3}
+                    className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    Attendance
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        Present
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={selectedClassroom.numberOfExpectedParticipants}
+                        value={attendancePresent}
+                        onChange={(e) => setAttendancePresent(e.target.value)}
+                        placeholder="0"
+                        className="w-full px-3 py-2 bg-white/50 border border-slate-200 rounded-[12px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        Absent
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={selectedClassroom.numberOfExpectedParticipants}
+                        value={attendanceAbsent}
+                        onChange={(e) => setAttendanceAbsent(e.target.value)}
+                        placeholder="0"
+                        className="w-full px-3 py-2 bg-white/50 border border-slate-200 rounded-[12px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">
+                    Total:{" "}
+                    {parseInt(attendancePresent) + parseInt(attendanceAbsent)} /{" "}
+                    {selectedClassroom.numberOfExpectedParticipants}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCompleteModal(false)}
+                  className="flex-1 px-4 py-3 text-slate-700 bg-slate-100 hover:bg-slate-200 font-semibold rounded-2xl transition-all duration-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCompleteClassroom}
+                  disabled={completing}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {completing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Completing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Complete Session
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -201,8 +201,12 @@ export default function AdminDashboard() {
         setPaymentStats(paymentResponse.data?.data);
       }
     } catch (error: any) {
-      console.error("Error fetching dashboard data:", error);
-      toast.error("Failed to load dashboard data");
+      // console.error("Error fetching dashboard data:", error);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Failed to load dashboard data"
+      );
     } finally {
       setLoading(false);
     }

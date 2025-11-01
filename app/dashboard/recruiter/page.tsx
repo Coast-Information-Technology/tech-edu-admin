@@ -105,7 +105,7 @@ export default function CompanyDashboard() {
           {stats.map((stat, i) => (
             <div
               key={i}
-              className="bg-blue-50 border border-blue-100 rounded-xl p-6 flex flex-col items-center shadow hover:shadow-lg transition"
+              className="bg-blue-50 border border-blue-100 rounded-[12px] p-6 flex flex-col items-center shadow hover:shadow-lg transition"
             >
               {stat.icon}
               <div className="text-2xl font-bold text-[#011F72]">
@@ -116,7 +116,7 @@ export default function CompanyDashboard() {
           ))}
         </div>
         {/* Applications Chart */}
-        <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-8">
+        <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#011F72] mb-4">
             Applications Per Job
           </h2>
@@ -137,7 +137,7 @@ export default function CompanyDashboard() {
         {/* Upcoming Interviews & Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Upcoming Interviews */}
-          <div className="md:col-span-2 bg-white border border-blue-100 rounded-xl shadow p-6">
+          <div className="md:col-span-2 bg-white border border-blue-100 rounded-[12px] shadow p-6">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">
               Upcoming Interviews
             </h2>
@@ -171,7 +171,7 @@ export default function CompanyDashboard() {
             )}
           </div>
           {/* Quick Links */}
-          <div className="bg-white border border-blue-100 rounded-xl shadow p-6 flex flex-col gap-4">
+          <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 flex flex-col gap-4">
             <h2 className="text-lg font-semibold text-[#011F72] mb-4">
               Quick Links
             </h2>
@@ -187,7 +187,7 @@ export default function CompanyDashboard() {
           </div>
         </div>
         {/* Recent Activity Feed */}
-        <div className="bg-white border border-blue-100 rounded-xl shadow p-6 mb-8">
+        <div className="bg-white border border-blue-100 rounded-[12px] shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#011F72] mb-4">
             Recent Activity
           </h2>

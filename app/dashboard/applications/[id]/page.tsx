@@ -84,10 +84,18 @@ export default function ApplicationDetailPage({
         );
         toast.success(`Application status updated to ${newStatus}.`);
       } else {
-        toast.error(res.data.message || `Failed to update status.`);
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to update status"
+            : res.data.message || `Failed to update status.`
+        );
       }
     } catch (e: any) {
-      toast.error(e.message || "An error occurred while updating status.");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : e.message || "An error occurred while updating status."
+      );
     }
   };
 

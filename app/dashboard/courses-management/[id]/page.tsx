@@ -426,7 +426,7 @@ export default function AdminCourseDetailPage({
                   alt={currentData.title}
                   width={120}
                   height={80}
-                  className="rounded-lg object-cover"
+                  className="rounded-[10px] object-cover"
                 />
                 <div className="flex-1">
                   {isEditing ? (
@@ -616,19 +616,19 @@ export default function AdminCourseDetailPage({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-center p-4 bg-blue-50 rounded-[10px]">
                   <div className="text-2xl font-bold text-blue-600">
                     {currentData.enrollment.total}
                   </div>
                   <div className="text-sm text-gray-600">Total Enrollments</div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-center p-4 bg-green-50 rounded-[10px]">
                   <div className="text-2xl font-bold text-green-600">
                     {currentData.enrollment.active}
                   </div>
                   <div className="text-sm text-gray-600">Active Students</div>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-center p-4 bg-purple-50 rounded-[10px]">
                   <div className="text-2xl font-bold text-purple-600">
                     {currentData.enrollment.completed}
                   </div>
@@ -942,7 +942,7 @@ export default function AdminCourseDetailPage({
                 {enrollments.map((enrollment) => (
                   <div
                     key={enrollment.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className="flex items-center justify-between p-4 border rounded-[10px]"
                   >
                     <div className="flex items-center gap-4">
                       <Image

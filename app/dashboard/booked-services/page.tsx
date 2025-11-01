@@ -23,6 +23,7 @@ import {
   Share2,
 } from "lucide-react";
 import { useRole } from "@/contexts/RoleContext";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
 import {
   Dialog,
   DialogContent,
@@ -703,7 +704,8 @@ export default function BookedServicesPage() {
                         <div className="flex items-center justify-between text-sm">
                           <span>Price:</span>
                           <span>
-                            ${service.price} {service.currency}
+                            {getCurrencySymbol(service.currency)}
+                            {service.price}
                           </span>
                         </div>
                         {service.notes && (

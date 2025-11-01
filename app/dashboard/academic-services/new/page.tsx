@@ -138,10 +138,18 @@ export default function NewAcademicServicePage() {
         toast.success("Academic service created!");
         router.push("/dashboard/academic-services");
       } else {
-        toast.error(response.message || "Failed to create service");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to create service"
+            : response.message || "Failed to create service"
+        );
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to create service");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to create service"
+          : error.message || "Failed to create service"
+      );
     } finally {
       setLoading(false);
     }

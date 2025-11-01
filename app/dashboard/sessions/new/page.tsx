@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
 import {
   Calendar,
   Clock,
@@ -614,7 +615,7 @@ export default function CreateSessionPage() {
                     <button
                       type="button"
                       onClick={addParticipant}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-300 text-sm"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-[12px] hover:bg-blue-700 transition-colors duration-300 text-sm"
                     >
                       + Add Participant
                     </button>
@@ -662,7 +663,7 @@ export default function CreateSessionPage() {
                                     e.target.value
                                   )
                                 }
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 <option value="individual">Individual</option>
                                 <option value="team">Team</option>
@@ -683,7 +684,7 @@ export default function CreateSessionPage() {
                                     e.target.value
                                   )
                                 }
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 <option value="student">Student</option>
                                 <option value="individualTechProfessional">
@@ -714,7 +715,7 @@ export default function CreateSessionPage() {
                                   )
                                 }
                                 placeholder="Enter full name"
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                               />
                             </div>
@@ -734,7 +735,7 @@ export default function CreateSessionPage() {
                                   )
                                 }
                                 placeholder="Enter email address"
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 required
                               />
                             </div>

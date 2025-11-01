@@ -105,7 +105,11 @@ export default function EditAcademicServicePage() {
         });
         setImagePreview(data.thumbnailUrl || "");
       } catch (error: any) {
-        toast.error(error.message || "Failed to fetch academic service");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : error.message || "Failed to fetch academic service"
+        );
       } finally {
         setFetching(false);
       }
@@ -181,10 +185,18 @@ export default function EditAcademicServicePage() {
         toast.success("Academic service updated!");
         router.push(`/dashboard/academic-services/${id}`);
       } else {
-        toast.error(response.message || "Failed to update service");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to update service"
+            : response.message || "Failed to update service"
+        );
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to update service");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to update service"
+          : error.message || "Failed to update service"
+      );
     } finally {
       setLoading(false);
     }

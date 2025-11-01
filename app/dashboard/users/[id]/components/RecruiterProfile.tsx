@@ -17,7 +17,7 @@ export default function RecruiterProfile({ profile }: RecruiterProfileProps) {
           <CardTitle>Recruitment Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-6 bg-orange-50 rounded-lg border-2 border-dashed border-orange-300">
+          <div className="text-center p-6 bg-orange-50 rounded-[10px] border-2 border-dashed border-orange-300">
             <Target className="w-12 h-12 text-orange-400 mx-auto mb-3" />
             <h4 className="font-semibold text-orange-700 mb-2">
               Recruiter Profile Not Created
@@ -44,7 +44,7 @@ export default function RecruiterProfile({ profile }: RecruiterProfileProps) {
               <Building2 className="w-5 h-5" />
               Company Details
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-[10px]">
               <div>
                 <p className="text-sm font-medium text-gray-700">
                   Company Name

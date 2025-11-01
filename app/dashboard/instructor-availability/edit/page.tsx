@@ -32,8 +32,12 @@ interface InstructorAvailabilityForm {
   workingHours: WorkingHours[];
   bufferTimeMinutes: number;
   timezone: string;
-  calendlyUserId: string;
-  calendlyUserUri: string;
+  calendly?: {
+    userId: string;
+    userUri: string;
+    connectedAt: string;
+    lastSyncAt: string;
+  };
 }
 
 const DAYS_OF_WEEK = [
@@ -81,8 +85,7 @@ export default function EditInstructorAvailabilityPage() {
     ],
     bufferTimeMinutes: 30,
     timezone: "UTC",
-    calendlyUserId: "",
-    calendlyUserUri: "",
+    calendly: undefined,
   });
 
   // Get instructorId from URL params or user data
@@ -100,8 +103,7 @@ export default function EditInstructorAvailabilityPage() {
 
       const token = getTokenFromCookies();
       if (!token) {
-        setError("Authentication required. Please log in.");
-        setLoading(false);
+        router.push("/login");
         return;
       }
 
@@ -114,7 +116,7 @@ export default function EditInstructorAvailabilityPage() {
         if (response?.data?.success) {
           const availability = response.data.data;
           setForm({
-            instructorId: availability.instructorId,
+            instructorId: instructorId || "",
             isActive: availability.isActive || false,
             workingHours: availability.workingHours || [
               {
@@ -150,8 +152,7 @@ export default function EditInstructorAvailabilityPage() {
             ],
             bufferTimeMinutes: availability.bufferTimeMinutes || 30,
             timezone: availability.timezone || "UTC",
-            calendlyUserId: availability.calendlyUserId || "",
-            calendlyUserUri: availability.calendlyUserUri || "",
+            calendly: availability.calendly,
           });
         } else {
           setError(
@@ -240,7 +241,7 @@ export default function EditInstructorAvailabilityPage() {
     try {
       const token = getTokenFromCookies();
       if (!token) {
-        setError("Authentication required. Please log in.");
+        router.push("/login");
         return;
       }
 
@@ -250,8 +251,7 @@ export default function EditInstructorAvailabilityPage() {
         workingHours: form.workingHours,
         bufferTimeMinutes: form.bufferTimeMinutes,
         timezone: form.timezone,
-        calendlyUserId: form.calendlyUserId || undefined,
-        calendlyUserUri: form.calendlyUserUri || undefined,
+        calendly: form.calendly,
       };
 
       const response = await putApiRequest(
@@ -455,7 +455,7 @@ export default function EditInstructorAvailabilityPage() {
                             parseInt(e.target.value)
                           )
                         }
-                        className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="px-3 py-1 bg-white border border-slate-200 rounded-[10px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         {DAYS_OF_WEEK.map((day, dayIndex) => (
                           <option key={dayIndex} value={dayIndex}>
@@ -490,7 +490,7 @@ export default function EditInstructorAvailabilityPage() {
                               e.target.value
                             )
                           }
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -507,7 +507,7 @@ export default function EditInstructorAvailabilityPage() {
                               e.target.value
                             )
                           }
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -540,34 +540,61 @@ export default function EditInstructorAvailabilityPage() {
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Calendly User ID
-                </label>
-                <input
-                  type="text"
-                  name="calendlyUserId"
-                  value={form.calendlyUserId}
-                  onChange={handleChange}
-                  placeholder="Enter Calendly user ID"
-                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Calendly User URI
-                </label>
-                <input
-                  type="url"
-                  name="calendlyUserUri"
-                  value={form.calendlyUserUri}
-                  onChange={handleChange}
-                  placeholder="https://calendly.com/username"
-                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                />
-              </div>
+            <div className="space-y-4">
+              {form.calendly ? (
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <h3 className="font-semibold text-green-800">
+                      Calendly Connected
+                    </h3>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-slate-600">
+                        User ID:
+                      </span>
+                      <p className="text-slate-900 font-mono">
+                        {form.calendly.userId}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-600">
+                        User URI:
+                      </span>
+                      <p className="text-slate-900 font-mono">
+                        {form.calendly.userUri}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-600">
+                        Connected At:
+                      </span>
+                      <p className="text-slate-900">
+                        {new Date(form.calendly.connectedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-slate-600">
+                        Last Sync:
+                      </span>
+                      <p className="text-slate-900">
+                        {new Date(form.calendly.lastSyncAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center">
+                  <Calendar className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="text-slate-600">
+                    No Calendly integration configured
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    Connect Calendly from the main availability page
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

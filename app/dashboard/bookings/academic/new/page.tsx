@@ -32,7 +32,9 @@ import {
 } from "lucide-react";
 import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
 import { toast } from "react-toastify";
+import safeConsole from "@/lib/console";
 
 interface Instructor {
   _id: string;
@@ -82,16 +84,7 @@ export default function CreateAcademicBookingPage() {
     fullName: "",
   });
 
-  // Product types from the product creation form
-  const PRODUCT_TYPE_OPTIONS = [
-    "Training & Certification",
-    "Academic Support Services",
-    "Career Development & Mentorship",
-    "Institutional & Team Services",
-    "AI-Powered or Automation Services",
-    "Career Connect",
-    "Marketing, Consultation & Free Services",
-  ];
+  // Using centralized constants from lib/constants/products.ts
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -233,7 +226,7 @@ export default function CreateAcademicBookingPage() {
 
       return uploadedUrls;
     } catch (error) {
-      console.error("File upload error:", error);
+      safeConsole.error("File upload error:", error);
       toast.error("Failed to upload some files. Please try again.");
       throw error;
     } finally {
@@ -294,10 +287,14 @@ export default function CreateAcademicBookingPage() {
         toast.success("Academic booking created successfully!");
         router.push("/dashboard/bookings");
       } else {
-        toast.error(response?.data?.message || "Failed to create booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to create booking"
+            : response?.data?.message || "Failed to create booking"
+        );
       }
     } catch (error: any) {
-      console.error("Error creating booking:", error);
+      safeConsole.error("Error creating booking:", error);
       toast.error("Error creating booking");
     } finally {
       setLoading(false);
@@ -312,7 +309,7 @@ export default function CreateAcademicBookingPage() {
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="p-2 hover:bg-white/50 rounded-xl"
+            className="p-2 hover:bg-white/50 rounded-[12px]"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -735,7 +732,7 @@ export default function CreateAcademicBookingPage() {
                 </Label>
                 <div className="mt-2">
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-white/50 hover:bg-white/70 transition-colors">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-[10px] cursor-pointer bg-white/50 hover:bg-white/70 transition-colors">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-2 text-slate-400" />
                         <p className="mb-2 text-sm text-slate-500">
@@ -769,7 +766,7 @@ export default function CreateAcademicBookingPage() {
                     {uploadedFiles.map((file, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-[10px] border border-slate-200"
                       >
                         <div className="flex items-center gap-3">
                           <FileText className="w-5 h-5 text-slate-500" />

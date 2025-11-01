@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
 import {
   Calendar,
   Clock,
@@ -100,15 +101,7 @@ export default function InstructorAttendancePage() {
   const [limit, setLimit] = useState(10);
   const [meta, setMeta] = useState<Meta | null>(null);
 
-  const PRODUCT_TYPE_OPTIONS = [
-    "Training & Certification",
-    "Academic Support Services",
-    "Career Development & Mentorship",
-    "Institutional & Team Services",
-    "AI-Powered or Automation Services",
-    "Career Connect",
-    "Marketing, Consultation & Free Services",
-  ];
+  // Using centralized constants from lib/constants/products.ts
 
   const STATUS_OPTIONS = [
     "upcoming",
@@ -241,11 +234,11 @@ export default function InstructorAttendancePage() {
     present: boolean
   ) => {
     // TODO: Implement attendance marking functionality
-    console.log(
-      `Marking ${participantEmail} as ${
-        present ? "present" : "absent"
-      } for attendance ${attendanceId}`
-    );
+    // console.log(
+    //   `Marking ${participantEmail} as ${
+    //     present ? "present" : "absent"
+    //   } for attendance ${attendanceId}`
+    // );
   };
 
   const handleAddFeedback = async (
@@ -253,9 +246,9 @@ export default function InstructorAttendancePage() {
     participantEmail: string
   ) => {
     // TODO: Implement feedback functionality
-    console.log(
-      `Adding feedback for ${participantEmail} in attendance ${attendanceId}`
-    );
+    // console.log(
+    //   `Adding feedback for ${participantEmail} in attendance ${attendanceId}`
+    // );
   };
 
   return (
@@ -432,7 +425,7 @@ export default function InstructorAttendancePage() {
                         attendance.calendar?.joinUrl && (
                           <button
                             onClick={() => handleJoinSession(attendance)}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-[12px] hover:bg-green-700 transition-colors"
                           >
                             <Video className="w-4 h-4" />
                             Join Session
@@ -441,7 +434,7 @@ export default function InstructorAttendancePage() {
                       {attendance.status === "in_progress" && (
                         <button
                           onClick={() => handleJoinSession(attendance)}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-[12px] hover:bg-blue-700 transition-colors"
                         >
                           <Play className="w-4 h-4" />
                           Continue Session
@@ -459,7 +452,7 @@ export default function InstructorAttendancePage() {
                       {attendance.participants.map((participant, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-slate-50 rounded-xl"
+                          className="flex items-center justify-between p-3 bg-slate-50 rounded-[12px]"
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -488,7 +481,7 @@ export default function InstructorAttendancePage() {
                                     true
                                   )
                                 }
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-[10px] transition-colors"
                                 title="Mark Present"
                               >
                                 <CheckCircle className="w-4 h-4" />
@@ -503,7 +496,7 @@ export default function InstructorAttendancePage() {
                                   participant.email
                                 )
                               }
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-[10px] transition-colors"
                               title="Add Feedback"
                             >
                               <MessageSquare className="w-4 h-4" />
@@ -520,7 +513,7 @@ export default function InstructorAttendancePage() {
                       <h4 className="text-lg font-semibold text-slate-900 mb-2">
                         Session Notes
                       </h4>
-                      <p className="text-slate-700 bg-slate-50 p-3 rounded-xl">
+                      <p className="text-slate-700 bg-slate-50 p-3 rounded-[12px]">
                         {attendance.remarks}
                       </p>
                     </div>
@@ -540,14 +533,14 @@ export default function InstructorAttendancePage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page === 1}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-[12px] hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page === meta.totalPages}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-[12px] hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Next
                     </button>

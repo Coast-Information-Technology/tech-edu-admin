@@ -173,6 +173,15 @@ input:focus, textarea:focus {
   text-overflow: ellipsis;    /* Show "..." for overflowed text */
 }
 
+/* Ensure readable text in dark mode and some height */
+.ql-container .ql-editor { min-height: 200px; }
+.dark .ql-container .ql-editor { color: #e5e7eb; }       /* text-gray-200 */
+.ql-container .ql-editor { color: #111827; }            /* text-gray-900 (light) */
+
+/* Optional: make pasted lists/paragraphs look nice in dark */
+.dark .ql-editor p, .dark .ql-editor li { color: #e5e7eb; }
+
+
 
 /* Add this in your global CSS file */
 /* .hover-fill::before {

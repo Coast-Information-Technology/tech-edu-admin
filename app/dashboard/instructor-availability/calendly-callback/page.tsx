@@ -36,7 +36,7 @@ export default function CalendlyCallbackPage() {
       const error = searchParams.get("error");
 
       // Debug OAuth parameters
-      console.log("OAuth parameters:", { code, state, error });
+      // console.log("OAuth parameters:", { code, state, error });
 
       if (error) {
         setStatus("error");
@@ -52,53 +52,73 @@ export default function CalendlyCallbackPage() {
 
       try {
         // Complete the OAuth flow
+        const requestData = {
+          code,
+          state,
+        };
+        // console.log("Sending OAuth completion request:", {
+        //   endpoint: `/api/instructors/${
+        //     userData._id || userData.id
+        //   }/calendly-oauth/complete`,
+        //   data: requestData,
+        // });
+
         const response: any = await postApiRequest(
           `/api/instructors/${
             userData._id || userData.id
           }/calendly-oauth/complete`,
           token,
-          {
-            code,
-            state,
-            // Add ownerUri if backend requires it
-            ownerUri: `https://api.calendly.com/users/${userData.id}`,
-            scope: "user", // or remove if not needed
-          }
+          requestData
         );
 
+        // console.log("OAuth completion response:", response);
+
         if (response?.data?.success) {
+          try {
+            const token = getTokenFromCookies();
+            if (token) {
+              // Optionally verify calendly connected via integration status
+              await fetch(`/api/integrations/calendly/status`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+            }
+          } catch {}
           setStatus("success");
           setMessage("Calendly connected successfully!");
 
           // Log the Calendly data for debugging
-          console.log("Calendly response:", response);
-          console.log("Response data:", response.data);
-          console.log("Calendly OAuth completed:", response.data.data);
+          // console.log("Calendly response:", response);
+          // console.log("Response data:", response.data);
+          // console.log("Calendly OAuth completed:", response.data.data);
 
           // You can access the Calendly data here:
-          const calendlyData = response.data.data;
-          if (calendlyData) {
-            console.log("Calendly User ID:", calendlyData.calendlyUserId);
-            console.log("Calendly User URI:", calendlyData.calendlyUserUri);
-            console.log("Timezone:", calendlyData.timezone);
-            console.log("Working Hours:", calendlyData.workingHours);
-          } else {
-            console.log("No Calendly data found in response");
-          }
+          // const calendlyData = response.data.data;
+          // if (calendlyData) {
+          //   console.log("Calendly User ID:", calendlyData.userId);
+          //   console.log("Calendly User URI:", calendlyData.userUri);
+          //   console.log("Timezone:", calendlyData.timezone);
+          //   console.log("Working Hours:", calendlyData.workingHours);
+          // } else {
+          //   console.log("No Calendly data found in response");
+          // }
 
           // Redirect to instructor availability page after 2 seconds
           setTimeout(() => {
             router.push("/dashboard/instructor-availability");
-          }, 2000);
+          }, 1500);
         } else {
           setStatus("error");
           setMessage(
             response?.data?.message || "Failed to complete Calendly connection"
           );
+          // Debug: Log the full response for troubleshooting
+          // console.error("OAuth completion failed:", response);
         }
       } catch (err: any) {
         setStatus("error");
         setMessage(err.message || "Failed to complete Calendly connection");
+        // Debug: Log the full error for troubleshooting
+        // console.error("OAuth completion error:", err);
       }
     };
 

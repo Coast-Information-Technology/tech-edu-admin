@@ -1,467 +1,506 @@
 "use client";
-
+import React, { useEffect, useState } from "react";
+import { getApiRequest } from "@/lib/apiFetch";
+import { getTokenFromCookies } from "@/lib/cookies";
+import { useRole } from "@/contexts/RoleContext";
+import { useRouter } from "next/navigation";
 import {
-  BookOpen,
   Users,
-  DollarSign,
-  Award,
-  MessageCircle,
-  TrendingUp,
+  GraduationCap,
+  Briefcase,
   Calendar,
-  Clock,
   Star,
+  TrendingUp,
+  Clock,
+  Award,
+  BookOpen,
+  UserCheck,
+  BarChart3,
+  Settings,
   Eye,
   Plus,
-  Download,
-  CheckCircle,
-  AlertCircle,
-  BarChart3,
-  Target,
-  Zap,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import Image from "next/image";
 
-const instructor = {
-  name: "Dr. Sarah Johnson",
-  avatar: "/assets/placeholder-avatar.jpg",
-  role: "Senior Instructor",
-  specialization: "Web Development & React",
-};
+interface InstructorProfile {
+  _id: string;
+  fullName: string;
+  email: string;
+  title: string;
+  bio: string;
+  specializationAreas: string[];
+  yearsOfExperience: number;
+  certifications: string[];
+  rating: number;
+  reviews: number;
+  profilePicture?: string;
+  linkedInProfileUrl?: string;
+  languagesSpoken: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Instructor stats data
-const stats = [
-  {
-    icon: <BookOpen size={24} className="text-blue-600" />,
-    value: "3",
-    label: "Active Courses",
-    change: "+1",
-    changeType: "positive",
-    detail: "Published courses",
-  },
-  {
-    icon: <Users size={24} className="text-green-600" />,
-    value: "250",
-    label: "Enrolled Students",
-    change: "+30",
-    changeType: "positive",
-    detail: "This week",
-  },
-  {
-    icon: <DollarSign size={24} className="text-purple-600" />,
-    value: "₦125K",
-    label: "Total Earnings",
-    change: "+18%",
-    changeType: "positive",
-    detail: "This month",
-  },
-  {
-    icon: <Award size={24} className="text-orange-600" />,
-    value: "5",
-    label: "Certificates Issued",
-    change: "+2",
-    changeType: "positive",
-    detail: "This week",
-  },
-];
+interface InstructorStats {
+  totalStudents: number;
+  assignStudents: number;
+  assignTechProfessionals: number;
+  trainingProgramsHandled: string[];
+  totalSessions: number;
+  completedSessions: number;
+  upcomingSessions: number;
+  averageRating: number;
+  totalReviews: number;
+  totalEarnings: number;
+  monthlyEarnings: number;
+  availabilityHours: number;
+  lastActive: string;
+}
 
-// Enrollment growth data
-const enrollmentData = [
-  { week: "Week 1", enrollments: 30 },
-  { week: "Week 2", enrollments: 40 },
-  { week: "Week 3", enrollments: 35 },
-  { week: "Week 4", enrollments: 50 },
-  { week: "Week 5", enrollments: 45 },
-  { week: "Week 6", enrollments: 50 },
-];
-
-// Course performance data
-const coursePerformanceData = [
-  { course: "React Mastery", students: 85, completion: 78, rating: 4.8 },
-  { course: "Web Dev Bootcamp", students: 120, completion: 82, rating: 4.9 },
-  { course: "Node.js Advanced", students: 45, completion: 65, rating: 4.7 },
-];
-
-// Recent reviews
-const recentReviews = [
-  {
-    student: "Alex Thompson",
-    course: "React Mastery",
-    rating: 5,
-    comment: "Excellent course! Sarah explains complex concepts very clearly.",
-    date: "2 hours ago",
-  },
-  {
-    student: "Maria Garcia",
-    course: "Web Dev Bootcamp",
-    rating: 4,
-    comment: "Great practical examples and hands-on projects.",
-    date: "1 day ago",
-  },
-  {
-    student: "David Chen",
-    course: "Node.js Advanced",
-    rating: 5,
-    comment: "Perfect for advanced developers. Highly recommended!",
-    date: "2 days ago",
-  },
-];
-
-// Quick actions
-const quickActions = [
-  {
-    icon: <Plus size={20} />,
-    label: "Create New Course",
-    href: "/dashboard/courses-management/create",
-    description: "Start building a new course",
-    color: "bg-blue-50 text-blue-700 hover:bg-blue-100",
-  },
-  {
-    icon: <MessageCircle size={20} />,
-    label: "Respond to Reviews",
-    href: "/dashboard/feedback",
-    description: "Engage with student feedback",
-    color: "bg-green-50 text-green-700 hover:bg-green-100",
-  },
-  {
-    icon: <Users size={20} />,
-    label: "View Students",
-    href: "/dashboard/students",
-    description: "Manage enrolled students",
-    color: "bg-purple-50 text-purple-700 hover:bg-purple-100",
-  },
-  {
-    icon: <BarChart3 size={20} />,
-    label: "Analytics",
-    href: "/dashboard/performance",
-    description: "View detailed analytics",
-    color: "bg-orange-50 text-orange-700 hover:bg-orange-100",
-  },
-  {
-    icon: <Award size={20} />,
-    label: "Issue Certificates",
-    href: "/dashboard/certificates",
-    description: "Award course certificates",
-    color: "bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
-  },
-  {
-    icon: <Calendar size={20} />,
-    label: "Schedule Sessions",
-    href: "/dashboard/sessions/new",
-    description: "Book live sessions",
-    color: "bg-pink-50 text-pink-700 hover:bg-pink-100",
-  },
-];
-
-// Upcoming sessions
-const upcomingSessions = [
-  {
-    title: "React Hooks Deep Dive",
-    date: "2024-06-20",
-    time: "14:00",
-    students: 25,
-    duration: "90 min",
-  },
-  {
-    title: "Web Dev Q&A Session",
-    date: "2024-06-22",
-    time: "16:00",
-    students: 18,
-    duration: "60 min",
-  },
-];
+interface RecentActivity {
+  id: string;
+  type: "session" | "student" | "program" | "rating";
+  title: string;
+  description: string;
+  timestamp: string;
+  status: "completed" | "upcoming" | "pending";
+}
 
 export default function InstructorDashboard() {
+  const { userData } = useRole();
+  const router = useRouter();
+  const [profile, setProfile] = useState<InstructorProfile | null>(null);
+  const [stats, setStats] = useState<InstructorStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInstructorData = async () => {
+      try {
+        setLoading(true);
+        const token = getTokenFromCookies();
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+
+        const instructorId = userData._id || userData.id;
+        if (!instructorId) {
+          setError("Instructor ID not found.");
+          return;
+        }
+
+        // Fetch instructor profile and stats from available APIs
+        const [profileRes, sessionsRes, classroomsRes] = await Promise.all([
+          getApiRequest(`/api/users/me`, token),
+          getApiRequest(`/api/sessions/instructor/my-sessions`, token),
+          getApiRequest(`/api/classrooms/instructor/my-classrooms`, token),
+        ]);
+
+        // Set instructor profile from user data
+        if (profileRes?.data?.success) {
+          const profileData = profileRes.data.data;
+          setProfile({
+            _id: profileData._id || userData._id,
+            fullName: profileData.fullName || userData.fullName,
+            email: profileData.email || userData.email,
+            title: profileData.title || "Instructor",
+            bio: profileData.bio || "Experienced instructor",
+            specializationAreas: profileData.specializationAreas || [],
+            yearsOfExperience: profileData.yearsOfExperience || 0,
+            certifications: profileData.certifications || [],
+            rating: profileData.rating || 4.5,
+            reviews: profileData.reviews || 0,
+            profilePicture: profileData.profilePicture,
+            linkedInProfileUrl: profileData.linkedInProfileUrl,
+            languagesSpoken: profileData.languagesSpoken || [],
+            isActive: profileData.isActive || true,
+            createdAt: profileData.createdAt,
+            updatedAt: profileData.updatedAt,
+          });
+        }
+
+        // Calculate stats from available data
+        const sessions = sessionsRes?.data?.data || [];
+        const classrooms = classroomsRes?.data?.data || [];
+
+        // Calculate basic stats from available data
+        const completedSessions = sessions.filter(
+          (s: any) => s.status === "completed"
+        ).length;
+        const upcomingSessions = sessions.filter(
+          (s: any) => s.status === "scheduled"
+        ).length;
+
+        setStats({
+          totalStudents: 0, // Will be updated when student assignment API is available
+          assignStudents: 0,
+          assignTechProfessionals: 0,
+          trainingProgramsHandled: classrooms.map((c: any) => c.name),
+          totalSessions: sessions.length,
+          completedSessions,
+          upcomingSessions,
+          averageRating: 4.5, // Default value
+          totalReviews: 0,
+          totalEarnings: 0, // Will be calculated when payment data is available
+          monthlyEarnings: 0,
+          availabilityHours: 40, // Default value
+          lastActive: new Date().toISOString(),
+        });
+
+        // Generate recent activity from sessions
+        const recentSessions = sessions
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.createdAt || b.scheduleAt).getTime() -
+              new Date(a.createdAt || a.scheduleAt).getTime()
+          )
+          .slice(0, 5)
+          .map((session: any) => ({
+            id: session._id,
+            type: "session" as const,
+            title: `Session: ${
+              session.title || session.name || "Class Session"
+            }`,
+            description: `Scheduled for ${new Date(
+              session.scheduleAt || session.createdAt
+            ).toLocaleDateString()}`,
+            timestamp: new Date(
+              session.createdAt || session.scheduleAt
+            ).toLocaleDateString(),
+            status:
+              session.status === "completed"
+                ? ("completed" as const)
+                : session.status === "scheduled"
+                ? ("upcoming" as const)
+                : ("pending" as const),
+          }));
+
+        setRecentActivity(recentSessions);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch instructor data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInstructorData();
+  }, [userData]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading instructor dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-red-600 text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-bold text-red-800 mb-2">Error</h2>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-all duration-300"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
-      <div className="max-w-7xl mx-auto py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8">
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <Image
-              src={instructor.avatar}
-              alt={instructor.name}
-              width={64}
-              height={64}
-              className="rounded-full border-4 border-[#011F72] shadow-lg"
-            />
-            <div>
-              <h1 className="text-3xl font-bold text-[#011F72]">
-                Welcome back, {instructor.name}!
-              </h1>
-              <div className="text-gray-600 mt-1 flex items-center gap-2">
-                <BookOpen size={16} className="text-blue-600" />
-                {instructor.role} • {instructor.specialization}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 mb-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">
+                {profile?.fullName?.charAt(0) || "I"}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                  Welcome back, {profile?.fullName || "Instructor"}!
+                </h1>
+                <p className="text-slate-600 text-lg">{profile?.title}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                    <span className="text-slate-700 font-semibold">
+                      {stats?.averageRating?.toFixed(1) || "0.0"}
+                    </span>
+                    <span className="text-slate-500">
+                      ({stats?.totalReviews || 0} reviews)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-blue-500" />
+                    <span className="text-slate-700">
+                      {profile?.yearsOfExperience || 0} years experience
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex gap-3 pt-4 md:pt-0">
-            <Button variant="outline" className="rounded-[10px]">
-              <Download className="w-4 h-4 mr-2" />
-              Export Report
-            </Button>
-            <Button className="bg-[#011F72] hover:bg-blue-700 text-white rounded-[10px]">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Course
-            </Button>
+            <div className="flex gap-3">
+              {/* <Link
+                href="/dashboard/instructor/profile"
+                className="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl hover:bg-slate-50 transition-all duration-300 flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Profile Settings
+              </Link> */}
+              <Link
+                href="/dashboard/instructor-availability"
+                className="px-6 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all duration-300 flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Manage Availability
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, i) => (
-            <Card
-              key={i}
-              className="border-0 shadow-lg hover:shadow-xl transition-shadow"
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-[12px] flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-1">
+              {stats?.totalStudents || 0}
+            </h3>
+            <p className="text-slate-600 text-sm">Total Students</p>
+            <Link
+              href="/dashboard/instructor/students"
+              className="text-blue-600 text-sm font-medium hover:text-blue-700 mt-2 inline-flex items-center gap-1"
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      {stat.label}
-                    </p>
-                    <p className="text-2xl font-bold text-[#011F72]">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">{stat.detail}</p>
+              View all <Eye className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-[12px] flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-green-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-1">
+              {stats?.assignStudents || 0}
+            </h3>
+            <p className="text-slate-600 text-sm">Assigned Students</p>
+            <Link
+              href="/dashboard/instructor/assigned-students"
+              className="text-green-600 text-sm font-medium hover:text-green-700 mt-2 inline-flex items-center gap-1"
+            >
+              Manage <Settings className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-[12px] flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-purple-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-1">
+              {stats?.assignTechProfessionals || 0}
+            </h3>
+            <p className="text-slate-600 text-sm">Tech Professionals</p>
+            <Link
+              href="/dashboard/instructor/tech-professionals"
+              className="text-purple-600 text-sm font-medium hover:text-purple-700 mt-2 inline-flex items-center gap-1"
+            >
+              View all <Eye className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-[12px] flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-orange-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-1">
+              {stats?.trainingProgramsHandled?.length || 0}
+            </h3>
+            <p className="text-slate-600 text-sm">Training Programs</p>
+            <Link
+              href="/dashboard/instructor/training-programs"
+              className="text-orange-600 text-sm font-medium hover:text-orange-700 mt-2 inline-flex items-center gap-1"
+            >
+              Manage <Settings className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Recent Activity */}
+          <div className="lg:col-span-2">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Recent Activity
+                </h2>
+                <Link
+                  href="/dashboard/instructor/activity"
+                  className="text-blue-600 text-sm font-medium hover:text-blue-700"
+                >
+                  View all
+                </Link>
+              </div>
+              <div className="space-y-4">
+                {recentActivity.length > 0 ? (
+                  recentActivity.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-4 p-4 bg-slate-50 rounded-[12px] hover:bg-slate-100 transition-colors"
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${
+                          activity.type === "session"
+                            ? "bg-blue-100"
+                            : activity.type === "student"
+                            ? "bg-green-100"
+                            : activity.type === "program"
+                            ? "bg-orange-100"
+                            : "bg-yellow-100"
+                        }`}
+                      >
+                        {activity.type === "session" ? (
+                          <Calendar className="w-5 h-5 text-blue-600" />
+                        ) : activity.type === "student" ? (
+                          <Users className="w-5 h-5 text-green-600" />
+                        ) : activity.type === "program" ? (
+                          <BookOpen className="w-5 h-5 text-orange-600" />
+                        ) : (
+                          <Star className="w-5 h-5 text-yellow-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-900">
+                          {activity.title}
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                          {activity.description}
+                        </p>
+                        <p className="text-slate-500 text-xs mt-1">
+                          {activity.timestamp}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          activity.status === "completed"
+                            ? "bg-green-100 text-green-700"
+                            : activity.status === "upcoming"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {activity.status}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-500">No recent activity</p>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-[10px]">
-                    {stat.icon}
-                  </div>
-                </div>
-                <div className="flex items-center mt-3">
-                  <Badge
-                    className={
-                      stat.changeType === "positive"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }
-                  >
-                    {stat.change}
-                  </Badge>
-                  <span className="text-xs text-gray-500 ml-2">
-                    vs last week
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions & Stats */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">
+                Quick Actions
+              </h2>
+              <div className="space-y-3">
+                <Link
+                  href="/dashboard/instructor-availability"
+                  className="flex items-center gap-3 p-3 bg-blue-50 rounded-[12px] hover:bg-blue-100 transition-colors"
+                >
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <span className="text-slate-700">Manage Availability</span>
+                </Link>
+                <Link
+                  href="/dashboard/sessions/instructor"
+                  className="flex items-center gap-3 p-3 bg-green-50 rounded-[12px] hover:bg-green-100 transition-colors"
+                >
+                  <Clock className="w-5 h-5 text-green-600" />
+                  <span className="text-slate-700">View Sessions</span>
+                </Link>
+                <Link
+                  href="/dashboard/instructor/students"
+                  className="flex items-center gap-3 p-3 bg-purple-50 rounded-[12px] hover:bg-purple-100 transition-colors"
+                >
+                  <Users className="w-5 h-5 text-purple-600" />
+                  <span className="text-slate-700">Manage Students</span>
+                </Link>
+                <Link
+                  href="/dashboard/instructor/analytics"
+                  className="flex items-center gap-3 p-3 bg-orange-50 rounded-[12px] hover:bg-orange-100 transition-colors"
+                >
+                  <BarChart3 className="w-5 h-5 text-orange-600" />
+                  <span className="text-slate-700">View Analytics</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Performance Stats */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">
+                Performance
+              </h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Sessions Completed</span>
+                  <span className="font-semibold text-slate-900">
+                    {stats?.completedSessions || 0}
                   </span>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Enrollment Chart */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-[#011F72]">
-                Student Enrollments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={enrollmentData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="week" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="enrollments"
-                    stroke="#3B82F6"
-                    fill="#3B82F6"
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Course Performance */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-[#011F72]">
-                Course Performance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={coursePerformanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="course" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar
-                    dataKey="students"
-                    fill="#3B82F6"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions Grid */}
-        <Card className="border-0 shadow-lg mb-8">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-[#011F72]">
-              Quick Actions
-            </CardTitle>
-            <p className="text-gray-600">
-              Access all instructor functions and management tools
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {quickActions.map((action, i) => (
-                <Link key={i} href={action.href}>
-                  <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-[10px] ${action.color}`}>
-                          {action.icon}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-[#011F72]">
-                            {action.label}
-                          </h3>
-                          <p className="text-xs text-gray-600">
-                            {action.description}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Upcoming Sessions</span>
+                  <span className="font-semibold text-slate-900">
+                    {stats?.upcomingSessions || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Monthly Earnings</span>
+                  <span className="font-semibold text-green-600">
+                    ${stats?.monthlyEarnings?.toLocaleString() || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Availability Hours</span>
+                  <span className="font-semibold text-slate-900">
+                    {stats?.availabilityHours || 0}h/week
+                  </span>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Reviews & Upcoming Sessions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Recent Reviews */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-[#011F72]">
-                Recent Student Reviews
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentReviews.map((review, i) => (
-                  <div
-                    key={i}
-                    className="border-b border-gray-100 pb-4 last:border-b-0"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-medium text-[#011F72]">
-                          {review.student}
-                        </p>
-                        <p className="text-sm text-gray-600">{review.course}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, star) => (
-                          <Star
-                            key={star}
-                            size={14}
-                            className={
-                              star < review.rating
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
-                            }
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">
-                      {review.comment}
-                    </p>
-                    <p className="text-xs text-gray-500">{review.date}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Upcoming Sessions */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-[#011F72]">
-                Upcoming Sessions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {upcomingSessions.map((session, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between bg-blue-50 rounded-[10px] p-4 border border-blue-100"
-                  >
-                    <div>
-                      <h3 className="font-semibold text-[#011F72]">
-                        {session.title}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
-                          {session.date}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={14} />
-                          {session.time}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users size={14} />
-                          {session.students} students
-                        </span>
-                      </div>
-                    </div>
-                    <Badge className="bg-blue-100 text-blue-800">
-                      {session.duration}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bottom Action Buttons */}
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button className="bg-[#011F72] hover:bg-blue-700 text-white rounded-[10px]">
-            <BookOpen className="w-4 h-4 mr-2" />
-            Manage Courses
-          </Button>
-          <Button variant="outline" className="rounded-[10px]">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            View Analytics
-          </Button>
-          <Button variant="outline" className="rounded-[10px]">
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Student Support
-          </Button>
-          <Button variant="outline" className="rounded-[10px]">
-            <Download className="w-4 h-4 mr-2" />
-            Export Data
-          </Button>
+          </div>
         </div>
       </div>
     </div>

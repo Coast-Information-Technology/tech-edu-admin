@@ -193,7 +193,11 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
             Error Loading User
           </h2>
           <p className="text-gray-600 max-w-md">{error}</p>
-          <Button onClick={fetchUser} variant="outline" className="rounded-lg">
+          <Button
+            onClick={fetchUser}
+            variant="outline"
+            className="rounded-[10px]"
+          >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
@@ -213,7 +217,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
           <p className="text-gray-600">
             The requested user could not be found.
           </p>
-          <Button asChild variant="outline" className="rounded-lg">
+          <Button asChild variant="outline" className="rounded-[10px]">
             <Link href="/dashboard/users">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Users
@@ -229,7 +233,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="rounded-lg" asChild>
+          <Button variant="outline" className="rounded-[10px]" asChild>
             <Link href={`/dashboard/users/${params.id}`}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to User
@@ -248,7 +252,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         <Button
           onClick={handleSave}
           disabled={saving || !hasChanges}
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-[10px]"
         >
           {saving ? (
             <>
@@ -284,7 +288,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                className="mt-1 rounded-lg"
+                className="mt-1 rounded-[10px]"
               />
             </div>
 
@@ -297,7 +301,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 id="fullName"
                 value={formData.fullName}
                 onChange={(e) => handleChange("fullName", e.target.value)}
-                className="mt-1 rounded-lg"
+                className="mt-1 rounded-[10px]"
               />
             </div>
 
@@ -310,7 +314,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 value={formData.role}
                 onValueChange={(value) => handleChange("role", value)}
               >
-                <SelectTrigger className="mt-1 rounded-lg">
+                <SelectTrigger className="mt-1 rounded-[10px]">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -338,7 +342,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 onChange={(e) =>
                   handleProfileChange("phoneNumber", e.target.value)
                 }
-                className="mt-1 rounded-lg"
+                className="mt-1 rounded-[10px]"
               />
             </div>
 
@@ -353,7 +357,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 onChange={(e) =>
                   handleProfileChange("currentLocation", e.target.value)
                 }
-                className="mt-1 rounded-lg"
+                className="mt-1 rounded-[10px]"
               />
             </div>
 
@@ -371,7 +375,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 onChange={(e) =>
                   handleChange("profileImageUrl", e.target.value)
                 }
-                className="mt-1 rounded-lg"
+                className="mt-1 rounded-[10px]"
               />
             </div>
           </div>
@@ -386,7 +390,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
               value={formData.profile.bio}
               onChange={(e) => handleProfileChange("bio", e.target.value)}
               rows={3}
-              className="mt-1 rounded-lg"
+              className="mt-1 rounded-[10px]"
             />
           </div>
 

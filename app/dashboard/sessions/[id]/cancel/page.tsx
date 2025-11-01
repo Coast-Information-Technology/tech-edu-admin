@@ -179,7 +179,7 @@ export default function CancelSessionPage() {
               <h3 className="text-lg font-semibold text-red-800">Error</h3>
               <p className="text-red-700">{error}</p>
               <Link href={`/dashboard/sessions/${params.id}`}>
-                <button className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                <button className="mt-4 px-4 py-2 bg-red-600 text-white rounded-[10px] hover:bg-red-700 transition-colors">
                   Back to Session
                 </button>
               </Link>

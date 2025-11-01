@@ -111,7 +111,7 @@ function DashboardStatCard({
             role="link"
           >
             <div
-              className={`cursor-pointer focus:ring-2 focus:ring-${focusRingColor}-500 focus:ring-offset-2 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+              className={`cursor-pointer focus:ring-2 focus:ring-${focusRingColor}-500 focus:ring-offset-2 rounded-[10px] transition-all duration-300 hover:scale-105 hover:shadow-xl`}
               tabIndex={-1}
               aria-hidden="true"
             >
@@ -119,7 +119,7 @@ function DashboardStatCard({
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-2 rounded-lg bg-gradient-to-r ${gradient} text-white shadow-lg`}
+                      className={`p-2 rounded-[10px] bg-gradient-to-r ${gradient} text-white shadow-lg`}
                     >
                       {icon}
                     </div>
@@ -214,13 +214,13 @@ export default function DashboardOverview() {
     <TooltipProvider>
       <div>
         {/* Enhanced Branding Header */}
-        <header className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-xl mb-8 shadow-xl">
+        <header className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-[12px] mb-8 shadow-xl">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               {/* Enhanced Logo */}
               <div className="relative">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg border border-white/30">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-[12px] flex items-center justify-center text-white font-bold text-2xl shadow-lg border border-white/30">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
@@ -250,7 +250,7 @@ export default function DashboardOverview() {
           </div>
         </header>
         {/* Enhanced Role Selector and Demo Mode */}
-        <div className="mb-8 flex items-center justify-between bg-white rounded-xl p-4 shadow-lg border border-gray-100">
+        <div className="mb-8 flex items-center justify-between bg-white rounded-[12px] p-4 shadow-lg border border-gray-100">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               <Target className="w-5 h-5 text-blue-600" />
@@ -268,7 +268,7 @@ export default function DashboardOverview() {
                 aria-labelledby="role-select-label"
                 value={userRole}
                 onChange={(e) => handleRoleChange(e.target.value as any)}
-                className="appearance-none bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 cursor-pointer hover:border-blue-300"
+                className="appearance-none bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-[10px] px-4 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 cursor-pointer hover:border-blue-300"
                 disabled={loading}
                 aria-label="Select dashboard role"
               >
@@ -403,7 +403,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-600" />
                                 <span className="text-sm text-gray-600">
@@ -414,7 +414,7 @@ export default function DashboardOverview() {
                                 {data.platformStats.totalUsers.toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -425,7 +425,7 @@ export default function DashboardOverview() {
                                 {data.platformStats.instructors.toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Activity className="w-4 h-4 text-purple-600" />
                                 <span className="text-sm text-gray-600">
@@ -436,7 +436,7 @@ export default function DashboardOverview() {
                                 {data.platformStats.activeLearners.toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <BookOpen className="w-4 h-4 text-orange-600" />
                                 <span className="text-sm text-gray-600">
@@ -463,7 +463,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <DollarSign className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -475,7 +475,7 @@ export default function DashboardOverview() {
                                 {data.earnings.total.toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-purple-600" />
                                 <span className="text-sm text-gray-600">
@@ -517,7 +517,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <ClipboardList className="w-4 h-4 text-orange-600" />
                                 <span className="text-sm text-gray-600">
@@ -533,7 +533,7 @@ export default function DashboardOverview() {
                                 </Badge>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Flag className="w-4 h-4 text-red-600" />
                                 <span className="text-sm text-gray-600">
@@ -544,7 +544,7 @@ export default function DashboardOverview() {
                                 {data.flaggedReviews}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4 text-blue-600" />
                                 <span className="text-sm text-gray-600">
@@ -563,7 +563,7 @@ export default function DashboardOverview() {
                             {data.pendingCourseApprovals === 0 &&
                               data.flaggedReviews === 0 &&
                               data.pendingInstructorApplications === 0 && (
-                                <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-center p-4 bg-green-50 rounded-[10px]">
                                   <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
                                   <p className="text-green-700 font-medium">
                                     All Clear! 🎉
@@ -588,7 +588,7 @@ export default function DashboardOverview() {
                         <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50/30">
                           <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
+                              <div className="p-2 rounded-[10px] bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
                                 <BarChart3 className="w-5 h-5" />
                               </div>
                               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -671,7 +671,7 @@ export default function DashboardOverview() {
                         <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50/30">
                           <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg">
+                              <div className="p-2 rounded-[10px] bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg">
                                 <Users className="w-5 h-5" />
                               </div>
                               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -805,7 +805,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Layers className="w-4 h-4 text-blue-600" />
                                 <span className="text-sm text-gray-600">
@@ -816,7 +816,7 @@ export default function DashboardOverview() {
                                 {data.activeCourses}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -828,7 +828,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.activeCourses === 0 && (
-                              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                              <div className="text-center p-4 bg-gray-50 rounded-[10px]">
                                 <BookOpen className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                 <p className="text-gray-600 font-medium">
                                   No Active Courses
@@ -854,7 +854,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <DollarSign className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -866,7 +866,7 @@ export default function DashboardOverview() {
                                 {data.earnings.toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-purple-600" />
                                 <span className="text-sm text-gray-600">
@@ -879,7 +879,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.earnings === 0 && (
-                              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                              <div className="text-center p-4 bg-gray-50 rounded-[10px]">
                                 <DollarSign className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                 <p className="text-gray-600 font-medium">
                                   No Earnings Yet
@@ -905,7 +905,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-yellow-600" />
                                 <span className="text-sm text-gray-600">
@@ -916,7 +916,7 @@ export default function DashboardOverview() {
                                 {data.certificatesIssued}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <FaTrophy className="w-4 h-4 text-orange-600" />
                                 <span className="text-sm text-gray-600">
@@ -928,7 +928,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.certificatesIssued === 0 && (
-                              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                              <div className="text-center p-4 bg-gray-50 rounded-[10px]">
                                 <FaCertificate className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                 <p className="text-gray-600 font-medium">
                                   No Certificates Yet
@@ -953,7 +953,7 @@ export default function DashboardOverview() {
                         <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50/30">
                           <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
+                              <div className="p-2 rounded-[10px] bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
                                 <TrendingUp className="w-5 h-5" />
                               </div>
                               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -1028,7 +1028,7 @@ export default function DashboardOverview() {
                         <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50/30">
                           <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg">
+                              <div className="p-2 rounded-[10px] bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg">
                                 <Users className="w-5 h-5" />
                               </div>
                               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -1044,7 +1044,7 @@ export default function DashboardOverview() {
                           </CardHeader>
                           <CardContent>
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-[10px]">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                                     <CheckCircle className="w-5 h-5 text-white" />
@@ -1062,7 +1062,7 @@ export default function DashboardOverview() {
                                   {Math.floor(data.enrolledStudents * 0.15)}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-[10px]">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                                     <Activity className="w-5 h-5 text-white" />
@@ -1080,7 +1080,7 @@ export default function DashboardOverview() {
                                   {Math.floor(data.enrolledStudents * 0.65)}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg">
+                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-[10px]">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
                                     <Clock className="w-5 h-5 text-white" />
@@ -1158,7 +1158,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <ClipboardList className="w-4 h-4 text-blue-600" />
                                 <span className="text-sm text-gray-600">
@@ -1174,7 +1174,7 @@ export default function DashboardOverview() {
                                 </Badge>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -1186,7 +1186,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.openSupportTickets === 0 && (
-                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                              <div className="text-center p-4 bg-green-50 rounded-[10px]">
                                 <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
                                 <p className="text-green-700 font-medium">
                                   All Clear! 🎉
@@ -1212,7 +1212,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Award className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -1223,7 +1223,7 @@ export default function DashboardOverview() {
                                 {data.onboardingResetsThisWeek}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-blue-600" />
                                 <span className="text-sm text-gray-600">
@@ -1235,7 +1235,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.onboardingResetsThisWeek === 0 && (
-                              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                              <div className="text-center p-4 bg-gray-50 rounded-[10px]">
                                 <Award className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                 <p className="text-gray-600 font-medium">
                                   No Resets Needed
@@ -1261,7 +1261,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <ShieldCheck className="w-4 h-4 text-orange-600" />
                                 <span className="text-sm text-gray-600">
@@ -1272,7 +1272,7 @@ export default function DashboardOverview() {
                                 {data.escalationsLast7Days}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4 text-red-600" />
                                 <span className="text-sm text-gray-600">
@@ -1284,7 +1284,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.escalationsLast7Days === 0 && (
-                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                              <div className="text-center p-4 bg-green-50 rounded-[10px]">
                                 <ShieldCheck className="w-8 h-8 text-green-600 mx-auto mb-2" />
                                 <p className="text-green-700 font-medium">
                                   No Escalations
@@ -1310,7 +1310,7 @@ export default function DashboardOverview() {
                           }}
                         >
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-red-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4 text-red-600" />
                                 <span className="text-sm text-gray-600">
@@ -1326,7 +1326,7 @@ export default function DashboardOverview() {
                                 </Badge>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-[10px]">
                               <div className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-600" />
                                 <span className="text-sm text-gray-600">
@@ -1340,7 +1340,7 @@ export default function DashboardOverview() {
                               </span>
                             </div>
                             {data.bugReportsNeedingFollowup === 0 && (
-                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                              <div className="text-center p-4 bg-green-50 rounded-[10px]">
                                 <Bug className="w-8 h-8 text-green-600 mx-auto mb-2" />
                                 <p className="text-green-700 font-medium">
                                   No Bug Reports
@@ -1365,7 +1365,7 @@ export default function DashboardOverview() {
                         <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50/30">
                           <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
+                              <div className="p-2 rounded-[10px] bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
                                 <Inbox className="w-5 h-5" />
                               </div>
                               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -1381,7 +1381,7 @@ export default function DashboardOverview() {
                           </CardHeader>
                           <CardContent>
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-[10px]">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                                     <Inbox className="w-5 h-5 text-white" />
@@ -1399,7 +1399,7 @@ export default function DashboardOverview() {
                                   {data.openSupportTickets * 15}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-[10px]">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                                     <CheckCircle className="w-5 h-5 text-white" />
@@ -1419,7 +1419,7 @@ export default function DashboardOverview() {
                                   )}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg">
+                              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-[10px]">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
                                     <Clock className="w-5 h-5 text-white" />
@@ -1445,7 +1445,7 @@ export default function DashboardOverview() {
                         <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50/30">
                           <CardHeader className="flex flex-row items-center justify-between pb-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg">
+                              <div className="p-2 rounded-[10px] bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg">
                                 <Heart className="w-5 h-5" />
                               </div>
                               <CardTitle className="text-lg font-semibold text-gray-800">

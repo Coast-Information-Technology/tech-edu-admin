@@ -109,10 +109,18 @@ export default function AcademicServicesPage() {
         toast.success("Service deleted successfully");
         setServices((prev) => prev.filter((s) => s.id !== serviceToDelete));
       } else {
-        toast.error(response.message || "Failed to delete service");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to delete service"
+            : response.message || "Failed to delete service"
+        );
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete service");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "Failed to delete service"
+      );
     } finally {
       setShowDeleteModal(false);
       setServiceToDelete(null);

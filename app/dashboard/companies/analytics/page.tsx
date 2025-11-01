@@ -162,21 +162,21 @@ export default function CompaniesDashboard() {
       {/* Statistics */}
       {stats && !loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-[10px] p-4 text-center">
             <p className="text-xl font-bold text-blue-800">{stats.total}</p>
             <p className="text-sm text-blue-700">Total Companies</p>
           </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+          <div className="bg-green-50 border border-green-200 rounded-[10px] p-4 text-center">
             <p className="text-xl font-bold text-green-800">{stats.active}</p>
             <p className="text-sm text-green-700">Active Companies</p>
           </div>
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+          <div className="bg-purple-50 border border-purple-200 rounded-[10px] p-4 text-center">
             <p className="text-xl font-bold text-purple-800">
               {stats.verified}
             </p>
             <p className="text-sm text-purple-700">Verified Companies</p>
           </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-[10px] p-4">
             <h3 className="text-md font-semibold mb-2">By Type</h3>
             {Object.entries(stats.byType).map(([type, data]) => (
               <div key={type} className="mb-2 last:mb-0">

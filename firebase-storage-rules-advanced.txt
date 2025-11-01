@@ -1,0 +1,63 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user data from Firestore
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             getUserData().data.role == 'admin';
+    }
+    
+    // Helper function to check if user is instructor
+    function isInstructor() {
+      return isAuthenticated() && 
+             getUserData().data.role == 'instructor';
+    }
+    
+    // Helper function to check if user is student
+    function isStudent() {
+      return isAuthenticated() && 
+             getUserData().data.role == 'student';
+    }
+    
+    // Allow public read access to all files (for download URLs)
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Assets folder - Product icons, thumbnails, UI assets
+    match /assets/{allPaths=**} {
+      // Only admins and instructors can upload assets
+      allow write: if isAdmin() || isInstructor();
+      // Allow delete only for admins
+      allow delete: if isAdmin();
+    }
+    
+    // Attachments folder - User uploaded files
+    match /attachments/{allPaths=**} {
+      // Any authenticated user can upload attachments
+      allow write: if isAuthenticated();
+      // Users can only delete their own attachments
+      allow delete: if isAuthenticated() && 
+                       resource.metadata.uploadedBy == request.auth.uid;
+    }
+    
+    // Materials folder - Training materials, course content
+    match /materials/{allPaths=**} {
+      // Only admins and instructors can upload materials
+      allow write: if isAdmin() || isInstructor();
+      // Only admins can delete materials
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import safeConsole from "@/lib/console";
 
 interface User {
   _id: string;
@@ -228,12 +229,20 @@ export default function UserManagementPage() {
         setHasMore(hasMore);
         setCurrentPage(page);
       } else {
-        console.error("API error:", response);
-        toast.error(response.message || "Failed to fetch users");
+        safeConsole.error("API error:", response);
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response.message || "Failed to fetch users"
+        );
       }
     } catch (error: any) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to load users");
+      safeConsole.error("Error fetching users:", error);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Failed to load users"
+      );
     } finally {
       setLoading(false);
     }
@@ -410,7 +419,7 @@ export default function UserManagementPage() {
             >
               <Link href="/dashboard/users/new">
                 <Plus className="w-4 h-4 mr-2" />
-                Add User
+                Add New Staff Member
               </Link>
             </Button>
             <Button
@@ -436,7 +445,7 @@ export default function UserManagementPage() {
                     {stats.total.toLocaleString()}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <Users className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -455,7 +464,7 @@ export default function UserManagementPage() {
                   </p>
                   <p className="text-xs text-gray-500">Current page</p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -472,7 +481,7 @@ export default function UserManagementPage() {
                   </p>
                   <p className="text-xs text-gray-500">Current page</p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -489,7 +498,7 @@ export default function UserManagementPage() {
                   </p>
                   <p className="text-xs text-gray-500">Current page</p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <Ban className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -508,7 +517,7 @@ export default function UserManagementPage() {
                   placeholder="Search users by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
+                  className="pl-12 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-[12px]"
                 />
               </div>
 
@@ -531,10 +540,10 @@ export default function UserManagementPage() {
                 } lg:grid lg:grid-cols-3 lg:gap-4`}
               >
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl">
+                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-[12px]">
                     <SelectValue placeholder="Filter by role" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white rounded-xl border-2 border-gray-200">
+                  <SelectContent className="bg-white rounded-[12px] border-2 border-gray-200">
                     <SelectItem value="all">All Roles</SelectItem>
                     <SelectItem value="student">Students</SelectItem>
                     <SelectItem value="individualTechProfessional">
@@ -557,10 +566,10 @@ export default function UserManagementPage() {
                   value={isVerifiedFilter}
                   onValueChange={setIsVerifiedFilter}
                 >
-                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl">
+                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-[12px]">
                     <SelectValue placeholder="Filter by verification" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white rounded-xl border-2 border-gray-200">
+                  <SelectContent className="bg-white rounded-[12px] border-2 border-gray-200">
                     <SelectItem value="all">All Verification</SelectItem>
                     <SelectItem value="true">Verified</SelectItem>
                     <SelectItem value="false">Not Verified</SelectItem>
@@ -571,10 +580,10 @@ export default function UserManagementPage() {
                   value={isLockedFilter}
                   onValueChange={setIsLockedFilter}
                 >
-                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl">
+                  <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-[12px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white rounded-xl border-2 border-gray-200">
+                  <SelectContent className="bg-white rounded-[12px] border-2 border-gray-200">
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="false">Active</SelectItem>
                     <SelectItem value="true">Locked</SelectItem>
@@ -591,7 +600,7 @@ export default function UserManagementPage() {
             <CardContent className="p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="p-2 bg-blue-100 rounded-[10px]">
                     <Users className="w-5 h-5 text-blue-600" />
                   </div>
                   <span className="text-lg font-semibold text-blue-800">

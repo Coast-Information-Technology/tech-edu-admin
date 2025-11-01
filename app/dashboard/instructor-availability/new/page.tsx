@@ -32,8 +32,12 @@ interface InstructorAvailabilityForm {
   workingHours: WorkingHours[];
   bufferTimeMinutes: number;
   timezone: string;
-  calendlyUserId: string;
-  calendlyUserUri: string;
+  calendly?: {
+    userId: string;
+    userUri: string;
+    connectedAt: string;
+    lastSyncAt: string;
+  };
 }
 
 const DAYS_OF_WEEK = [
@@ -79,8 +83,7 @@ export default function NewInstructorAvailabilityPage() {
     ],
     bufferTimeMinutes: 30,
     timezone: "UTC",
-    calendlyUserId: "",
-    calendlyUserUri: "",
+    calendly: undefined,
   });
 
   // Update instructorId when userData changes
@@ -143,7 +146,7 @@ export default function NewInstructorAvailabilityPage() {
     try {
       const token = getTokenFromCookies();
       if (!token) {
-        setError("Authentication required. Please log in.");
+        router.push("/login");
         return;
       }
 
@@ -153,8 +156,7 @@ export default function NewInstructorAvailabilityPage() {
         workingHours: form.workingHours,
         bufferTimeMinutes: form.bufferTimeMinutes,
         timezone: form.timezone,
-        calendlyUserId: form.calendlyUserId || undefined,
-        calendlyUserUri: form.calendlyUserUri || undefined,
+        calendly: form.calendly,
       };
 
       const response = await postApiRequest(
@@ -360,7 +362,7 @@ export default function NewInstructorAvailabilityPage() {
                               e.target.value
                             )
                           }
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -377,7 +379,7 @@ export default function NewInstructorAvailabilityPage() {
                               e.target.value
                             )
                           }
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-[12px] text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -398,33 +400,16 @@ export default function NewInstructorAvailabilityPage() {
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Calendly User ID
-                </label>
-                <input
-                  type="text"
-                  name="calendlyUserId"
-                  value={form.calendlyUserId}
-                  onChange={handleChange}
-                  placeholder="Enter Calendly user ID"
-                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Calendly User URI
-                </label>
-                <input
-                  type="url"
-                  name="calendlyUserUri"
-                  value={form.calendlyUserUri}
-                  onChange={handleChange}
-                  placeholder="https://calendly.com/username"
-                  className="w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                />
+            <div className="space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center">
+                <Calendar className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-slate-600">
+                  No Calendly integration configured
+                </p>
+                <p className="text-sm text-slate-500">
+                  Connect Calendly from the main availability page after
+                  creating availability
+                </p>
               </div>
             </div>
           </div>

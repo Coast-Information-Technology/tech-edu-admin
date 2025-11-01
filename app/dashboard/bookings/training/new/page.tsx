@@ -33,7 +33,9 @@ import {
 } from "lucide-react";
 import { postApiRequest, getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
 import { toast } from "react-toastify";
+import safeConsole from "@/lib/console";
 
 interface Instructor {
   _id: string;
@@ -85,16 +87,7 @@ export default function CreateTrainingBookingPage() {
     fullName: "",
   });
 
-  // Product types from the product creation form
-  const PRODUCT_TYPE_OPTIONS = [
-    "Training & Certification",
-    "Academic Support Services",
-    "Career Development & Mentorship",
-    "Institutional & Team Services",
-    "AI-Powered or Automation Services",
-    "Career Connect",
-    "Marketing, Consultation & Free Services",
-  ];
+  // Using centralized constants from lib/constants/products.ts
 
   useEffect(() => {
     fetchInstructors();
@@ -288,10 +281,14 @@ export default function CreateTrainingBookingPage() {
         toast.success("Training booking created successfully!");
         router.push("/dashboard/bookings");
       } else {
-        toast.error(response?.data?.message || "Failed to create booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to create booking"
+            : response?.data?.message || "Failed to create booking"
+        );
       }
     } catch (error: any) {
-      console.error("Error creating booking:", error);
+      safeConsole.error("Error creating booking:", error);
       toast.error("Error creating booking");
     } finally {
       setLoading(false);
@@ -306,7 +303,7 @@ export default function CreateTrainingBookingPage() {
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="p-2 hover:bg-white/50 rounded-xl"
+            className="p-2 hover:bg-white/50 rounded-[12px]"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -727,7 +724,7 @@ export default function CreateTrainingBookingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-green-400 transition-colors">
+              <div className="border-2 border-dashed border-slate-300 rounded-[12px] p-6 text-center hover:border-green-400 transition-colors">
                 <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                 <Label htmlFor="file-upload" className="cursor-pointer">
                   <span className="text-sm font-medium text-slate-700">
@@ -757,7 +754,7 @@ export default function CreateTrainingBookingPage() {
                     {uploadedFiles.map((file, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between bg-slate-50 p-3 rounded-lg"
+                        className="flex items-center justify-between bg-slate-50 p-3 rounded-[10px]"
                       >
                         <div className="flex items-center gap-2">
                           <Paperclip className="w-4 h-4 text-slate-500" />

@@ -1,67 +1,25 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getTokenFromCookies } from "@/lib/cookies";
+import {
+  PLATFORM_ROLE_OPTIONS,
+  PRODUCT_TYPE_OPTIONS,
+  PROVIDER_OPTIONS,
+  STATUS_OPTIONS,
+} from "@/lib/constants/products";
 import { getApiRequest } from "@/lib/apiFetch";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Download } from "lucide-react";
-
-// Types
-interface Payment {
-  _id: string;
-  userId: string;
-  provider: string;
-  transactionId: string;
-  amount: number;
-  status: string;
-  currency: string;
-  productId: string;
-  jobApplicationId?: string;
-  bookingId?: string;
-  stripeProductId?: string;
-  stripePriceId?: string;
-  couponCode?: string;
-  clientSecret?: string;
-  metadata?: Record<string, any>;
-  webhookReceived: boolean;
-  receiptUrl?: string;
-  productType: string;
-  bookingService?: string;
-  platformRole: string;
-  profileId?: string;
-  isSession: boolean;
-  isClassroom: boolean;
-  isDeleted: boolean;
-  deletedAt?: string;
-  deletedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Payment } from "@/types/payments";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
+import { useRouter } from "next/navigation";
 
 interface PaymentDetails extends Payment {
   // Additional fields for detailed view if needed
 }
 
-const STATUS_OPTIONS = ["pending", "success", "failed"];
-const PROVIDER_OPTIONS = ["stripe", "flutterwave", "paystack"];
-const PRODUCT_TYPE_OPTIONS = [
-  "Training & Certification",
-  "Academic Support Services",
-  "Career Development & Mentorship",
-  "Institutional & Team Services",
-  "AI-Powered or Automation Services",
-  "Career Connect",
-  "Marketing, Consultation & Free Services",
-];
-const PLATFORM_ROLE_OPTIONS = [
-  "student",
-  "individualTechProfessional",
-  "teamTechProfessional",
-  "recruiter",
-  "institution",
-  "admin",
-  "visitor",
-];
+// Using centralized constants from lib/constants/products.ts
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -82,6 +40,7 @@ export default function AdminPaymentsPage() {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const route = useRouter();
 
   // Fetch all payments once (client-side pagination)
   useEffect(() => {
@@ -199,25 +158,25 @@ export default function AdminPaymentsPage() {
   };
 
   // Fetch single payment details
-  const openPaymentModal = async (paymentId: string) => {
-    setModalOpen(true);
-    setModalLoading(true);
-    setSelectedPayment(null);
-    const token = getTokenFromCookies();
-    if (!token) {
-      setError("Authentication required.");
-      setLoading(false);
-      return;
-    }
-    try {
-      const res = await getApiRequest(`/api/payments/${paymentId}`, token);
-      setSelectedPayment(res.data.data);
-    } catch (err: any) {
-      setSelectedPayment(null);
-    } finally {
-      setModalLoading(false);
-    }
-  };
+  // const openPaymentModal = async (paymentId: string) => {
+  //   setModalOpen(true);
+  //   setModalLoading(true);
+  //   setSelectedPayment(null);
+  //   const token = getTokenFromCookies();
+  //   if (!token) {
+  //     setError("Authentication required.");
+  //     setLoading(false);
+  //     return;
+  //   }
+  //   try {
+  //     const res = await getApiRequest(`/api/payments/${paymentId}`, token);
+  //     setSelectedPayment(res.data.data);
+  //   } catch (err: any) {
+  //     setSelectedPayment(null);
+  //   } finally {
+  //     setModalLoading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
@@ -251,7 +210,7 @@ export default function AdminPaymentsPage() {
             <select
               value={status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl p-3 text-sm"
+              className="bg-white/50 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-[12px] p-3 text-sm"
             >
               <option value="">All Statuses</option>
               {STATUS_OPTIONS.map((opt) => (
@@ -399,7 +358,7 @@ export default function AdminPaymentsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap font-semibold">
-                      {payment.currency} {(payment.amount / 100).toFixed(2)}
+                      {getCurrencySymbol(payment.currency)} {payment.amount}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
@@ -426,7 +385,7 @@ export default function AdminPaymentsPage() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <button
                         className="text-blue-600 hover:text-blue-800 text-sm mr-3 transition-colors duration-200"
-                        onClick={() => openPaymentModal(payment._id)}
+                        onClick={() => route.push(`/payments/${payment._id}`)}
                       >
                         View Details
                       </button>
@@ -463,7 +422,7 @@ export default function AdminPaymentsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1 || totalPagesComputed === 0}
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+                className="px-4 py-2 rounded-[12px] bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
               >
                 Previous
               </button>
@@ -474,7 +433,7 @@ export default function AdminPaymentsPage() {
                 disabled={
                   page === totalPagesComputed || totalPagesComputed === 0
                 }
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+                className="px-4 py-2 rounded-[12px] bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
               >
                 Next
               </button>
@@ -517,14 +476,14 @@ export default function AdminPaymentsPage() {
                   <h2 className="text-2xl font-bold text-slate-900 mb-6">
                     Payment Details
                   </h2>
-                  <div className="mb-4 p-4 bg-slate-50 rounded-xl">
+                  <div className="mb-4 p-4 bg-slate-50 rounded-[12px]">
                     <span className="text-slate-900">
                       {selectedPayment.userId}
                     </span>
                   </div>
                   <div className="mb-2">
                     <span className="font-medium">Amount:</span>{" "}
-                    {selectedPayment.currency}{" "}
+                    {getCurrencySymbol(selectedPayment.currency)}
                     {selectedPayment.amount.toFixed(2)}
                   </div>
                   <div className="mb-2">

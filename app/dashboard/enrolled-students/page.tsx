@@ -661,21 +661,21 @@ export default function EnrolledStudentsPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleViewProfile(student._id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-[12px] hover:bg-blue-700 transition-colors text-sm"
                       >
                         <Eye className="w-3 h-3" />
                         Profile
                       </button>
                       <button
                         onClick={() => handleViewSessions(student._id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors text-sm"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-[12px] hover:bg-green-700 transition-colors text-sm"
                       >
                         <Video className="w-3 h-3" />
                         Sessions
                       </button>
                       <button
                         onClick={() => handleContactStudent(student)}
-                        className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors text-sm"
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-[12px] hover:bg-purple-700 transition-colors text-sm"
                         title="Contact Student"
                       >
                         <MessageSquare className="w-3 h-3" />
@@ -704,14 +704,14 @@ export default function EnrolledStudentsPage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page === 1}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-[12px] hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page === meta.totalPages}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-[12px] hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Next
                     </button>

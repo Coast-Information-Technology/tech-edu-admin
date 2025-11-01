@@ -136,14 +136,20 @@ export default function JobDetailPage() {
           toast.success("Job deleted successfully");
           router.push("/dashboard/jobs-management");
         } else {
-          setDeleteError(response.message || "Failed to delete job");
+          setDeleteError(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Failed to delete job"
+              : response.message || "Failed to delete job"
+          );
           toast.error("Failed to delete job");
         }
       } catch (error: any) {
         setDeleteError(
-          error.message || "An error occurred while deleting the job"
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to delete job"
+            : error.message || "An error occurred while deleting the job"
         );
-        toast.error("An error occurred while deleting the job");
+        toast.error("Failed to delete job");
       } finally {
         setDeleteLoading(false);
       }

@@ -11,19 +11,21 @@ export default function CookieConsent() {
 
   useEffect(() => {
     // Check if user has already made a choice
-    const consent = localStorage.getItem("cookieConsent");
-    if (!consent) {
+    const savedConsent = localStorage.getItem("cookieConsent");
+    if (!savedConsent) {
       setIsVisible(true);
     }
   }, []);
 
   const handleAccept = () => {
     localStorage.setItem("cookieConsent", "accepted");
+    console.log("Cookie consent accepted");
     setIsVisible(false);
   };
 
   const handleReject = () => {
     localStorage.setItem("cookieConsent", "rejected");
+    console.log("Cookie consent rejected");
     setIsVisible(false);
   };
 

@@ -32,68 +32,7 @@ import {
 import { getApiRequest, putApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { toast } from "react-toastify";
-
-interface Booking {
-  _id: string;
-  productId?: {
-    _id: string;
-    service?: string;
-    productType?: string;
-    price?: number;
-  };
-  productType:
-    | "Training & Certification"
-    | "Academic Support Services"
-    | "Career Development & Mentorship"
-    | "Institutional & Team Services"
-    | "AI-Powered or Automation Services"
-    | "Recruitment & Job Matching"
-    | "Marketing, Consultation & Free Services";
-  instructorId?: {
-    _id: string;
-    fullName?: string;
-    email?: string;
-  };
-  bookingPurpose: string;
-  scheduleAt: string;
-  endAt: string;
-  minutesPerSession: number;
-  durationInMinutes: number;
-  numberOfExpectedParticipants: number;
-  isClassroom: boolean;
-  isSession: boolean;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
-  paymentStatus: "unpaid" | "paid" | "refunded";
-  schedulingStatus?: string;
-  meetingLink?: string;
-  userNotes?: string;
-  internalNotes?: string;
-  attachments?: string[];
-  cancellation?: {
-    isCancelled: boolean;
-    cancelledBy?: string;
-    reason?: string;
-    cancelledAt?: string;
-  };
-  participantType:
-    | "individual"
-    | "team"
-    | "institution"
-    | "recruiter"
-    | "visitor";
-  platformRole: string;
-  email: string;
-  fullName: string;
-  createdBy?: {
-    _id: string;
-    fullName?: string;
-    email?: string;
-  };
-  participants?: any[];
-  actualDaysAndTime?: any[];
-  createdAt: string;
-  updatedAt: string;
-}
+import safeConsole from "@/lib/console";
 
 interface Instructor {
   _id: string;
@@ -183,11 +122,19 @@ export default function EditBookingPage({
           isSession: bookingData.isSession || false,
         });
       } else {
-        toast.error(response?.data?.message || "Failed to fetch booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to fetch booking"
+        );
       }
     } catch (error: any) {
-      console.error("Error fetching booking:", error);
-      toast.error("Error fetching booking");
+      safeConsole.error("Error fetching booking:", error);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Error fetching booking"
+      );
     } finally {
       setFetching(false);
     }
@@ -208,10 +155,13 @@ export default function EditBookingPage({
           response.data.data?.users || response.data.users || [];
         setInstructors(instructorData);
       } else {
-        console.error("Failed to fetch instructors:", response?.data?.message);
+        safeConsole.error(
+          "Failed to fetch instructors:",
+          response?.data?.message
+        );
       }
     } catch (err: any) {
-      console.error("Error fetching instructors:", err);
+      safeConsole.error("Error fetching instructors:", err);
     } finally {
       setInstructorsLoading(false);
     }
@@ -232,10 +182,10 @@ export default function EditBookingPage({
           response.data.data?.products || response.data.products || [];
         setProducts(productsData);
       } else {
-        console.error("Failed to fetch products:", response?.data?.message);
+        safeConsole.error("Failed to fetch products:", response?.data?.message);
       }
     } catch (err: any) {
-      console.error("Error fetching products:", err);
+      safeConsole.error("Error fetching products:", err);
     } finally {
       setProductsLoading(false);
     }
@@ -295,10 +245,14 @@ export default function EditBookingPage({
         toast.success("Booking updated successfully!");
         router.push(`/dashboard/bookings/${params.id}`);
       } else {
-        toast.error(response?.data?.message || "Failed to update booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to update booking"
+        );
       }
     } catch (error: any) {
-      console.error("Error updating booking:", error);
+      safeConsole.error("Error updating booking:", error);
       toast.error("Error updating booking");
     } finally {
       setLoading(false);
@@ -332,7 +286,7 @@ export default function EditBookingPage({
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="p-2 hover:bg-white/50 rounded-xl"
+            className="p-2 hover:bg-white/50 rounded-[12px]"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>

@@ -30,7 +30,7 @@ export default function IndividualTechProfessionalProfile({
           <CardTitle>Tech Professional Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-6 bg-blue-50 rounded-lg border-2 border-dashed border-blue-300">
+          <div className="text-center p-6 bg-blue-50 rounded-[10px] border-2 border-dashed border-blue-300">
             <Code className="w-12 h-12 text-blue-400 mx-auto mb-3" />
             <h4 className="font-semibold text-blue-700 mb-2">
               Tech Professional Profile Not Created

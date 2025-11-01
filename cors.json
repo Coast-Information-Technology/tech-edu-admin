@@ -1,0 +1,9 @@
+[
+    {
+      "origin": ["https://tech-eduk.com", "https://www.tech-eduk.com", "http://localhost:3000", "http://localhost:3001", "https://techedusolution.com"],
+      "method": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      "maxAgeSeconds": 3600,
+      "responseHeader": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+    }
+  ]
+  

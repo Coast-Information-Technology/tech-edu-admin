@@ -88,10 +88,18 @@ export default function AcademicServiceViewPage() {
         toast.success("Service deleted successfully");
         router.push("/dashboard/academic-services");
       } else {
-        toast.error(response.message || "Failed to delete service");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to delete service"
+            : response.message || "Failed to delete service"
+        );
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete service");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to delete service"
+          : error.message || "Failed to delete service"
+      );
     } finally {
       setShowDeleteModal(false);
     }

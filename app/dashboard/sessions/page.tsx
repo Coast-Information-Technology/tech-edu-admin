@@ -565,7 +565,7 @@ export default function SessionsPage() {
                       href={session.meetingLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-[12px] text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 hover:from-green-200 hover:to-emerald-200 transition-all duration-300"
                     >
                       <Video className="w-4 h-4" />
                       Join Meeting

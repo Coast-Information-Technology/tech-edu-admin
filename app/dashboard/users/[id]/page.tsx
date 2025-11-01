@@ -506,7 +506,7 @@ export default function UserDetailPage({
                     {user.isVerified ? "Verified" : "Pending"}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -524,7 +524,7 @@ export default function UserDetailPage({
                     {user.isLocked ? "Locked" : "Active"}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -542,7 +542,7 @@ export default function UserDetailPage({
                     {new Date(user.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -562,7 +562,7 @@ export default function UserDetailPage({
                       : "Never"}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-[12px] group-hover:scale-110 transition-transform duration-300">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -671,7 +671,7 @@ export default function UserDetailPage({
 
                     {/* Profile Status */}
                     {!user.profile && (
-                      <div className="text-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                      <div className="text-center p-6 bg-gray-50 rounded-[10px] border-2 border-dashed border-gray-300">
                         <User className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                         <h4 className="font-semibold text-gray-700 mb-2">
                           Profile Not Created

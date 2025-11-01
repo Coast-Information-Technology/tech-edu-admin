@@ -1,23 +1,36 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { DialogFooter } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { getTokenFromCookies } from "@/lib/cookies";
-import { postApiRequest } from "@/lib/apiFetch";
-import { Switch } from "@/components/ui/switch";
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-toastify";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
+import {
+  uploadAssetImage,
+  uploadMaterial,
+  deleteFileFromFirebase,
+} from "@/lib/firebase";
+import {
+  PRODUCT_TYPE_OPTIONS,
+  DELIVERY_MODE_OPTIONS,
+  SESSION_TYPE_OPTIONS,
+  MODE_OPTIONS,
+} from "@/lib/constants/products";
+import { normalizePricingForApi, Pricing, Currency } from "@/lib/constants/pricing";
+import PricingForm, {
+  computePrice,
+  formatMoney,
+} from "@/components/PricingForms";
 
 const initialForm = {
   productType: "",
@@ -31,23 +44,27 @@ const initialForm = {
   requiresEnrollment: false,
   hasCertificate: false,
   hasClassroom: false,
-  hasSession: true,
+  hasSession: false,
   hasAssessment: false,
   isBookableService: false,
+  nonBookableService: true, // ← NEW (unchecked bookable = non-bookable)
   programLength: 0,
   mode: "",
   durationInMinutes: 0,
   minutesPerSession: 0,
-  price: 0,
-  discountPercentage: 0,
+  maxParticipants: 1,
   description: "",
   tags: [] as string[],
   slug: "",
   iconUrl: "",
   thumbnailUrl: "",
+  materialUrl: "",
+  mediaType: "", // For Tools + nonBookableService
+  isAttachmentRequired: false,
+  publicSchedulingUrl: "",
   enabled: true,
-  instructorId: "", // Add instructor field
-  // API required fields
+  instructorId: "",
+  // API mirror fields
   productSubcategoryName: "",
   productSubCategoryId: "",
   productCategoryTitle: "",
@@ -62,21 +79,6 @@ const steps = [
   "Review & Submit",
 ];
 
-const PRODUCT_TYPE_OPTIONS = [
-  "Training & Certification",
-  "Academic Support Services",
-  "Career Development & Mentorship",
-  "Institutional & Team Services",
-  "AI-Powered or Automation Services",
-  "Career Connect",
-  "Marketing, Consultation & Free Services",
-];
-
-// Remove static SERVICE_OPTIONS since we'll fetch dynamically
-const DELIVERY_MODE_OPTIONS = ["online", "offline", "hybrid"];
-const SESSION_TYPE_OPTIONS = ["1-on-1", "group", "classroom"];
-const MODE_OPTIONS = ["weeks", "days", "hours"];
-
 export default function CreateProductPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<any>(initialForm);
@@ -84,9 +86,6 @@ export default function CreateProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
-  const [customService, setCustomService] = useState("");
-  const [customSubcategory, setCustomSubcategory] = useState("");
-  const [serviceOptions, setServiceOptions] = useState<string[]>([]);
   const [subcategoryOptions, setSubcategoryOptions] = useState<
     { _id: string; name: string }[]
   >([]);
@@ -114,40 +113,65 @@ export default function CreateProductPage() {
   // Tag input state
   const [tagInput, setTagInput] = useState("");
 
-  // Add tag function
+  // 🧮 Pricing state (controlled by PricingForm)
+  const [pricing, setPricing] = useState<Pricing>({
+    model: "one_time",
+    currency: "gbp",
+    taxInclusive: true,
+    vatPercentage: 0,
+    priceBasis: "flat",
+    discountPercentage: 0,
+    basePrice: 0,
+    minQty: 1,
+    maxQty: 1000,
+    allowInstallments: false,
+    installments: undefined,
+  });
+
+  // Derived booleans used everywhere
+  const isBookable = !!form.isBookableService;
+  const instructorRequired = isBookable;
+
   const addTag = () => {
-    const trimmedTag = tagInput.trim();
-    if (trimmedTag && !form.tags.includes(trimmedTag)) {
+    const trimmedInput = tagInput.trim();
+    if (!trimmedInput) return;
+
+    // Split by commas and process each tag
+    const tagsToAdd = trimmedInput
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+      .filter((tag) => !form.tags.includes(tag)); // Filter out duplicates
+
+    if (tagsToAdd.length > 0) {
       setForm((prev: any) => ({
         ...prev,
-        tags: [...prev.tags, trimmedTag],
+        tags: [...prev.tags, ...tagsToAdd],
       }));
       setTagInput("");
     }
   };
 
-  // Helper function to determine if service is bookable based on product type
-  const isBookableServiceType = (productType: string) => {
+  const requiresTrainingMaterials = (productType: string) => {
     return [
       "Training & Certification",
       "Academic Support Services",
       "Career Development & Mentorship",
-      "Institutional & Team Services",
     ].includes(productType);
   };
 
-  // Helper function to get service type description
   const getServiceTypeDescription = () => {
     if (!form.productType) return "";
-
-    if (isBookableServiceType(form.productType)) {
-      return "This is a bookable service that requires an instructor. Users can book sessions with specific instructors.";
+    if (isBookable) {
+      return form.productType === "Tools"
+        ? "This is a bookable service. Users can schedule sessions. Instructor is optional for this product type."
+        : "This is a bookable service that typically involves an instructor. Users can book sessions with specific instructors.";
     } else {
       return "This is a non-bookable service. Users can access this service without booking with a specific instructor.";
     }
   };
 
-  // Fetch categories and services when productType changes
+  // Fetch categories + instructors on mount
   React.useEffect(() => {
     const fetchCategoriesAndServices = async () => {
       const token = getTokenFromCookies();
@@ -160,40 +184,27 @@ export default function CreateProductPage() {
         setCategoryLoading(true);
         setCategoryError(null);
 
-        // Fetch categories
-        const categoriesResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/product-categories`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        // Categories
+        const categoriesResponse = await getApiRequest(
+          `/api/product-categories`,
+          token
         );
-
-        if (!categoriesResponse.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-
-        const categoriesData = await categoriesResponse.json();
+        const categoriesData = categoriesResponse?.data || [];
         setCategoryOptions(categoriesData.data || []);
 
-        // Fetch instructors
+        // Instructors
         setInstructorsLoading(true);
-        const instructorsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/users/admin/instructors`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const instructorsResponse = await getApiRequest(
+          `/api/users/admin/instructors`,
+          token
         );
-
-        if (!instructorsResponse.ok) {
+        if (instructorsResponse?.data?.success) {
+          const instructorData =
+            instructorsResponse.data.data?.instructors || [];
+          setInstructors(instructorData);
+        } else {
           throw new Error("Failed to fetch instructors");
         }
-
-        const instructorsData = await instructorsResponse.json();
-        setInstructors(instructorsData.data?.instructors || []);
       } catch (err: any) {
         setCategoryError(err.message || "Failed to fetch categories");
         setInstructorsError(err.message || "Failed to fetch instructors");
@@ -236,7 +247,6 @@ export default function CreateProductPage() {
         const activeSubcategories = data.filter((sub: any) => !sub.isDeleted);
         setSubcategoryOptions(activeSubcategories);
 
-        // Reset subcategory if current one is not in new options
         setForm((prev: any) => ({
           ...prev,
           subcategory: activeSubcategories.some(
@@ -281,7 +291,6 @@ export default function CreateProductPage() {
       if (response.status === 201 || response.status === 200) {
         toast.success("Category created successfully!");
 
-        // Refresh categories from API
         const apiFetch = await import("@/lib/apiFetch");
         const res = await apiFetch.getApiRequest(
           `/api/product-categories/type/${encodeURIComponent(
@@ -293,21 +302,18 @@ export default function CreateProductPage() {
         const activeCategories = data.filter((cat: any) => !cat.isDeleted);
         setCategoryOptions(activeCategories);
 
-        // Extract service titles from categories
-        const services = activeCategories.map((cat: any) => cat.title);
-        setServiceOptions(services);
-
-        // Set the new category as selected
         setForm((prev: any) => ({ ...prev, category: response.data.title }));
 
-        // Reset and close dialog
         setNewCategoryTitle("");
         setShowCategoryDialog(false);
       } else {
-        toast.error(response.message || "Failed to create category");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to create category"
+            : response.message || "Failed to create category"
+        );
       }
     } catch (error: any) {
-      console.error("Error creating category:", error);
       toast.error("Failed to create category");
     } finally {
       setCreatingCategory(false);
@@ -331,7 +337,6 @@ export default function CreateProductPage() {
         return;
       }
 
-      // Find the selected category to get its ID
       const selectedCategory = categoryOptions.find(
         (cat) => cat.title === form.category
       );
@@ -354,7 +359,6 @@ export default function CreateProductPage() {
       if (response.status === 201 || response.status === 200) {
         toast.success("Subcategory created successfully!");
 
-        // Refresh subcategories from API
         const apiFetch = await import("@/lib/apiFetch");
         const res = await apiFetch.getApiRequest(
           `/api/product-subcategories/category/${selectedCategory._id}`,
@@ -364,17 +368,18 @@ export default function CreateProductPage() {
         const activeSubcategories = data.filter((sub: any) => !sub.isDeleted);
         setSubcategoryOptions(activeSubcategories);
 
-        // Set the new subcategory as selected
         setForm((prev: any) => ({ ...prev, subcategory: response.data.name }));
 
-        // Reset and close dialog
         setNewSubcategoryName("");
         setShowSubcategoryDialog(false);
       } else {
-        toast.error(response.message || "Failed to create subcategory");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to create subcategory"
+            : response.message || "Failed to create subcategory"
+        );
       }
     } catch (error: any) {
-      console.error("Error creating subcategory:", error);
       toast.error("Failed to create subcategory");
     } finally {
       setCreatingSubcategory(false);
@@ -388,14 +393,23 @@ export default function CreateProductPage() {
   ) => {
     const { name, value, type } = e.target;
 
-    // Handle "Create New" selections
     if (name === "category" && value === "__create_new__") {
       setShowCategoryDialog(true);
       return;
     }
-
     if (name === "subcategory" && value === "__create_new__") {
       setShowSubcategoryDialog(true);
+      return;
+    }
+
+    // keep nonBookableService mirrored to the inverse of isBookableService
+    if (name === "isBookableService") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setForm((prev: any) => ({
+        ...prev,
+        isBookableService: checked,
+        nonBookableService: !checked,
+      }));
       return;
     }
 
@@ -412,59 +426,142 @@ export default function CreateProductPage() {
     }));
   };
 
+  const handleDeleteMaterial = async () => {
+    if (!form.materialUrl) return;
+    setLoading(true);
+    try {
+      await deleteFileFromFirebase(form.materialUrl);
+      setForm((prev: any) => ({ ...prev, materialUrl: "" }));
+      toast.success("Material deleted successfully!");
+    } catch {
+      toast.error("Failed to delete material. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔒 Validate pricing before submit
+  const validatePricing = (): string | null => {
+    // Validate flat pricing
+    if (pricing.priceBasis === "flat") {
+      if ((pricing.basePrice ?? 0) < 0)
+        return "Price cannot be negative.";
+      
+      // Subscription requires interval
+      if (pricing.model === "subscription") {
+        if (!pricing.interval) return "Subscription interval is required.";
+        if ((pricing.intervalCount ?? 1) < 1)
+          return "Subscription interval count must be at least 1.";
+      }
+    }
+    
+    // Validate per_unit pricing
+    if (pricing.priceBasis === "per_unit") {
+      if (!pricing.tierType) return "Tier type is required for per-unit pricing.";
+      if (!pricing.tiers || pricing.tiers.length === 0)
+        return "Please add at least one tier for per-unit pricing.";
+      if ((pricing.minQty ?? 1) < 1)
+        return "Minimum quantity must be at least 1.";
+      if ((pricing.maxQty ?? 1) < (pricing.minQty ?? 1))
+        return "Max quantity must be >= min quantity.";
+      
+      // Subscription per_unit also requires interval
+      if (pricing.model === "subscription") {
+        if (!pricing.interval) return "Subscription interval is required.";
+        if ((pricing.intervalCount ?? 1) < 1)
+          return "Subscription interval count must be at least 1.";
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (step !== steps.length - 1) return;
 
-    // Enhanced validation for all required fields
+    // Required fields (baseline)
     const requiredFields = [
       { field: "productType", label: "Product Type" },
       { field: "category", label: "Product Category" },
       { field: "subcategory", label: "Product Subcategory" },
       { field: "service", label: "Service" },
-      { field: "deliveryMode", label: "Delivery Mode" },
-      { field: "sessionType", label: "Session Type" },
-      { field: "programLength", label: "Program Length" },
-      { field: "mode", label: "Mode" },
-      { field: "durationInMinutes", label: "Duration in Minutes" },
-      { field: "minutesPerSession", label: "Minutes Per Session" },
-      { field: "description", label: "Description" },
       { field: "slug", label: "Slug" },
     ];
 
-    // Add instructor validation for bookable services
-    if (isBookableServiceType(form.productType) && !form.instructorId) {
-      requiredFields.push({ field: "instructorId", label: "Instructor" });
+    // Media type and file required for Tools + nonBookableService + mediaType selected
+    if (form.productType === "Tools" && !form.isBookableService && form.mediaType) {
+      requiredFields.push(
+        { field: "mediaType", label: "Media Type" },
+        { field: "materialUrl", label: "Media File" }
+      );
     }
 
-    const missingFields = requiredFields.filter(({ field, label }) => {
-      const value = form[field];
-      let isMissing;
+    // Bookable-only requirements
+    if (isBookable) {
+      requiredFields.push(
+        { field: "publicSchedulingUrl", label: "Booking Scheduling Link" },
+        { field: "deliveryMode", label: "Delivery Mode" },
+        { field: "sessionType", label: "Session Type" },
+        { field: "programLength", label: "Program Length" },
+        { field: "mode", label: "Mode" },
+        { field: "durationInMinutes", label: "Duration in Minutes" },
+        { field: "minutesPerSession", label: "Minutes Per Session" },
+        { field: "description", label: "Description" }
+      );
 
-      // Special handling for price - can be 0 (free) or greater
-      if (field === "price") {
-        isMissing =
-          value === null ||
-          value === undefined ||
-          (typeof value === "number" && value < 0);
-      } else {
-        isMissing =
-          !value ||
-          (typeof value === "string" && value.trim() === "") ||
-          (typeof value === "number" && value <= 0);
+      if (instructorRequired) {
+        requiredFields.push({ field: "instructorId", label: "Instructor" });
       }
+    }
 
-      return isMissing;
+    // Duration guards
+    if (isBookable) {
+      if (form.durationInMinutes < 1 || form.durationInMinutes > 120) {
+        setError("Duration must be between 1 and 120 minutes.");
+        return;
+      }
+      if (form.minutesPerSession < 1 || form.minutesPerSession > 120) {
+        setError("Minutes per session must be between 1 and 120 minutes.");
+        return;
+      }
+    } else {
+      // Optional: only warn if the user entered a non-zero value out of range
+      if (
+        form.durationInMinutes > 0 &&
+        (form.durationInMinutes < 1 || form.durationInMinutes > 120)
+      ) {
+        setError("Duration must be between 1 and 120 minutes (if provided).");
+        return;
+      }
+      if (
+        form.minutesPerSession > 0 &&
+        (form.minutesPerSession < 1 || form.minutesPerSession > 120)
+      ) {
+        setError(
+          "Minutes per session must be between 1 and 120 (if provided)."
+        );
+        return;
+      }
+    }
+
+    const missingFields = requiredFields.filter(({ field }) => {
+      const value = form[field];
+      if (value === null || value === undefined) return true;
+      if (typeof value === "string") return value.trim() === "";
+      if (typeof value === "number") return value <= 0;
+      return false;
     });
 
     if (missingFields.length > 0) {
-      const missingLabels = missingFields.map((f) => f.label).join(", ");
+      const missingLabels = missingFields.map((f: any) => f.label).join(", ");
       setError(`Please fill all required fields: ${missingLabels}`);
       return;
     }
 
-    // Additional validation for bookable services
-    if (isBookableServiceType(form.productType) && !form.instructorId) {
-      setError("Bookable services require an instructor to be assigned.");
+    // Pricing validation
+    const pErr = validatePricing();
+    if (pErr) {
+      setError(pErr);
       return;
     }
 
@@ -480,53 +577,174 @@ export default function CreateProductPage() {
     }
 
     try {
-      // Find the selected category and subcategory objects
       const selectedCategory = categoryOptions.find(
         (cat) => cat.title === form.category
       );
-
-      // Find the selected subcategory object by name
       const selectedSubcategory = subcategoryOptions.find(
         (sub) => sub.name === form.subcategory
       );
 
-      // Prepare the API payload with all required fields
-      const payload = {
-        ...form,
-        // Map form fields to API required fields
+      // Map Pricing -> backend pricing schema
+      const normalizedPricing = normalizePricingForApi(pricing);
+      const allowedCurrencies = ["usd", "eur", "gbp", "cad", "aud", "jpy", "inr", "ngn"] as const;
+      const currency = (normalizedPricing.currency || "gbp").toLowerCase();
+      const safeCurrency = (allowedCurrencies.includes(currency as any)
+        ? currency
+        : "gbp") as typeof allowedCurrencies[number];
+
+      // Debug: show normalized pricing before toBackendPricing
+      console.log("[Create Product] Raw pricing:", pricing);
+      console.log("[Create Product] Normalized pricing:", normalizedPricing);
+
+      const toBackendPricing = (p: Pricing) => {
+        if (p.model === "subscription") {
+          const payload: any = {
+            model: "subscription",
+            priceBasis: p.priceBasis ?? "flat",
+            currency: safeCurrency,
+            interval: p.interval || "month",
+            intervalCount: p.intervalCount || 1,
+            trialDays: p.trialDays ?? 0,
+            setupFee: Number(p.setupFee || 0),
+            autoRenew: p.autoRenew ?? true,
+            minTermMonths: p.minTermMonths ?? 0,
+            proration: p.proration ?? true,
+          };
+          // Use basePrice for flat pricing, add per_unit fields if needed
+          if (p.priceBasis === "flat") {
+            payload.basePrice = Number(p.basePrice ?? p.subscriptionPrice ?? 0);
+          } else if (p.priceBasis === "per_unit") {
+            const unitName = p.unitName === "person" ? "participant" : p.unitName || "participant";
+            payload.unitName = unitName;
+            payload.allowQuantity = true;
+            payload.minQty = p.minQty ?? 1;
+            payload.maxQty = p.maxQty ?? Math.max(payload.minQty, 1000);
+            payload.tierType = p.tierType || "volume";
+            payload.tiers = (p.tiers || []).map((t) => ({ upTo: Number(t.upTo), unitPrice: Number(t.unitPrice) }));
+          }
+          // Add tax fields if present
+          if (p.taxInclusive !== undefined) payload.taxInclusive = p.taxInclusive;
+          if (p.vatPercentage !== undefined) payload.vatPercentage = p.vatPercentage ?? 0;
+          return payload;
+        }
+        
+        if (p.model === "free") {
+          return {
+            model: "free",
+            currency: safeCurrency,
+          };
+        }
+
+        const unitName = p.unitName === "person" ? "participant" : p.unitName || "participant";
+        const payload: any = {
+          model: "one_time",
+          priceBasis: p.priceBasis ?? "flat", // Default to flat only if missing (preserves "per_unit" if set)
+          currency: safeCurrency,
+          taxInclusive: p.taxInclusive ?? false,
+          vatPercentage: p.vatPercentage ?? 0,
+        };
+        if (p.priceBasis !== "per_unit") {
+          payload.basePrice = Number(p.basePrice || 0);
+        }
+        if (p.priceBasis === "per_unit") {
+          payload.unitName = unitName;
+          payload.minQty = p.minQty ?? 1;
+          payload.maxQty = p.maxQty ?? Math.max(payload.minQty, 1000);
+          payload.tierType = p.tierType || "volume";
+          payload.tiers = (p.tiers || []).map((t) => ({ upTo: Number(t.upTo), unitPrice: Number(t.unitPrice) }));
+        }
+        // Only include installments if explicitly enabled
+        // Note: p is normalized which deletes installments if allowInstallments is false
+        // So we check original pricing object directly
+        if (pricing.allowInstallments && pricing.installments) {
+          payload.allowInstallments = true;
+          payload.installments = {
+            enabled: true,
+            count: Math.max(2, Number(pricing.installments.count || 2)),
+            interval: pricing.installments.interval || "month",
+            intervalCount: pricing.installments.intervalCount || 1,
+            downPaymentType: pricing.installments.downPaymentType,
+            downPaymentValue: Math.max(0, Number(pricing.installments.downPaymentValue || 0)),
+            allowEarlyPayoff: pricing.installments.allowEarlyPayoff ?? false,
+            provider: pricing.installments.provider || "in_house",
+          };
+        }
+        return payload;
+      };
+
+      const backendPricing = toBackendPricing(normalizedPricing);
+
+      // Debug: show payloads being sent (pricing by model)
+      try {
+        console.log("[Create Product] Pricing model:", normalizedPricing.model);
+        console.log("[Create Product] Pricing payload:", backendPricing);
+      } catch {}
+
+      const rootDiscountPercentage = Math.max(
+        0,
+        Math.min(100, Number(pricing.discountPercentage ?? 0))
+      );
+
+      const payload: any = {
+        // --- Basic & meta ---
+        productType: form.productType,
+        service: form.service,
         productCategoryId: selectedCategory?._id || "",
         productCategoryTitle: form.category || "",
         productSubCategoryId: selectedSubcategory?._id || "",
         productSubcategoryName: form.subcategory || "",
+        publicSchedulingUrl: form.publicSchedulingUrl || "",
+        deliveryMode: form.deliveryMode,
+        sessionType: form.sessionType,
+        description: form.description,
+        slug: form.slug,
+        tags: Array.isArray(form.tags) ? form.tags : [],
+        enabled: !!form.enabled,
+
+        // --- Training & bookable flags ---
+        hasClassroom: !!form.hasClassroom,
+        hasSession: !!form.hasSession,
+        hasAssessment: !!form.hasAssessment,
+        requiresBooking: !!form.requiresBooking,
+        requiresEnrollment: !!form.requiresEnrollment,
+        instructorRequired: !!form.instructorRequired,
+        hasCertificate: !!form.hasCertificate,
+        isBookableService: !!form.isBookableService,
+        nonBookableService: !!form.nonBookableService, // ← NEW
+        instructorId: instructorRequired ? form.instructorId || null : null,
+        mode: form.mode || "weeks",
+
+        // --- Scheduling & duration ---
+        programLength: Number(form.programLength) || 0,
         durationInMinutes: Number(form.durationInMinutes) || 0,
         minutesPerSession: Number(form.minutesPerSession) || 0,
-        // Ensure mode is a valid value - use one of the valid enum values
-        mode: form.mode || "weeks",
-        // Sanitize number fields
-        price: Number(form.price) || 0,
-        discountPercentage: Number(form.discountPercentage) || 0,
-        programLength: Number(form.programLength) || 0,
-        // Convert arrays to strings if needed
-        tags: Array.isArray(form.tags) ? form.tags : [],
-        // Ensure all required fields are present
-        deliveryMode: form.deliveryMode || "",
-        sessionType: form.sessionType || "",
-        description: form.description || "",
-        slug: form.slug || "",
-        // Boolean fields with defaults
-        hasClassroom: form.hasClassroom || false,
-        hasSession: form.hasSession || true,
-        hasAssessment: form.hasAssessment || false,
-        isBookableService: isBookableServiceType(form.productType),
-        requiresBooking: form.requiresBooking || false,
-        requiresEnrollment: form.requiresEnrollment || false,
-        hasCertificate: form.hasCertificate || false,
-        isRecurring: form.isRecurring || false,
-        enabled: form.enabled !== undefined ? form.enabled : true,
-        instructorId: isBookableServiceType(form.productType)
-          ? form.instructorId || null
-          : null,
+        maxParticipants: Number(form.maxParticipants) || 1,
+
+        // --- Media ---
+        iconUrl: form.iconUrl || "",
+        thumbnailUrl: form.thumbnailUrl || "",
+        materialUrl: form.materialUrl || "",
+        isAttachmentRequired: !!form.isAttachmentRequired,
+
+        // --- Pricing ---
+        pricing: backendPricing,
+        discountPercentage: rootDiscountPercentage,
       };
+
+      // Add mediaType for Tools + nonBookableService
+      if (form.productType === "Tools" && !form.isBookableService && form.mediaType) {
+        payload.mediaType = form.mediaType;
+      }
+
+      // Extra debug for root payload shape (omit large fields)
+      try {
+        console.log("[Create Product] Root payload (partial):", {
+          productType: payload.productType,
+          service: payload.service,
+          isBookableService: payload.isBookableService,
+          nonBookableService: payload.nonBookableService,
+        });
+      } catch {}
 
       const response = await postApiRequest("/api/products", token, payload);
 
@@ -534,7 +752,7 @@ export default function CreateProductPage() {
         setSuccess("Product created successfully!");
         setTimeout(() => {
           router.push("/dashboard/products");
-        }, 2000);
+        }, 1200);
       } else {
         setError(response?.data?.message || "Failed to create product");
       }
@@ -545,10 +763,19 @@ export default function CreateProductPage() {
     }
   };
 
+  // 🧾 Pricing review summary (uses minQty for per-unit)
+  const reviewQty =
+    pricing.priceBasis === "per_unit" ? Math.max(pricing.minQty ?? 1, 1) : 1;
+  const breakdown = useMemo(
+    () => computePrice(pricing, reviewQty),
+    [pricing, reviewQty]
+  );
+  const money = (n: number) => formatMoney(n, pricing.currency as Currency);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header Section */}
+        {/* Header */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 mb-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
@@ -560,7 +787,7 @@ export default function CreateProductPage() {
           </div>
         </div>
 
-        {/* Enhanced Stepper */}
+        {/* Stepper */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
           <div className="flex items-center justify-between">
             {steps.map((label, idx) => (
@@ -568,7 +795,6 @@ export default function CreateProductPage() {
                 key={label}
                 className="flex-1 flex flex-col items-center relative"
               >
-                {/* Connection Line */}
                 {idx < steps.length - 1 && (
                   <div className="absolute top-4 left-1/2 w-full h-0.5 bg-slate-200 -z-10"></div>
                 )}
@@ -600,7 +826,7 @@ export default function CreateProductPage() {
                   )}
                 </div>
                 <span
-                  className={`mt-3 hidden md:block text-sm font-semibold transition-all duration-300 ${
+                  className={`mt-3 hidden lg:block text-sm font-semibold transition-all duration-300 ${
                     idx === step
                       ? "text-blue-600"
                       : idx < step
@@ -615,7 +841,7 @@ export default function CreateProductPage() {
           </div>
         </div>
 
-        {/* Form Container */}
+        {/* Form */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
           <form onSubmit={handleSubmit} className="p-8">
             {step === 0 && (
@@ -627,32 +853,6 @@ export default function CreateProductPage() {
                   <p className="text-slate-600 mb-4">
                     Let's start with the fundamental details of your product
                   </p>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    <h3 className="font-semibold text-slate-800 mb-2">
-                      Service Types:
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span className="text-blue-700 font-medium">
-                          Bookable Services:
-                        </span>
-                        <span className="text-slate-600">
-                          Training, Academic Support, Career Development,
-                          Institutional Services
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span className="text-green-700 font-medium">
-                          Non-Bookable Services:
-                        </span>
-                        <span className="text-slate-600">
-                          AI Services, Career Connect, Marketing & Free Services
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -679,11 +879,10 @@ export default function CreateProductPage() {
                       ))}
                     </select>
 
-                    {/* Service Type Indicator */}
                     {form.productType && (
                       <div
                         className={`p-4 rounded-2xl border-2 ${
-                          isBookableServiceType(form.productType)
+                          isBookable
                             ? "bg-blue-50 border-blue-200"
                             : "bg-green-50 border-green-200"
                         }`}
@@ -691,28 +890,22 @@ export default function CreateProductPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <div
                             className={`w-3 h-3 rounded-full ${
-                              isBookableServiceType(form.productType)
-                                ? "bg-blue-500"
-                                : "bg-green-500"
+                              isBookable ? "bg-blue-500" : "bg-green-500"
                             }`}
                           ></div>
                           <span
                             className={`font-semibold text-sm ${
-                              isBookableServiceType(form.productType)
-                                ? "text-blue-700"
-                                : "text-green-700"
+                              isBookable ? "text-blue-700" : "text-green-700"
                             }`}
                           >
-                            {isBookableServiceType(form.productType)
-                              ? "Bookable Service with Instructor"
+                            {isBookable
+                              ? "Bookable Service"
                               : "Non-Bookable Service"}
                           </span>
                         </div>
                         <p
                           className={`text-sm ${
-                            isBookableServiceType(form.productType)
-                              ? "text-blue-600"
-                              : "text-green-600"
+                            isBookable ? "text-blue-600" : "text-green-600"
                           }`}
                         >
                           {getServiceTypeDescription()}
@@ -731,6 +924,286 @@ export default function CreateProductPage() {
                       className="px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                     />
+
+                    {/* NEW: Bookable toggle moved here */}
+                    <div className="mt-2">
+                      <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all duration-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="isBookableService"
+                          checked={!!form.isBookableService}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-slate-700">
+                          Bookable Service
+                        </span>
+                      </label>
+                      <p className="text-slate-500 text-xs mt-1 ml-2">
+                        If enabled, customers will schedule sessions. An
+                        instructor is required when this is bookable.
+                      </p>
+                    </div>
+
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Booking Scheduling Link{" "}
+                      {isBookable && <span className="text-red-500">*</span>}
+                    </label>
+                    <Input
+                      name="publicSchedulingUrl"
+                      value={form.publicSchedulingUrl}
+                      onChange={handleChange}
+                      placeholder="Generate the scheduling link for the service"
+                      className="px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                      required={isBookable}
+                      disabled={!isBookable}
+                    />
+
+                    {/* Media Type - only for Tools + nonBookableService */}
+                    {form.productType === "Tools" && !form.isBookableService && (
+                      <>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Media Type *
+                        </label>
+                        <select
+                          name="mediaType"
+                          value={form.mediaType}
+                          onChange={handleChange}
+                          className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                          required
+                        >
+                          <option value="">Select Media Type</option>
+                          <option value="file">File</option>
+                          <option value="audio">Audio</option>
+                          <option value="video">Video</option>
+                        </select>
+
+                        {/* Media upload for Tools */}
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Media File * ({form.mediaType || "Select type first"})
+                        </label>
+                        {form.materialUrl && (
+                          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-[12px]">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-green-700 text-sm font-medium">
+                                  Current Media File
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleDeleteMaterial}
+                                disabled={loading}
+                                className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-[10px] transition-colors duration-200 disabled:opacity-50"
+                              >
+                                {loading ? "Deleting..." : "Delete"}
+                              </button>
+                            </div>
+                            <a
+                              href={form.materialUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            >
+                              Preview uploaded media
+                            </a>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept={
+                            form.mediaType === "file"
+                              ? ".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar,.xlsx,.csv"
+                              : form.mediaType === "audio"
+                              ? "audio/*"
+                              : form.mediaType === "video"
+                              ? "video/*"
+                              : "*"
+                          }
+                          className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setLoading(true);
+                              try {
+                                if (form.materialUrl) {
+                                  try {
+                                    await deleteFileFromFirebase(form.materialUrl);
+                                  } catch (deleteErr) {
+                                    console.warn("Failed to delete old media:", deleteErr);
+                                  }
+                                }
+                                const url = await uploadMaterial(file, "tool-media");
+                                setForm((prev: any) => ({
+                                  ...prev,
+                                  materialUrl: url,
+                                }));
+                                toast.success("Media uploaded successfully!");
+                              } catch {
+                                setError("Media upload failed");
+                              } finally {
+                                setLoading(false);
+                              }
+                            }
+                          }}
+                          required
+                          disabled={!form.mediaType}
+                        />
+                        {!form.mediaType && (
+                          <p className="text-slate-500 text-xs mt-1">
+                            Please select a media type first
+                          </p>
+                        )}
+                      </>
+                    )}
+
+                    {/* Training materials */}
+                    {requiresTrainingMaterials(form.productType) && (
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Training Materials *
+                        </label>
+
+                        {form.materialUrl && (
+                          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-[12px]">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-green-700 text-sm font-medium">
+                                  Current Material
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleDeleteMaterial}
+                                disabled={loading}
+                                className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-[10px] transition-colors duration-200 disabled:opacity-50"
+                              >
+                                {loading ? "Deleting..." : "Delete"}
+                              </button>
+                            </div>
+                            <a
+                              href={form.materialUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            >
+                              Preview uploaded material
+                            </a>
+                            <p className="text-green-600 text-xs mt-1">
+                              Tech professionals will be able to download this
+                              material after purchase
+                            </p>
+                          </div>
+                        )}
+
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar,.xlsx,.csv"
+                          className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setLoading(true);
+                              try {
+                                if (form.materialUrl) {
+                                  try {
+                                    await deleteFileFromFirebase(
+                                      form.materialUrl
+                                    );
+                                  } catch (deleteErr) {
+                                    console.warn(
+                                      "Failed to delete old material:",
+                                      deleteErr
+                                    );
+                                  }
+                                }
+                                const url = await uploadMaterial(
+                                  file,
+                                  "course-materials"
+                                );
+                                setForm((prev: any) => ({
+                                  ...prev,
+                                  materialUrl: url,
+                                }));
+                                toast.success(
+                                  "Material uploaded successfully!"
+                                );
+                              } catch {
+                                setError("Material upload failed");
+                              } finally {
+                                setLoading(false);
+                              }
+                            }
+                          }}
+                          required
+                        />
+
+                        <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-[12px]">
+                          <div className="flex items-start gap-3">
+                            <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <svg
+                                className="w-3 h-3 text-blue-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-blue-800 text-sm font-medium mb-1">
+                                For Tech Professionals
+                              </p>
+                              <p className="text-blue-700 text-sm">
+                                Upload training materials, course content,
+                                resources, or documents that tech professionals
+                                can view and download after purchasing this
+                                program.
+                              </p>
+                              <p className="text-blue-600 text-xs mt-1">
+                                Supported formats: PDF, DOC, DOCX, PPT, PPTX,
+                                TXT, ZIP, RAR, XLSX, CSV
+                              </p>
+                              {form.materialUrl && (
+                                <p className="text-blue-600 text-xs mt-2 font-medium">
+                                  💡 Uploading a new file will replace the
+                                  current material
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attachment Required */}
+                    {form.productType && (
+                      <div className="mt-4">
+                        <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all duration-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="isAttachmentRequired"
+                            checked={!!form.isAttachmentRequired}
+                            onChange={handleChange}
+                            className="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-medium text-slate-700">
+                            Attachment Required
+                          </span>
+                        </label>
+                        <p className="text-slate-500 text-sm mt-1 ml-2">
+                          Check if users need to submit attachments for this
+                          service.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -769,12 +1242,12 @@ export default function CreateProductPage() {
                       )}
                     </select>
                     {categoryError && (
-                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-200">
+                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-[12px] border border-red-200">
                         {categoryError}
                       </div>
                     )}
 
-                    {/* Category Creation Dialog */}
+                    {/* Category Dialog */}
                     <Dialog
                       open={showCategoryDialog}
                       onOpenChange={setShowCategoryDialog}
@@ -866,31 +1339,31 @@ export default function CreateProductPage() {
                       )}
                     </select>
                     {subcategoryLoading && (
-                      <div className="text-blue-600 text-sm bg-blue-50 p-3 rounded-xl border border-blue-200">
+                      <div className="text-blue-600 text-sm bg-blue-50 p-3 rounded-[12px] border border-blue-200">
                         Loading subcategories...
                       </div>
                     )}
                     {!form.category && subcategoryOptions.length === 0 && (
-                      <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-[12px] border border-slate-200">
                         Select a category first to see available subcategories
                       </div>
                     )}
                     {form.category &&
                       subcategoryOptions.length === 0 &&
                       !subcategoryLoading && (
-                        <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-[12px] border border-slate-200">
                           No subcategories available for this category
                         </div>
                       )}
                     {subcategoryError && (
-                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-200">
+                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-[12px] border border-red-200">
                         {subcategoryError}
                       </div>
                     )}
 
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Assign Instructor{" "}
-                      {isBookableServiceType(form.productType) && (
+                      {instructorRequired && (
                         <span className="text-red-500">*</span>
                       )}
                     </label>
@@ -899,25 +1372,26 @@ export default function CreateProductPage() {
                       value={form.instructorId}
                       onChange={handleChange}
                       className={`w-full px-4 py-6 bg-white/50 border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
-                        isBookableServiceType(form.productType) &&
-                        !form.instructorId
+                        instructorRequired && !form.instructorId
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-200"
                       }`}
-                      disabled={instructorsLoading}
-                      required={isBookableServiceType(form.productType)}
+                      disabled={!isBookable || instructorsLoading}
+                      required={instructorRequired}
                     >
                       <option value="">
                         {instructorsLoading
                           ? "Loading instructors..."
-                          : isBookableServiceType(form.productType)
+                          : !isBookable
+                          ? "Select Instructor (Disabled for non-bookable)"
+                          : instructorRequired
                           ? "Select Instructor (Required)"
                           : "Select Instructor (Optional)"}
                       </option>
                       {instructors.map((instructor) => (
                         <option
                           key={instructor._id}
-                          value={instructor._id}
+                          value={instructor.userId}
                           className="rounded-[10px]"
                         >
                           {instructor.fullName} - {instructor.title}
@@ -925,18 +1399,12 @@ export default function CreateProductPage() {
                       ))}
                     </select>
                     {instructorsError && (
-                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl border border-red-200">
+                      <div className="text-red-600 text-sm bg-red-50 p-3 rounded-[12px] border border-red-200">
                         {instructorsError}
                       </div>
                     )}
-                    {instructors.length === 0 && !instructorsLoading && (
-                      <div className="text-slate-500 text-sm bg-slate-50 p-3 rounded-xl border border-slate-200">
-                        No instructors available. You can assign an instructor
-                        later.
-                      </div>
-                    )}
 
-                    {/* Subcategory Creation Dialog */}
+                    {/* Subcategory Dialog */}
                     <Dialog
                       open={showSubcategoryDialog}
                       onOpenChange={setShowSubcategoryDialog}
@@ -1010,6 +1478,7 @@ export default function CreateProductPage() {
                 </div>
               </div>
             )}
+
             {step === 1 && (
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold mb-2">
@@ -1023,7 +1492,7 @@ export default function CreateProductPage() {
                   value={form.deliveryMode}
                   onChange={handleChange}
                   className="w-full border rounded-[10px] p-2"
-                  required
+                  required={isBookable}
                 >
                   <option value="">Select Delivery Mode</option>
                   {DELIVERY_MODE_OPTIONS.map((mode) => (
@@ -1040,7 +1509,7 @@ export default function CreateProductPage() {
                   value={form.sessionType}
                   onChange={handleChange}
                   className="w-full border rounded-[10px] p-2"
-                  required
+                  required={isBookable}
                 >
                   <option value="">Select Session Type</option>
                   {SESSION_TYPE_OPTIONS.map((type) => (
@@ -1051,13 +1520,11 @@ export default function CreateProductPage() {
                 </select>
                 <div className="grid grid-cols-2 gap-4 mt-2">
                   {[
-                    { key: "isRecurring", label: "Recurring" },
                     { key: "requiresBooking", label: "Requires Booking" },
-                    { key: "requiresEnrollment", label: "Requires Enrollment" },
                     { key: "hasCertificate", label: "Has Certificate" },
                     { key: "hasClassroom", label: "Has Classroom" },
                     { key: "hasSession", label: "Has Session" },
-                    { key: "isBookableService", label: "Bookable Service" },
+                    // REMOVED isBookableService from here (moved to Step 0)
                     { key: "hasAssessment", label: "Has Assessment" },
                   ].map(({ key, label }) => (
                     <label
@@ -1075,106 +1542,118 @@ export default function CreateProductPage() {
                     </label>
                   ))}
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Mode</label>
+                  <select
+                    name="mode"
+                    value={form.mode}
+                    onChange={handleChange}
+                    className="w-full border rounded-[10px] p-2"
+                  >
+                    <option value="">Select Mode</option>
+                    {MODE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt} className="rounded-[10px]">
+                        {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
+
             {step === 2 && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold mb-2">
-                  Pricing & Duration
-                </h2>
-                <label className="block text-sm font-medium mb-1">
-                  Price{" "}
-                  {!isBookableServiceType(form.productType) && (
-                    <span className="text-slate-500 text-xs">
-                      (Can be 0 for free services)
-                    </span>
-                  )}
-                </label>
-                <Input
-                  name="price"
-                  value={form.price}
-                  onChange={handleChange}
-                  placeholder={
-                    isBookableServiceType(form.productType)
-                      ? "Enter price in dollars (e.g., 99.99)"
-                      : "Enter price in dollars (0 for free services)"
-                  }
-                  type="number"
-                  min={0}
-                  className="rounded-[10px]"
-                />
-                {!isBookableServiceType(form.productType) &&
-                  form.price === 0 && (
-                    <div className="text-green-600 text-sm bg-green-50 p-3 rounded-xl border border-green-200">
-                      ✓ This will be marked as a free service
-                    </div>
-                  )}
-                <label className="block text-sm font-medium mb-1">
-                  Discount Percentage
-                </label>
-                <Input
-                  name="discountPercentage"
-                  value={form.discountPercentage}
-                  onChange={handleChange}
-                  placeholder="Enter discount percentage (e.g., 10 for 10%)"
-                  type="number"
-                  className="rounded-[10px]"
-                />
-                <label className="block text-sm font-medium mb-1">
-                  Duration (minutes)
-                </label>
-                <Input
-                  name="durationInMinutes"
-                  value={form.durationInMinutes}
-                  onChange={handleChange}
-                  placeholder="Enter total duration in minutes (e.g., 360)"
-                  type="number"
-                  min={0}
-                  className="rounded-[10px]"
-                />
-                <label className="block text-sm font-medium mb-1">
-                  Minutes Per Session
-                </label>
-                <Input
-                  name="minutesPerSession"
-                  value={form.minutesPerSession}
-                  onChange={handleChange}
-                  placeholder="Enter minutes per individual session (e.g., 60)"
-                  type="number"
-                  min={0}
-                  className="rounded-[10px]"
-                />
-                <label className="block text-sm font-medium mb-1">
-                  Program Length
-                </label>
-                <Input
-                  name="programLength"
-                  value={form.programLength}
-                  onChange={handleChange}
-                  placeholder="Enter program length (e.g., 8 for 8 weeks)"
-                  type="number"
-                  min={0}
-                  className="rounded-[10px]"
-                />
-                <label className="block text-sm font-medium mb-1">Mode</label>
-                <select
-                  name="mode"
-                  value={form.mode}
-                  onChange={handleChange}
-                  className="w-full border rounded-[10px] p-2"
-                >
-                  <option value="">Select Mode</option>
-                  {MODE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt} className="rounded-[10px]">
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-8">
+                <h2 className="text-lg font-semibold">Pricing & Duration</h2>
+
+                {/* PricingForm (controls the pricing state) */}
+                <PricingForm value={pricing} onChange={setPricing} />
+
+                {/* Duration & misc */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Max Participants
+                    </label>
+                    <Input
+                      name="maxParticipants"
+                      value={form.maxParticipants}
+                      onChange={handleChange}
+                      placeholder="Enter maximum number of participants (e.g., 10)"
+                      type="number"
+                      min={1}
+                      className="rounded-[10px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Duration (minutes)
+                    </label>
+                    <Input
+                      name="durationInMinutes"
+                      value={form.durationInMinutes}
+                      onChange={handleChange}
+                      placeholder="Enter total duration in minutes (1-120)"
+                      type="number"
+                      min={1}
+                      max={120}
+                      className="rounded-[10px]"
+                    />
+                    {form.durationInMinutes &&
+                      (form.durationInMinutes < 1 ||
+                        form.durationInMinutes > 120) && (
+                        <p className="text-red-500 text-sm mt-1">
+                          Duration must be between 1 and 120 minutes.
+                        </p>
+                      )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Minutes Per Session
+                    </label>
+                    <Input
+                      name="minutesPerSession"
+                      value={form.minutesPerSession}
+                      onChange={handleChange}
+                      placeholder="Enter minutes per individual session (1-120)"
+                      type="number"
+                      min={1}
+                      max={120}
+                      className="rounded-[10px]"
+                    />
+                    {form.minutesPerSession &&
+                      (form.minutesPerSession < 1 ||
+                        form.minutesPerSession > 120) && (
+                        <p className="text-red-500 text-sm mt-1">
+                          Minutes per session must be between 1 and 120 minutes.
+                        </p>
+                      )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Program Length
+                    </label>
+                    <Input
+                      name="programLength"
+                      value={form.programLength}
+                      onChange={handleChange}
+                      placeholder="Enter program length (e.g., 8 for 8 weeks)"
+                      type="number"
+                      min={0}
+                      className="rounded-[10px]"
+                    />
+                  </div>
+                </div>
               </div>
             )}
+
             {step === 3 && (
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold mb-2">Media & SEO</h2>
+
                 <label className="block text-sm font-medium mb-1">
                   Description
                 </label>
@@ -1186,9 +1665,10 @@ export default function CreateProductPage() {
                   className="w-full border rounded-[10px] p-2"
                   rows={4}
                 />
+
+                {/* Tags */}
                 <label className="block text-sm font-medium mb-1">Tags</label>
                 <div className="space-y-2">
-                  {/* Tags Display */}
                   <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-[10px] bg-white">
                     {form.tags.map((tag: string, index: number) => (
                       <span
@@ -1219,7 +1699,6 @@ export default function CreateProductPage() {
                     )}
                   </div>
 
-                  {/* Tag Input */}
                   <div className="flex gap-2">
                     <Input
                       placeholder="Enter a tag and press Enter or click Add"
@@ -1243,7 +1722,6 @@ export default function CreateProductPage() {
                     </Button>
                   </div>
 
-                  {/* Quick Add Buttons */}
                   <div className="flex flex-wrap gap-2">
                     {[
                       "Soft Skills",
@@ -1272,6 +1750,8 @@ export default function CreateProductPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Images */}
                 <label className="block text-sm font-medium mb-1">
                   Icon Image
                 </label>
@@ -1284,9 +1764,12 @@ export default function CreateProductPage() {
                     if (file) {
                       setLoading(true);
                       try {
-                        const url = await uploadImageToCloudinary(file);
+                        const url = await uploadAssetImage(
+                          file,
+                          "product-icons"
+                        );
                         setForm((prev: any) => ({ ...prev, iconUrl: url }));
-                      } catch (err) {
+                      } catch {
                         setError("Icon upload failed");
                       } finally {
                         setLoading(false);
@@ -1301,6 +1784,7 @@ export default function CreateProductPage() {
                     className="mt-2 rounded-[10px] w-16 h-16 object-cover"
                   />
                 )}
+
                 <label className="block text-sm font-medium mb-1">
                   Thumbnail Image
                 </label>
@@ -1313,12 +1797,15 @@ export default function CreateProductPage() {
                     if (file) {
                       setLoading(true);
                       try {
-                        const url = await uploadImageToCloudinary(file);
+                        const url = await uploadAssetImage(
+                          file,
+                          "product-thumbnails"
+                        );
                         setForm((prev: any) => ({
                           ...prev,
                           thumbnailUrl: url,
                         }));
-                      } catch (err) {
+                      } catch {
                         setError("Image upload failed");
                       } finally {
                         setLoading(false);
@@ -1333,6 +1820,7 @@ export default function CreateProductPage() {
                     className="mt-2 rounded-[10px] w-32 h-32 object-cover"
                   />
                 )}
+
                 <label className="block text-sm font-medium mb-1">
                   Enabled
                 </label>
@@ -1343,6 +1831,7 @@ export default function CreateProductPage() {
                   onChange={handleChange}
                   className="accent-blue-600 rounded-[10px]"
                 />
+
                 <label className="block text-sm font-medium mb-1">Slug</label>
                 <Input
                   name="slug"
@@ -1353,18 +1842,20 @@ export default function CreateProductPage() {
                 />
               </div>
             )}
+
             {step === 4 && (
-              <div className="bg-gray-50 p-4 rounded-[10px]">
-                <h2 className="text-lg font-semibold mb-4">Review & Submit</h2>
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-[10px] space-y-6">
+                <h2 className="text-lg font-semibold">Review & Submit</h2>
+
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-[10px]">
                   <p className="text-blue-700 text-sm">
                     <strong>Ready to create your product?</strong> Review all
-                    the information above and click the "Create Product" button
-                    below when you're satisfied with all the details.
+                    the information and click <em>Create Product</em>.
                   </p>
                 </div>
+
                 {/* Basic Info */}
-                <div className="mb-4">
+                <div>
                   <h3 className="font-semibold text-blue-700 mb-2">
                     Basic Info
                   </h3>
@@ -1377,13 +1868,11 @@ export default function CreateProductPage() {
                       <span className="font-medium">Service Type:</span>{" "}
                       <span
                         className={`font-semibold ${
-                          isBookableServiceType(form.productType)
-                            ? "text-blue-600"
-                            : "text-green-600"
+                          isBookable ? "text-blue-600" : "text-green-600"
                         }`}
                       >
-                        {isBookableServiceType(form.productType)
-                          ? "Bookable Service with Instructor"
+                        {isBookable
+                          ? "Bookable Service"
                           : "Non-Bookable Service"}
                       </span>
                     </div>
@@ -1391,6 +1880,33 @@ export default function CreateProductPage() {
                       <span className="font-medium">Service:</span>{" "}
                       {form.service}
                     </div>
+                    {requiresTrainingMaterials(form.productType) && (
+                      <div>
+                        <span className="font-medium">Training Materials:</span>{" "}
+                        {form.materialUrl ? (
+                          <a
+                            href={form.materialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View uploaded materials
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 italic">
+                            No materials uploaded
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {form.productType && (
+                      <div>
+                        <span className="font-medium">
+                          Attachment Required:
+                        </span>{" "}
+                        {form.isAttachmentRequired ? "Yes" : "No"}
+                      </div>
+                    )}
                     <div>
                       <span className="font-medium">Category:</span>{" "}
                       {form.category}
@@ -1399,19 +1915,23 @@ export default function CreateProductPage() {
                       <span className="font-medium">Subcategory:</span>{" "}
                       {form.subcategory}
                     </div>
-                    {isBookableServiceType(form.productType) && (
+                    {isBookable && (
                       <div>
                         <span className="font-medium">Instructor:</span>{" "}
                         {form.instructorId
-                          ? instructors.find((i) => i._id === form.instructorId)
-                              ?.fullName || "Selected"
-                          : "Not assigned"}
+                          ? instructors.find(
+                              (i) => i.userId === form.instructorId
+                            )?.fullName || "Selected"
+                          : instructorRequired
+                          ? "Not assigned"
+                          : "Optional"}
                       </div>
                     )}
                   </div>
                 </div>
+
                 {/* Delivery & Session */}
-                <div className="mb-4">
+                <div>
                   <h3 className="font-semibold text-blue-700 mb-2">
                     Delivery & Session
                   </h3>
@@ -1425,18 +1945,9 @@ export default function CreateProductPage() {
                       {form.sessionType}
                     </div>
                     <div>
-                      <span className="font-medium">Recurring:</span>{" "}
-                      {form.isRecurring ? "Yes" : "No"}
-                    </div>
-                    <div>
                       <span className="font-medium">Requires Booking:</span>{" "}
                       {form.requiresBooking ? "Yes" : "No"}
                     </div>
-                    <div>
-                      <span className="font-medium">Requires Enrollment:</span>{" "}
-                      {form.requiresEnrollment ? "Yes" : "No"}
-                    </div>
-
                     <div>
                       <span className="font-medium">Has Certificate:</span>{" "}
                       {form.hasCertificate ? "Yes" : "No"}
@@ -1455,18 +1966,106 @@ export default function CreateProductPage() {
                     </div>
                   </div>
                 </div>
-                {/* Pricing & Duration */}
-                <div className="mb-4">
+
+                {/* Pricing & Duration (summary) */}
+                <div>
                   <h3 className="font-semibold text-blue-700 mb-2">
                     Pricing & Duration
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <span className="font-medium">Price:</span> ${form.price}
+                      <span className="font-medium">Pricing model:</span>{" "}
+                      {pricing.model}
                     </div>
                     <div>
-                      <span className="font-medium">Discount %:</span>{" "}
-                      {form.discountPercentage}%
+                      <span className="font-medium">Currency:</span>{" "}
+                      {pricing.currency.toUpperCase()}
+                    </div>
+                    {pricing.model === "subscription" ? (
+                      <>
+                        <div>
+                          <span className="font-medium">Recurring:</span>{" "}
+                          {money(pricing.basePrice || 0)} /{" "}
+                          {pricing.intervalCount || 1} {pricing.interval}
+                        </div>
+                      </>
+                    ) : pricing.model === "one_time" ? (
+                      <div>
+                        <span className="font-medium">One-time price:</span>{" "}
+                        {money(pricing.basePrice || 0)}
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="font-medium">Unit label:</span>{" "}
+                          {pricing.unitName || "participant"}
+                        </div>
+                        {pricing.priceBasis === "flat" ? (
+                          <div>
+                            <span className="font-medium">Price:</span>{" "}
+                            {money(pricing.basePrice || 0)}
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-medium">Tier type:</span>{" "}
+                            {pricing.tierType}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Totals preview */}
+                    <div className="sm:col-span-2 mt-2 rounded-xl border p-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <span>
+                          Subtotal
+                          {pricing.priceBasis === "per_unit"
+                            ? ` (${reviewQty} ${
+                                pricing.unitName || "participant"
+                              }${reviewQty > 1 ? "s" : ""})`
+                            : ""}
+                        </span>
+                        <span>{money(breakdown.subtotal)}</span>
+                      </div>
+                      {typeof breakdown.discount === "number" &&
+                        breakdown.discount > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span>Discount</span>
+                            <span>-{money(breakdown.discount)}</span>
+                          </div>
+                        )}
+                      {typeof breakdown.net === "number" && (
+                        <div className="flex items-center justify-between">
+                          <span>Net</span>
+                          <span>{money(breakdown.net)}</span>
+                        </div>
+                      )}
+                      {!pricing.taxInclusive && (
+                        <div className="flex items-center justify-between">
+                          <span>VAT ({pricing.vatPercentage ?? 0}%)</span>
+                          <span>{money(breakdown.vat || 0)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between font-semibold border-t pt-2 mt-1">
+                        <span>Total</span>
+                        <span>{money(breakdown.total)}</span>
+                      </div>
+
+                      {/* Installments preview - only for one_time */}
+                      {pricing.allowInstallments &&
+                        pricing.model === "one_time" && (
+                          <div className="mt-3 text-sm text-slate-700">
+                            <span className="font-medium">
+                              Installments enabled
+                            </span>{" "}
+                            — preview shown on pricing card.
+                          </div>
+                        )}
+                    </div>
+
+                    <div>
+                      <span className="font-medium">Max Participants:</span>{" "}
+                      {form.maxParticipants}
                     </div>
                     <div>
                       <span className="font-medium">Duration (minutes):</span>{" "}
@@ -1481,8 +2080,9 @@ export default function CreateProductPage() {
                     </div>
                   </div>
                 </div>
+
                 {/* Media & SEO */}
-                <div className="mb-4">
+                <div>
                   <h3 className="font-semibold text-blue-700 mb-2">
                     Media & SEO
                   </h3>
@@ -1498,7 +2098,6 @@ export default function CreateProductPage() {
                     <div>
                       <span className="font-medium">Slug:</span> {form.slug}
                     </div>
-
                     <div>
                       <span className="font-medium">Enabled:</span>{" "}
                       {form.enabled ? "Yes" : "No"}
@@ -1525,6 +2124,7 @@ export default function CreateProductPage() {
                     )}
                   </div>
                 </div>
+
                 {error && (
                   <div className="text-red-600 text-sm mt-2">{error}</div>
                 )}
@@ -1538,7 +2138,8 @@ export default function CreateProductPage() {
                 )}
               </div>
             )}
-            {/* Form Footer */}
+
+            {/* Footer */}
             <div className="mt-8 pt-6 border-t border-slate-200">
               <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <button
@@ -1568,7 +2169,7 @@ export default function CreateProductPage() {
                 {step === steps.length - 1 ? (
                   <button
                     type="submit"
-                    className="px-8 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
+                    className="px-12 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
                     disabled={loading}
                   >
                     {loading ? (

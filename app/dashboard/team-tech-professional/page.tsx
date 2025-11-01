@@ -264,12 +264,12 @@ export default function TeamTechProfessionalDashboard() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button className="bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 border border-gray-200">
+              <button className="bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold py-2.5 px-4 rounded-[12px] flex items-center justify-center gap-2 transition-all duration-200 border border-gray-200">
                 <FileText size={16} />
                 <span className="hidden sm:inline">Team Report</span>
                 <span className="sm:hidden">Report</span>
               </button>
-              <button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl">
+              <button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 px-4 rounded-[12px] flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl">
                 <PlusCircle size={16} />
                 <span className="hidden sm:inline">Manage Team</span>
                 <span className="sm:hidden">Manage</span>
@@ -286,7 +286,7 @@ export default function TeamTechProfessionalDashboard() {
               className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group"
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-gray-50 rounded-xl group-hover:scale-110 transition-transform duration-200">
+                <div className="p-2 bg-gray-50 rounded-[12px] group-hover:scale-110 transition-transform duration-200">
                   {stat.icon}
                 </div>
                 <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
@@ -320,11 +320,11 @@ export default function TeamTechProfessionalDashboard() {
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-all duration-200"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-[12px] border border-gray-100 hover:bg-gray-100 transition-all duration-200"
                 >
                   <div className="flex items-center gap-3 mb-3 sm:mb-0">
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center text-white font-semibold text-sm">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-[12px] flex items-center justify-center text-white font-semibold text-sm">
                         {member.name
                           .split(" ")
                           .map((n) => n[0])
@@ -391,7 +391,7 @@ export default function TeamTechProfessionalDashboard() {
                 <Link
                   key={i}
                   href={action.href}
-                  className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium px-4 py-3 rounded-xl transition-all duration-200 border border-gray-100 hover:border-gray-200 group"
+                  className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium px-4 py-3 rounded-[12px] transition-all duration-200 border border-gray-100 hover:border-gray-200 group"
                 >
                   <div className="p-1.5 bg-white rounded-[10px] group-hover:scale-110 transition-transform duration-200">
                     {action.icon}
@@ -523,7 +523,7 @@ export default function TeamTechProfessionalDashboard() {
               {upcomingSessions.map((session, i) => (
                 <div
                   key={i}
-                  className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-all duration-200"
+                  className="p-4 bg-gray-50 rounded-[12px] border border-gray-100 hover:bg-gray-100 transition-all duration-200"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
@@ -561,7 +561,7 @@ export default function TeamTechProfessionalDashboard() {
             {recentActivities.map((activity, i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-200"
+                className="flex items-center gap-4 p-4 bg-gray-50 rounded-[12px] hover:bg-gray-100 transition-all duration-200"
               >
                 <div className="flex-shrink-0 p-2 bg-white rounded-[10px] shadow-sm">
                   {activity.icon}

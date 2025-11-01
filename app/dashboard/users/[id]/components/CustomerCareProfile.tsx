@@ -19,7 +19,7 @@ export default function CustomerCareProfile({
           <CardTitle>Customer Care Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-6 bg-pink-50 rounded-lg border-2 border-dashed border-pink-300">
+          <div className="text-center p-6 bg-pink-50 rounded-[10px] border-2 border-dashed border-pink-300">
             <Users className="w-12 h-12 text-pink-400 mx-auto mb-3" />
             <h4 className="font-semibold text-pink-700 mb-2">
               Customer Care Profile Not Created

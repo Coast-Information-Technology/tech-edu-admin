@@ -26,7 +26,7 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
           <CardTitle>Student Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-6 bg-indigo-50 rounded-lg border-2 border-dashed border-indigo-300">
+          <div className="text-center p-6 bg-indigo-50 rounded-[10px] border-2 border-dashed border-indigo-300">
             <GraduationCap className="w-12 h-12 text-indigo-400 mx-auto mb-3" />
             <h4 className="font-semibold text-indigo-700 mb-2">
               Student Profile Not Created
@@ -55,26 +55,38 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {profile.academicLevel && (
               <div>
-                <p className="text-sm font-medium text-gray-700">Academic Level</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Academic Level
+                </p>
                 <p className="text-sm text-gray-900">{profile.academicLevel}</p>
               </div>
             )}
             {profile.fieldOfStudy && (
               <div>
-                <p className="text-sm font-medium text-gray-700">Field of Study</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Field of Study
+                </p>
                 <p className="text-sm text-gray-900">{profile.fieldOfStudy}</p>
               </div>
             )}
             {profile.highestQualification && (
               <div>
-                <p className="text-sm font-medium text-gray-700">Highest Qualification</p>
-                <p className="text-sm text-gray-900">{profile.highestQualification}</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Highest Qualification
+                </p>
+                <p className="text-sm text-gray-900">
+                  {profile.highestQualification}
+                </p>
               </div>
             )}
             {profile.graduationYear && (
               <div>
-                <p className="text-sm font-medium text-gray-700">Graduation Year</p>
-                <p className="text-sm text-gray-900">{profile.graduationYear}</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Graduation Year
+                </p>
+                <p className="text-sm text-gray-900">
+                  {profile.graduationYear}
+                </p>
               </div>
             )}
           </div>
@@ -102,7 +114,8 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
         )}
 
         {/* Preferred Schedule */}
-        {(profile.preferredDays?.length > 0 || profile.preferredTimeSlots?.length > 0) && (
+        {(profile.preferredDays?.length > 0 ||
+          profile.preferredTimeSlots?.length > 0) && (
           <div>
             <h4 className="font-semibold text-[#011F72] mb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
@@ -111,7 +124,9 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
             <div className="space-y-4">
               {profile.preferredDays && profile.preferredDays.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Preferred Days</p>
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    Preferred Days
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {profile.preferredDays.map((day: string, index: number) => (
                       <Badge key={index} variant="outline" className="text-xs">
@@ -121,22 +136,27 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
                   </div>
                 </div>
               )}
-              {profile.preferredTimeSlots && profile.preferredTimeSlots.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Preferred Time Slots</p>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.preferredTimeSlots.map((time: string, index: number) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="bg-green-100 text-green-800 text-xs capitalize"
-                      >
-                        {time}
-                      </Badge>
-                    ))}
+              {profile.preferredTimeSlots &&
+                profile.preferredTimeSlots.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Preferred Time Slots
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.preferredTimeSlots.map(
+                        (time: string, index: number) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="bg-green-100 text-green-800 text-xs capitalize"
+                          >
+                            {time}
+                          </Badge>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         )}
@@ -150,13 +170,21 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-700">Referral Source</p>
-                <p className="text-sm text-gray-900">{profile.referralSource}</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Referral Source
+                </p>
+                <p className="text-sm text-gray-900">
+                  {profile.referralSource}
+                </p>
               </div>
               {profile.referralCodeOrName && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Referral Code/Name</p>
-                  <p className="text-sm text-gray-900">{profile.referralCodeOrName}</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    Referral Code/Name
+                  </p>
+                  <p className="text-sm text-gray-900">
+                    {profile.referralCodeOrName}
+                  </p>
                 </div>
               )}
             </div>
@@ -186,7 +214,8 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
                   <BookOpen className="w-3 h-3 text-green-600" />
                 </div>
                 <span className="text-sm text-gray-600">
-                  Consent to Store Info: {profile.consentToStoreInfo ? "Yes" : "No"}
+                  Consent to Store Info:{" "}
+                  {profile.consentToStoreInfo ? "Yes" : "No"}
                 </span>
               </div>
             )}
@@ -196,8 +225,13 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
         {/* Role Information */}
         {profile.role && (
           <div>
-            <h4 className="font-semibold text-[#011F72] mb-2">Role Information</h4>
-            <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs capitalize">
+            <h4 className="font-semibold text-[#011F72] mb-2">
+              Role Information
+            </h4>
+            <Badge
+              variant="secondary"
+              className="bg-purple-100 text-purple-800 text-xs capitalize"
+            >
               {profile.role}
             </Badge>
           </div>
@@ -205,4 +239,4 @@ export default function StudentProfile({ profile }: StudentProfileProps) {
       </CardContent>
     </Card>
   );
-} 
+}

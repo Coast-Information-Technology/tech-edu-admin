@@ -21,17 +21,18 @@ import {
 import Link from "next/link";
 import { deleteApiRequest } from "@/lib/apiFetch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
+import {
+  getDiscountPercent,
+  getPriceLabel,
+  getSortablePrice,
+  getDiscountedPriceLabel,
+  formatMoneySafe,
+} from "@/utils/pricingDisplay";
+import safeConsole from "@/lib/console";
 
-// Product types from the product creation form
-const PRODUCT_TYPE_OPTIONS = [
-  "Training & Certification",
-  "Academic Support Services",
-  "Career Development & Mentorship",
-  "Institutional & Team Services",
-  "AI-Powered or Automation Services",
-  "Career Connect",
-  "Marketing, Consultation & Free Services",
-];
+// Using centralized constants from lib/constants/products.ts
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -82,10 +83,12 @@ export default function ProductsPage() {
           getApiRequest(`/api/products/public?${params.toString()}`, token),
           getApiRequest("/api/users/admin/instructors", token),
         ]);
+        safeConsole.log("THE RAW PRODUCT RESPONSE:>>>>>>>>>>> ", productsRes);
 
         const root = productsRes?.data || {};
         const data = root?.data ?? root;
         const responseProducts = data?.products || [];
+        safeConsole.log("All Products", responseProducts);
         setProducts(responseProducts);
         setInstructors(instructorsRes?.data?.data?.instructors || []);
 
@@ -175,8 +178,13 @@ export default function ProductsPage() {
       });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    let aVal = a[sortKey];
-    let bVal = b[sortKey];
+    if (sortKey === "price") {
+      const aPrice = getSortablePrice(a);
+      const bPrice = getSortablePrice(b);
+      return sortDirection === "asc" ? aPrice - bPrice : bPrice - aPrice;
+    }
+    let aVal = (a as any)[sortKey];
+    let bVal = (b as any)[sortKey];
     if (typeof aVal === "string" && typeof bVal === "string") {
       return sortDirection === "asc"
         ? aVal.localeCompare(bVal)
@@ -453,6 +461,9 @@ export default function ProductsPage() {
                       Subcategory
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Price Model
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Price
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
@@ -466,6 +477,9 @@ export default function ProductsPage() {
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Slug
+                    </th>
+                    <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                      Scheduling URL
                     </th>
                     <th className="px-8 py-6 text-left text-sm font-semibold text-slate-700 uppercase tracking-wider">
                       Actions
@@ -495,23 +509,33 @@ export default function ProductsPage() {
                               <>
                                 <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                                   <span className="text-sm font-medium text-blue-600">
-                                    {instructors
-                                      .find(
-                                        (i) => i._id === product.instructorId
-                                      )
-                                      ?.fullName?.charAt(0) || "I"}
+                                    {(
+                                      instructors.find(
+                                        (i) =>
+                                          i.userId === product.instructorId ||
+                                          i._id === product.instructorId
+                                      )?.fullName?.charAt(0) || "I"
+                                    )}
                                   </span>
                                 </div>
                                 <div>
                                   <div className="text-sm font-medium text-slate-900">
-                                    {instructors.find(
-                                      (i) => i._id === product.instructorId
-                                    )?.fullName || "Unknown Instructor"}
+                                    {(
+                                      instructors.find(
+                                        (i) =>
+                                          i.userId === product.instructorId ||
+                                          i._id === product.instructorId
+                                      )?.fullName || "Unknown Instructor"
+                                    )}
                                   </div>
                                   <div className="text-xs text-slate-500">
-                                    {instructors.find(
-                                      (i) => i._id === product.instructorId
-                                    )?.title || "Instructor"}
+                                    {(
+                                      instructors.find(
+                                        (i) =>
+                                          i.userId === product.instructorId ||
+                                          i._id === product.instructorId
+                                      )?.title || "Instructor"
+                                    )}
                                   </div>
                                 </div>
                               </>
@@ -525,22 +549,89 @@ export default function ProductsPage() {
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm text-slate-700">
-                            {product.productCategoryTitle}
+                            {typeof product.productCategoryTitle === 'string' 
+                              ? product.productCategoryTitle 
+                              : (product.productCategoryId as any)?.title || 'N/A'}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm text-slate-700">
-                            {product.productSubcategoryName}
+                            {typeof product.productSubcategoryName === 'string'
+                              ? product.productSubcategoryName
+                              : (product.productSubCategoryId as any)?.name || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-slate-900">
+                            {product.pricing?.model ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200">
+                                {product.pricing.model === "one_time" && "One-time"}
+                                {product.pricing.model === "subscription" && "Subscription"}
+                                {product.pricing.model === "free" && "Free"}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">N/A</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm font-bold text-green-600">
-                            ${product.price?.toFixed(2)}
+                            {getDiscountPercent(product) > 0 ? (
+                              <>
+                                <span className="mr-2 line-through text-slate-500 font-normal">
+                                  {getPriceLabel(product)}
+                                </span>
+                                <span>{getDiscountedPriceLabel(product)}</span>
+                              </>
+                            ) : (
+                              getPriceLabel(product)
+                            )}
                           </div>
+                          {product.pricing && (
+                            <div className="mt-1 text-xs text-slate-500">
+                              {product.pricing.priceBasis === "per_unit" ? (
+                                <>
+                                  <span>
+                                    {product.pricing.tierType || "none"} tiers
+                                    {product.pricing.unitName
+                                      ? ` • per ${product.pricing.unitName}`
+                                      : ""}
+                                  </span>
+                                  {Array.isArray(product.pricing.tiers) &&
+                                    product.pricing.tiers.length > 0 && (
+                                      <span className="block truncate max-w-[280px]">
+                                        {(product.pricing.tiers as Array<{ upTo: number; unitPrice: number }> | undefined)?.
+                                          slice(0, 3)
+                                          .map((t: { upTo: number; unitPrice: number }): string =>
+                                            `${t.upTo}: ${formatMoneySafe(
+                                              t.unitPrice,
+                                              product.pricing?.currency as any
+                                            )}`
+                                          )
+                                          .join(", ")}
+                                        {product.pricing.tiers.length > 3
+                                          ? ", …"
+                                          : ""}
+                                      </span>
+                                    )}
+                                </>
+                              ) : product.pricing.model === "subscription" ? (
+                                <span>
+                                  {product.pricing.intervalCount || 1} {product.pricing.interval || "month"}
+                                  {product.pricing.trialDays
+                                    ? ` • trial ${product.pricing.trialDays}d`
+                                    : ""}
+                                </span>
+                              ) : (
+                                <span>one-time</span>
+                              )}
+                            </div>
+                          )}
                         </td>
+
                         <td className="px-8 py-6 whitespace-nowrap">
                           <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200">
-                            {product.discountPercentage}%
+                            {getDiscountPercent(product)}%
                           </span>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
@@ -560,8 +651,32 @@ export default function ProductsPage() {
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-lg">
+                          <div className="text-sm text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-[10px]">
                             {product.slug}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap">
+                          <div className="text-sm text-slate-700">
+                            {product.publicSchedulingUrl ? (
+                              <a
+                                href={product.publicSchedulingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline truncate block max-w-xs"
+                                title={product.publicSchedulingUrl}
+                              >
+                                {product.publicSchedulingUrl.length > 30
+                                  ? `${product.publicSchedulingUrl.substring(
+                                      0,
+                                      30
+                                    )}...`
+                                  : product.publicSchedulingUrl}
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 italic">
+                                Not set
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
@@ -581,7 +696,7 @@ export default function ProductsPage() {
                               <DropdownMenuItem asChild>
                                 <Link
                                   href={`/dashboard/products/${product._id}`}
-                                  className="cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-blue-50 rounded-xl transition-all duration-300"
+                                  className="cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-blue-50 rounded-[12px] transition-all duration-300"
                                 >
                                   <Eye className="w-4 h-4 text-blue-600" />
                                   <span className="font-medium">View</span>
@@ -590,7 +705,7 @@ export default function ProductsPage() {
                               <DropdownMenuItem asChild>
                                 <Link
                                   href={`/dashboard/products/${product._id}/edit`}
-                                  className="cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 rounded-xl transition-all duration-300"
+                                  className="cursor-pointer flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 rounded-[12px] transition-all duration-300"
                                 >
                                   <Pencil className="w-4 h-4 text-yellow-600" />
                                   <span className="font-medium">Edit</span>
@@ -598,7 +713,7 @@ export default function ProductsPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => setDeleteDialogOpen(product._id)}
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-xl transition-all duration-300 text-red-600 cursor-pointer"
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 rounded-[12px] transition-all duration-300 text-red-600 cursor-pointer"
                               >
                                 <Trash className="w-4 h-4" />
                                 <span className="font-medium">Delete</span>
@@ -814,7 +929,7 @@ export default function ProductsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={10} className="px-8 py-16 text-center">
+                      <td colSpan={11} className="px-8 py-16 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-20 h-20 bg-gradient-to-r from-slate-100 to-blue-100 rounded-full flex items-center justify-center">
                             <svg

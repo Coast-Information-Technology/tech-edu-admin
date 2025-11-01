@@ -178,7 +178,7 @@ export default function EditAttendancePage() {
           <h3 className="text-xl font-semibold text-red-800 mb-2">Error</h3>
           <p className="text-red-700">{error || "Attendance not found"}</p>
           <Link href="/dashboard/attendance-management">
-            <button className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300">
+            <button className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-[12px] hover:bg-blue-700 transition-all duration-300">
               Back to Attendance Management
             </button>
           </Link>

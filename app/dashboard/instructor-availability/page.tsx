@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { useRole } from "@/contexts/RoleContext";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -44,12 +45,25 @@ interface InstructorAvailability {
   workingHours: WorkingHours[];
   bufferTimeMinutes: number;
   timezone: string;
-  calendlyUserId?: string;
-  calendlyUserUri?: string;
+  calendly?: {
+    userId: string;
+    userUri: string;
+    connectedAt: string;
+    lastSyncAt: string;
+  };
   lastAvailabilityUpdate: Date;
   emergencyBlockReason?: string;
   emergencyBlockedAt?: Date;
   isCurrentlyAvailable?: boolean;
+  availableSlots?: string[];
+  slotsInfo?: {
+    dateRange: {
+      start: string;
+      end: string;
+    };
+    durationMinutes: number;
+    totalSlots: number;
+  };
 }
 
 const DAYS_OF_WEEK = [
@@ -64,6 +78,7 @@ const DAYS_OF_WEEK = [
 
 export default function InstructorAvailabilityPage() {
   const { userData, isAuthenticated, loading: authLoading } = useRole();
+  const router = useRouter();
   const [availabilities, setAvailabilities] = useState<
     InstructorAvailability[]
   >([]);
@@ -81,15 +96,21 @@ export default function InstructorAvailabilityPage() {
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [emergencyReason, setEmergencyReason] = useState("");
   const [selectedInstructorId, setSelectedInstructorId] = useState("");
+  const [calendlyStatus, setCalendlyStatus] = useState<{
+    connected: boolean;
+    oauthConfigured: boolean;
+    webhookConfigured: boolean;
+    features?: string[];
+  } | null>(null);
 
   useEffect(() => {
     const fetchAvailabilities = async () => {
       // Don't fetch if userData is not loaded yet
       if (!userData._id && !userData.id) {
-        // If auth is not loading and user is not authenticated, show error
+        // If auth is not loading and user is not authenticated, redirect to login
         if (!authLoading && !isAuthenticated) {
-          setError("Please log in to view instructor availability.");
-          setLoading(false);
+          router.push("/login");
+          return;
         }
         return;
       }
@@ -99,8 +120,7 @@ export default function InstructorAvailabilityPage() {
 
       const token = getTokenFromCookies();
       if (!token) {
-        setError("Authentication required. Please log in.");
-        setLoading(false);
+        router.push("/login");
         return;
       }
 
@@ -119,24 +139,28 @@ export default function InstructorAvailabilityPage() {
           const availability = response.data.data;
           const transformedData = [
             {
-              _id: availability._id,
+              _id: instructorId || "unknown", // Use instructorId as _id since it's not in the response
               instructorId: {
-                _id: availability.instructorId,
-                fullName: userData.fullName,
-                email: userData.email,
+                _id: instructorId || "unknown",
+                fullName: userData.fullName || "Unknown",
+                email: userData.email || "unknown@example.com",
                 profilePicture: userData.avatar,
               },
               isActive: availability.isActive || false,
               workingHours: availability.workingHours || [],
               bufferTimeMinutes: availability.bufferTimeMinutes || 30,
               timezone: availability.timezone || "UTC",
-              calendlyUserId: availability.calendlyUserId,
-              calendlyUserUri: availability.calendlyUserUri,
-              lastAvailabilityUpdate:
-                availability.lastAvailabilityUpdate || new Date(),
+              calendly: availability.calendly,
+              lastAvailabilityUpdate: new Date(
+                availability.lastAvailabilityUpdate
+              ),
               emergencyBlockReason: availability.emergencyBlockReason,
-              emergencyBlockedAt: availability.emergencyBlockedAt,
+              emergencyBlockedAt: availability.emergencyBlockedAt
+                ? new Date(availability.emergencyBlockedAt)
+                : undefined,
               isCurrentlyAvailable: availability.isCurrentlyAvailable || false,
+              availableSlots: availability.availableSlots || [],
+              slotsInfo: availability.slotsInfo,
             },
           ];
           setAvailabilities(transformedData);
@@ -157,33 +181,63 @@ export default function InstructorAvailabilityPage() {
   }, [userData._id, userData.id, isAuthenticated, authLoading]);
 
   // Fetch profile settings
+  // useEffect(() => {
+  //   const fetchProfileSettings = async () => {
+  //     if (!userData._id && !userData.id) {
+  //       return;
+  //     }
+
+  //     const token = getTokenFromCookies();
+  //     if (!token) {
+  //       return;
+  //     }
+
+  //     try {
+  //       const instructorId = userData._id || userData.id;
+  //       const response = await getApiRequest(
+  //         `/api/instructors/${instructorId}/profile/settings`,
+  //         token
+  //       );
+
+  //       if (response?.data?.success) {
+  //         setProfileSettings(response.data.data);
+  //       }
+  //     } catch (err: any) {
+  //       console.error("Failed to fetch profile settings:", err);
+  //     }
+  //   };
+
+  //   fetchProfileSettings();
+  // }, [userData._id, userData.id]);
+
+  // Fetch Calendly integration status
   useEffect(() => {
-    const fetchProfileSettings = async () => {
-      if (!userData._id && !userData.id) {
-        return;
-      }
-
+    const fetchCalendlyStatus = async () => {
       const token = getTokenFromCookies();
-      if (!token) {
-        return;
-      }
-
+      if (!token) return;
       try {
-        const instructorId = userData._id || userData.id;
-        const response = await getApiRequest(
-          `/api/instructors/${instructorId}/profile/settings`,
+        const statusResp = await getApiRequest(
+          `/api/integrations/calendly/status`,
           token
         );
-
-        if (response?.data?.success) {
-          setProfileSettings(response.data.data);
+        if (statusResp?.data) {
+          // Some backends wrap payload under data
+          const payload = statusResp.data.data || statusResp.data;
+          if (typeof payload?.connected === "boolean") {
+            setCalendlyStatus({
+              connected: payload.connected,
+              oauthConfigured: !!payload.oauthConfigured,
+              webhookConfigured: !!payload.webhookConfigured,
+              features: payload.features || [],
+            });
+          }
         }
-      } catch (err: any) {
-        console.error("Failed to fetch profile settings:", err);
+      } catch (e) {
+        // Silently ignore; UI will fall back to profileSettings
       }
     };
 
-    fetchProfileSettings();
+    fetchCalendlyStatus();
   }, [userData._id, userData.id]);
 
   // Filter and sort logic
@@ -309,12 +363,12 @@ export default function InstructorAvailabilityPage() {
   const handleConnectCalendly = async () => {
     const token = getTokenFromCookies();
     if (!token) {
-      setError("Authentication required. Please log in.");
+      router.push("/login");
       return;
     }
 
     if (!userData._id && !userData.id) {
-      setError("Instructor ID not found. Please log in again.");
+      router.push("/login");
       return;
     }
 
@@ -335,7 +389,14 @@ export default function InstructorAvailabilityPage() {
         // Redirect to Calendly authorization URL
         window.location.href = response.data.authorizationUrl;
       } else {
-        setError(response?.data?.message || "Failed to connect to Calendly");
+        // Handle specific error cases
+        if (response?.data?.error === "ALREADY_CONNECTED") {
+          setError(
+            "Calendly is already connected for this instructor. Please disconnect first if you want to reconnect."
+          );
+        } else {
+          setError(response?.data?.message || "Failed to connect to Calendly");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to connect to Calendly");
@@ -347,7 +408,7 @@ export default function InstructorAvailabilityPage() {
   const handleEmergencyBlock = async (instructorId: string, reason: string) => {
     const token = getTokenFromCookies();
     if (!token) {
-      setError("Authentication required. Please log in.");
+      router.push("/login");
       return;
     }
 
@@ -384,8 +445,8 @@ export default function InstructorAvailabilityPage() {
                 workingHours: availability.workingHours || [],
                 bufferTimeMinutes: availability.bufferTimeMinutes || 30,
                 timezone: availability.timezone || "UTC",
-                calendlyUserId: availability.calendlyUserId,
-                calendlyUserUri: availability.calendlyUserUri,
+                userId: availability.userId,
+                userUri: availability.userUri,
                 lastAvailabilityUpdate:
                   availability.lastAvailabilityUpdate || new Date(),
                 emergencyBlockReason: availability.emergencyBlockReason,
@@ -449,8 +510,8 @@ export default function InstructorAvailabilityPage() {
                 workingHours: availability.workingHours || [],
                 bufferTimeMinutes: availability.bufferTimeMinutes || 30,
                 timezone: availability.timezone || "UTC",
-                calendlyUserId: availability.calendlyUserId,
-                calendlyUserUri: availability.calendlyUserUri,
+                userId: availability.userId,
+                userUri: availability.userUri,
                 lastAvailabilityUpdate:
                   availability.lastAvailabilityUpdate || new Date(),
                 emergencyBlockReason: availability.emergencyBlockReason,
@@ -533,8 +594,8 @@ export default function InstructorAvailabilityPage() {
               workingHours: availability.workingHours || [],
               bufferTimeMinutes: availability.bufferTimeMinutes || 30,
               timezone: availability.timezone || "UTC",
-              calendlyUserId: availability.calendlyUserId,
-              calendlyUserUri: availability.calendlyUserUri,
+              userId: availability.userId,
+              userUri: availability.userUri,
               lastAvailabilityUpdate:
                 availability.lastAvailabilityUpdate || new Date(),
               emergencyBlockReason: availability.emergencyBlockReason,
@@ -609,24 +670,22 @@ export default function InstructorAvailabilityPage() {
                   Add Availability
                 </button>
               </Link>
-              {profileSettings?.calendly?.isConnected ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowCalendlyStatus(!showCalendlyStatus)}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
-                  >
-                    <CheckCircle className="w-5 h-5" />
-                    Calendly Connected
-                  </button>
-                  <button
-                    onClick={handleRevokeCalendly}
-                    disabled={loading}
-                    className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-2xl hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <XCircle className="w-5 h-5" />
-                    Disconnect
-                  </button>
-                </div>
+              {/* <Link href="/dashboard/instructor/profile-settings">
+                <button className="px-6 py-3 bg-white text-slate-700 font-semibold rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all duration-300 shadow-sm flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  View Instructor Profile Settings
+                </button>
+              </Link> */}
+              {calendlyStatus?.connected ||
+              profileSettings?.calendly?.isConnected ||
+              availabilities[0]?.calendly?.userId ? (
+                <button
+                  onClick={() => setShowCalendlyStatus(!showCalendlyStatus)}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Calendly Connected
+                </button>
               ) : (
                 <button
                   onClick={handleConnectCalendly}
@@ -642,101 +701,260 @@ export default function InstructorAvailabilityPage() {
         </div>
 
         {/* Calendly Status Panel */}
-        {showCalendlyStatus && profileSettings?.calendly && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-slate-900">
-                Calendly Integration Status
-              </h3>
-              <button
-                onClick={() => setShowCalendlyStatus(false)}
-                className="p-2 rounded-full hover:bg-slate-100 transition-all duration-300"
-              >
-                <X className="w-5 h-5 text-slate-600" />
-              </button>
-            </div>
+        {showCalendlyStatus &&
+          (profileSettings?.calendly || calendlyStatus) && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-slate-900">
+                  Calendly Integration Status
+                </h3>
+                <button
+                  onClick={() => setShowCalendlyStatus(false)}
+                  className="p-2 rounded-full hover:bg-slate-100 transition-all duration-300"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      profileSettings.calendly.isConnected
-                        ? "bg-green-500"
-                        : "bg-red-500"
-                    }`}
-                  ></div>
-                  <span className="font-medium text-slate-700">
-                    Status:{" "}
-                    {profileSettings.calendly.isConnected
-                      ? "Connected"
-                      : "Disconnected"}
-                  </span>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        calendlyStatus?.connected ??
+                        profileSettings?.calendly?.isConnected ??
+                        availabilities[0]?.calendly?.userId
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                      }`}
+                    ></div>
+                    <span className="font-medium text-slate-700">
+                      Status:{" "}
+                      {calendlyStatus?.connected ??
+                      profileSettings?.calendly?.isConnected ??
+                      availabilities[0]?.calendly?.userId
+                        ? "Connected"
+                        : "Disconnected"}
+                    </span>
+                  </div>
+
+                  {(profileSettings?.calendly?.userId ||
+                    availabilities[0]?.calendly?.userId) && (
+                    <div>
+                      <span className="text-sm font-medium text-slate-600">
+                        Calendly User ID:
+                      </span>
+                      <p className="text-slate-900 font-mono text-sm">
+                        {profileSettings?.calendly?.userId ||
+                          availabilities[0]?.calendly?.userId}
+                      </p>
+                    </div>
+                  )}
+                  {typeof calendlyStatus?.webhookConfigured === "boolean" && (
+                    <div className="text-sm text-slate-700">
+                      Webhooks:{" "}
+                      {calendlyStatus.webhookConfigured
+                        ? "Configured"
+                        : "Not configured"}
+                    </div>
+                  )}
+                  {calendlyStatus?.features?.length ? (
+                    <div className="text-sm text-slate-700">
+                      Features: {calendlyStatus.features.join(", ")}
+                    </div>
+                  ) : null}
+
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      onClick={handleConnectCalendly}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-[10px] hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Reconnect
+                    </button>
+                    <button
+                      onClick={handleRevokeCalendly}
+                      disabled={loading}
+                      className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-[10px] hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Disconnect
+                    </button>
+                  </div>
                 </div>
 
-                {profileSettings.calendly.calendlyUserId && (
+                <div className="space-y-4">
                   <div>
                     <span className="text-sm font-medium text-slate-600">
-                      Calendly User ID:
+                      Availability Status:
                     </span>
-                    <p className="text-slate-900 font-mono text-sm">
-                      {profileSettings.calendly.calendlyUserId}
+                    <p className="text-slate-900">
+                      {profileSettings?.availability?.isActive
+                        ? "Active"
+                        : "Inactive"}
                     </p>
                   </div>
-                )}
-              </div>
 
-              <div className="space-y-4">
-                <div>
-                  <span className="text-sm font-medium text-slate-600">
-                    Availability Status:
-                  </span>
-                  <p className="text-slate-900">
-                    {profileSettings.availability?.isActive
-                      ? "Active"
-                      : "Inactive"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-sm font-medium text-slate-600">
-                    Timezone:
-                  </span>
-                  <p className="text-slate-900">
-                    {profileSettings.availability?.timezone || "Not set"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-sm font-medium text-slate-600">
-                    Buffer Time:
-                  </span>
-                  <p className="text-slate-900">
-                    {profileSettings.availability?.bufferTimeMinutes || 30}{" "}
-                    minutes
-                  </p>
-                </div>
-
-                {profileSettings.availability?.emergencyBlock?.isBlocked && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <span className="text-sm font-medium text-red-800">
-                      Emergency Blocked
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">
+                      Timezone:
                     </span>
-                    <p className="text-red-700 text-sm">
-                      {profileSettings.availability.emergencyBlock.reason}
+                    <p className="text-slate-900">
+                      {profileSettings?.availability?.timezone || "Not set"}
                     </p>
-                    {profileSettings.availability.emergencyBlock.blockedAt && (
-                      <p className="text-red-600 text-xs mt-1">
-                        Blocked at:{" "}
-                        {new Date(
-                          profileSettings.availability.emergencyBlock.blockedAt
-                        ).toLocaleString()}
-                      </p>
+                  </div>
+
+                  <div>
+                    <span className="text-sm font-medium text-slate-600">
+                      Buffer Time:
+                    </span>
+                    <p className="text-slate-900">
+                      {profileSettings?.availability?.bufferTimeMinutes || 30}{" "}
+                      minutes
+                    </p>
+                  </div>
+
+                  {availabilities[0]?.availableSlots &&
+                    availabilities[0].availableSlots.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium text-slate-600">
+                          Available Slots (Next 7 Days):
+                        </span>
+                        <p className="text-slate-900">
+                          {availabilities[0].availableSlots.length} slots
+                          available
+                        </p>
+                        {availabilities[0].slotsInfo && (
+                          <p className="text-slate-600 text-xs">
+                            Duration:{" "}
+                            {availabilities[0].slotsInfo.durationMinutes} min
+                            each
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
+
+                  {profileSettings?.availability?.emergencyBlock?.isBlocked && (
+                    <div className="bg-red-50 border border-red-200 rounded-[10px] p-3">
+                      <span className="text-sm font-medium text-red-800">
+                        Emergency Blocked
+                      </span>
+                      <p className="text-red-700 text-sm">
+                        {profileSettings?.availability?.emergencyBlock.reason}
+                      </p>
+                      {profileSettings?.availability?.emergencyBlock
+                        .blockedAt && (
+                        <p className="text-red-600 text-xs mt-1">
+                          Blocked at:{" "}
+                          {new Date(
+                            profileSettings?.availability?.emergencyBlock.blockedAt
+                          ).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+        {calendlyStatus && (
+          <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Calendly Integration Status
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    calendlyStatus.connected ? "bg-green-500" : "bg-red-500"
+                  }`}
+                ></div>
+                <span className="text-sm font-medium text-slate-700">
+                  Connection
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    calendlyStatus.connected ? "text-green-700" : "text-red-700"
+                  }`}
+                >
+                  {calendlyStatus.connected ? "Active" : "Inactive"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    calendlyStatus.oauthConfigured
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                  }`}
+                ></div>
+                <span className="text-sm font-medium text-slate-700">
+                  OAuth
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    calendlyStatus.oauthConfigured
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {calendlyStatus.oauthConfigured
+                    ? "Configured"
+                    : "Not Configured"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    calendlyStatus.webhookConfigured
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                  }`}
+                ></div>
+                <span className="text-sm font-medium text-slate-700">
+                  Webhook
+                </span>
+                <span
+                  className={`text-sm font-semibold ${
+                    calendlyStatus.webhookConfigured
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }`}
+                >
+                  {calendlyStatus.webhookConfigured ? "Active" : "Inactive"}
+                </span>
+              </div>
+            </div>
+
+            {calendlyStatus.features?.length ? (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                  Available Features
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {calendlyStatus.features.map(
+                    (feature: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full border border-blue-200"
+                      >
+                        {feature
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </span>
+                    )
+                  )}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
 

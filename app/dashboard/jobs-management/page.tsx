@@ -963,7 +963,11 @@ export default function JobsManagementPage() {
                       setIsDeleteConfirmationOpen(false);
                       setJobToDelete(null);
                     } else {
-                      toast.error(result.message || "Failed to delete job");
+                      toast.error(
+                        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+                          ? "Failed to delete job"
+                          : result.message || "Failed to delete job"
+                      );
                     }
                   });
                 }

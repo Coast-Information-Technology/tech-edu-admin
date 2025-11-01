@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             getUserData().data.role == 'admin';
+    }
+    
+    function isInstructor() {
+      return isAuthenticated() && 
+             getUserData().data.role == 'instructor';
+    }
+    
+    function isStudent() {
+      return isAuthenticated() && 
+             getUserData().data.role == 'student';
+    }
+    
+    // File size validation (in bytes)
+    function isValidFileSize() {
+      return request.resource.size < 50 * 1024 * 1024; // 50MB max
+    }
+    
+    // File type validation for images
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // File type validation for documents
+    function isValidDocumentType() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+             request.resource.contentType.matches('text/plain') ||
+             request.resource.contentType.matches('application/zip');
+    }
+    
+    // Allow public read access to all files
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Assets folder - Product icons, thumbnails, UI assets
+    match /assets/{allPaths=**} {
+      // Only admins and instructors can upload
+      allow create: if (isAdmin() || isInstructor()) && 
+                       isValidFileSize() && 
+                       isValidImageType();
+      
+      // Only admins can update or delete
+      allow update, delete: if isAdmin();
+    }
+    
+    // Attachments folder - User uploaded files
+    match /attachments/{allPaths=**} {
+      // Any authenticated user can upload attachments
+      allow create: if isAuthenticated() && 
+                       isValidFileSize();
+      
+      // Users can only update/delete their own attachments
+      allow update, delete: if isAuthenticated() && 
+                               resource.metadata.uploadedBy == request.auth.uid;
+    }
+    
+    // Materials folder - Training materials, course content
+    match /materials/{allPaths=**} {
+      // Only admins and instructors can upload materials
+      allow create: if (isAdmin() || isInstructor()) && 
+                       isValidFileSize();
+      
+      // Only admins can update or delete materials
+      allow update, delete: if isAdmin();
+    }
+  }
+}

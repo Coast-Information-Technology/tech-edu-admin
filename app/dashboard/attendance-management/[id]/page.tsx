@@ -231,7 +231,7 @@ export default function ViewAttendancePage() {
           <h3 className="text-xl font-semibold text-red-800 mb-2">Error</h3>
           <p className="text-red-700">{error || "Attendance not found"}</p>
           <Link href="/dashboard/attendance-management">
-            <button className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300">
+            <button className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-[12px] hover:bg-blue-700 transition-all duration-300">
               Back to Attendance Management
             </button>
           </Link>
@@ -265,14 +265,14 @@ export default function ViewAttendancePage() {
               <Link
                 href={`/dashboard/attendance-management/${attendance._id}/edit`}
               >
-                <button className="px-6 py-3 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-all duration-300 flex items-center gap-2">
+                <button className="px-6 py-3 bg-yellow-600 text-white rounded-[12px] hover:bg-yellow-700 transition-all duration-300 flex items-center gap-2">
                   <Edit className="w-4 h-4" />
                   Edit
                 </button>
               </Link>
               <button
                 onClick={() => setDeleteDialogOpen(true)}
-                className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300 flex items-center gap-2"
+                className="px-6 py-3 bg-red-600 text-white rounded-[12px] hover:bg-red-700 transition-all duration-300 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete
@@ -590,7 +590,7 @@ export default function ViewAttendancePage() {
                       href={attendance.calendar.joinUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-xl hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
+                      className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-[12px] hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
                     >
                       <ExternalLink className="w-4 h-4" />
                       Join Meeting
@@ -646,14 +646,14 @@ export default function ViewAttendancePage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setDeleteDialogOpen(false)}
-                    className="flex-1 px-4 py-3 text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all duration-300"
+                    className="flex-1 px-4 py-3 text-slate-700 bg-slate-100 rounded-[12px] hover:bg-slate-200 transition-all duration-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={deleteLoading}
-                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-[12px] hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {deleteLoading ? (
                       <>

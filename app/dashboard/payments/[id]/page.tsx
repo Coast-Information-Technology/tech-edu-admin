@@ -3,37 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getApiRequestWithRefresh } from "@/lib/apiFetch";
-// Payment interface
-interface Payment {
-  _id: string;
-  userId: string;
-  provider: string;
-  transactionId: string;
-  amount: number;
-  status: string;
-  currency: string;
-  productId: string;
-  jobApplicationId?: string;
-  bookingId?: string;
-  stripeProductId?: string;
-  stripePriceId?: string;
-  couponCode?: string;
-  clientSecret?: string;
-  metadata?: Record<string, any>;
-  webhookReceived: boolean;
-  receiptUrl?: string;
-  productType: string;
-  bookingService?: string;
-  platformRole: string;
-  profileId?: string;
-  isSession: boolean;
-  isClassroom: boolean;
-  isDeleted: boolean;
-  deletedAt?: string;
-  deletedBy?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 import {
   Card,
   CardContent,
@@ -67,6 +36,9 @@ import {
   Handshake,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { Payment } from "@/types/payments";
+import { getCurrencySymbol } from "@/lib/constants/currencies";
+import safeConsole from "@/lib/console";
 
 export default function PaymentDetailsPage() {
   const params = useParams();
@@ -90,7 +62,7 @@ export default function PaymentDetailsPage() {
         router.push("/dashboard/payments");
       }
     } catch (error) {
-      console.error("Error fetching payment:", error);
+      safeConsole.error("Error fetching payment:", error);
       toast.error("Failed to fetch payment details");
       router.push("/dashboard/payments");
     } finally {
@@ -184,6 +156,14 @@ export default function PaymentDetailsPage() {
     }).format(amount / 100); // Assuming amount is in cents
   };
 
+  const parseBookingData = (bookingDataString: string) => {
+    try {
+      return JSON.parse(bookingDataString);
+    } catch {
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
@@ -241,7 +221,7 @@ export default function PaymentDetailsPage() {
                 access to it.
               </p>
               <Button
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-[12px] shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
                 onClick={() => router.push("/dashboard/payments")}
               >
                 View All Payments
@@ -329,7 +309,7 @@ export default function PaymentDetailsPage() {
                       {formatCurrency(payment.amount, payment.currency)}
                     </div>
                     <p className="text-sm text-slate-500 font-medium">
-                      {payment.currency}
+                      {getCurrencySymbol(payment.currency)}
                     </p>
                   </div>
                   <div>
@@ -385,7 +365,7 @@ export default function PaymentDetailsPage() {
                     <label className="text-sm font-semibold text-slate-700">
                       Transaction ID
                     </label>
-                    <p className="font-mono text-sm bg-slate-100 p-3 rounded-xl mt-1 border border-slate-200">
+                    <p className="font-mono text-sm bg-slate-100 p-3 rounded-[12px] mt-1 border border-slate-200">
                       {payment.transactionId}
                     </p>
                   </div>
@@ -458,7 +438,7 @@ export default function PaymentDetailsPage() {
                     <label className="text-sm font-semibold text-slate-700">
                       Platform Role
                     </label>
-                    <p className="font-semibold text-slate-900 mt-1">
+                    <p className="font-semibold text-slate-900 mt-1 capitalize">
                       {payment.platformRole}
                     </p>
                   </div>
@@ -474,6 +454,37 @@ export default function PaymentDetailsPage() {
                       )}
                       <span>{payment.webhookReceived ? "Yes" : "No"}</span>
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Service Type
+                    </label>
+                    <div className="flex items-center gap-2 mt-1">
+                      {payment.isSession && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Session
+                        </span>
+                      )}
+                      {payment.isClassroom && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Classroom
+                        </span>
+                      )}
+                      {!payment.isSession && !payment.isClassroom && (
+                        <span className="text-slate-500 text-sm">Other</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700">
+                      Booking Data Hash
+                    </label>
+                    <p className="font-mono text-sm bg-slate-100 p-2 rounded mt-1">
+                      {payment.metadata?.bookingDataHash || "N/A"}
+                    </p>
                   </div>
                 </div>
 
@@ -602,14 +613,177 @@ export default function PaymentDetailsPage() {
               </Card>
             )}
 
+            {/* Booking Details */}
+            {payment.metadata?.bookingData && (
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="border-b border-slate-200/50">
+                  <CardTitle className="flex items-center gap-2 text-slate-900">
+                    <Package className="w-5 h-5 text-blue-600" />
+                    Booking Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(() => {
+                    const bookingData = parseBookingData(
+                      payment.metadata.bookingData
+                    );
+                    return bookingData ? (
+                      <>
+                        {bookingData.attachments && (
+                          <div>
+                            <label className="text-sm font-semibold text-slate-700">
+                              Attachments
+                            </label>
+                            <div className="mt-1">
+                              <a
+                                href={bookingData.attachments}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline text-sm break-all"
+                              >
+                                {bookingData.attachments.split("/").pop()}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                        {bookingData.numberOfExpectedParticipants && (
+                          <div>
+                            <label className="text-sm font-semibold text-slate-700">
+                              Expected Participants
+                            </label>
+                            <p className="text-slate-900 mt-1">
+                              {bookingData.numberOfExpectedParticipants}
+                            </p>
+                          </div>
+                        )}
+                        {bookingData.userNotes && (
+                          <div>
+                            <label className="text-sm font-semibold text-slate-700">
+                              User Notes
+                            </label>
+                            <p className="text-slate-900 mt-1 bg-slate-50 p-3 rounded-[10px]">
+                              {bookingData.userNotes}
+                            </p>
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-sm font-semibold text-slate-700">
+                            Team Booking
+                          </label>
+                          <p className="text-slate-900 mt-1">
+                            {bookingData.isTeam ? "Yes" : "No"}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-slate-500 text-sm">
+                        No booking data available
+                      </p>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Webhook Event Details */}
+            {payment.metadata?.webhookEvent && (
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="border-b border-slate-200/50">
+                  <CardTitle className="flex items-center gap-2 text-slate-900">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    Webhook Event Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Payment Intent ID
+                      </label>
+                      <p className="font-mono text-sm bg-slate-100 p-2 rounded mt-1">
+                        {payment.metadata.webhookEvent.id}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Amount Received
+                      </label>
+                      <p className="text-slate-900 mt-1">
+                        {formatCurrency(
+                          payment.metadata.webhookEvent.amount_received,
+                          payment.currency
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {payment.metadata.webhookEvent.charges?.data?.[0] && (
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700">
+                        Charge Details
+                      </label>
+                      <div className="mt-2 space-y-2">
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <div>
+                            <span className="text-xs text-slate-500">
+                              Charge ID:
+                            </span>
+                            <p className="font-mono text-xs bg-slate-100 p-2 rounded">
+                              {payment.metadata.webhookEvent.charges.data[0].id}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-slate-500">
+                              Card Last 4:
+                            </span>
+                            <p className="text-slate-900">
+                              ****{" "}
+                              {
+                                payment.metadata.webhookEvent.charges.data[0]
+                                  .payment_method_details?.card?.last4
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <div>
+                            <span className="text-xs text-slate-500">
+                              Card Brand:
+                            </span>
+                            <p className="text-slate-900 capitalize">
+                              {
+                                payment.metadata.webhookEvent.charges.data[0]
+                                  .payment_method_details?.card?.brand
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-slate-500">
+                              Country:
+                            </span>
+                            <p className="text-slate-900">
+                              {
+                                payment.metadata.webhookEvent.charges.data[0]
+                                  .payment_method_details?.card?.country
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Metadata */}
             {payment.metadata && Object.keys(payment.metadata).length > 0 && (
               <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader className="border-b border-slate-200/50">
-                  <CardTitle className="text-slate-900">Metadata</CardTitle>
+                  <CardTitle className="text-slate-900">Raw Metadata</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <pre className="text-xs bg-slate-100 p-4 rounded-xl overflow-auto border border-slate-200">
+                  <pre className="text-xs bg-slate-100 p-4 rounded-[12px] overflow-auto border border-slate-200 max-h-96">
                     {JSON.stringify(payment.metadata, null, 2)}
                   </pre>
                 </CardContent>

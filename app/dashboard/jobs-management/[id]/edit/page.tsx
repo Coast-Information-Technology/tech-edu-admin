@@ -216,12 +216,20 @@ export default function EditJobPage() {
           router.push(`/dashboard/jobs-management/${jobId}`);
         }, 2000);
       } else {
-        setError(response?.data?.message || "Failed to update job");
+        setError(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to update job"
+            : response?.data?.message || "Failed to update job"
+        );
         toast.error("Failed to update job");
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred while updating the job");
-      toast.error("An error occurred while updating the job");
+      setError(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : error.message || "An error occurred while updating the job"
+      );
+      toast.error("Failed to update job");
     } finally {
       setSaving(false);
     }

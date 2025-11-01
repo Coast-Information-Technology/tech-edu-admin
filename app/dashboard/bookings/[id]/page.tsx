@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,68 +30,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { cleanAttachmentUrl } from "@/lib/utils";
-
-interface Booking {
-  _id: string;
-  productId?: {
-    _id: string;
-    service?: string;
-    productType?: string;
-    price?: number;
-  };
-  productType:
-    | "Training & Certification"
-    | "Academic Support Services"
-    | "Career Development & Mentorship"
-    | "Institutional & Team Services"
-    | "AI-Powered or Automation Services"
-    | "Recruitment & Job Matching"
-    | "Marketing, Consultation & Free Services";
-  instructorId?: {
-    _id: string;
-    fullName?: string;
-    email?: string;
-  };
-  bookingPurpose: string;
-  scheduleAt: string;
-  endAt: string;
-  minutesPerSession: number;
-  durationInMinutes: number;
-  numberOfExpectedParticipants: number;
-  isClassroom: boolean;
-  isSession: boolean;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
-  paymentStatus: "unpaid" | "paid" | "refunded";
-  schedulingStatus?: string;
-  meetingLink?: string;
-  userNotes?: string;
-  internalNotes?: string;
-  attachments?: string[];
-  cancellation?: {
-    isCancelled: boolean;
-    cancelledBy?: string;
-    reason?: string;
-    cancelledAt?: string;
-  };
-  participantType:
-    | "individual"
-    | "team"
-    | "institution"
-    | "recruiter"
-    | "visitor";
-  platformRole: string;
-  email: string;
-  fullName: string;
-  createdBy?: {
-    _id: string;
-    fullName?: string;
-    email?: string;
-  };
-  participants?: any[];
-  actualDaysAndTime?: any[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { Booking } from "@/types/booking";
+import safeConsole from "@/lib/console";
 
 interface Instructor {
   _id: string;
@@ -113,9 +53,10 @@ interface Product {
 export default function BookingDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const resolvedParams = use(params);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
@@ -125,7 +66,7 @@ export default function BookingDetailPage({
 
   useEffect(() => {
     fetchBooking();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   const fetchBooking = async () => {
     setLoading(true);
@@ -136,7 +77,10 @@ export default function BookingDetailPage({
         return;
       }
 
-      const response = await getApiRequest(`/api/bookings/${params.id}`, token);
+      const response = await getApiRequest(
+        `/api/bookings/${resolvedParams.id}`,
+        token
+      );
       if (response?.data?.success) {
         const bookingData = response.data.data;
         setBooking(bookingData);
@@ -165,11 +109,19 @@ export default function BookingDetailPage({
           setProduct(bookingData.productId);
         }
       } else {
-        toast.error(response?.data?.message || "Failed to fetch booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to fetch booking"
+        );
       }
     } catch (error: any) {
-      console.error("Error fetching booking:", error);
-      toast.error("Error fetching booking");
+      safeConsole.error("Error fetching booking:", error);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Error fetching booking"
+      );
     } finally {
       setLoading(false);
     }
@@ -217,11 +169,19 @@ export default function BookingDetailPage({
         fetchBooking(); // Refresh the booking data
         setCancelDialogOpen(false);
       } else {
-        toast.error(response?.data?.message || "Failed to cancel booking");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Something went wrong"
+            : response?.data?.message || "Failed to cancel booking"
+        );
       }
     } catch (error: any) {
-      console.error("Error cancelling booking:", error);
-      toast.error("Error cancelling booking");
+      safeConsole.error("Error cancelling booking:", error);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : "Error cancelling booking"
+      );
     } finally {
       setCancelling(false);
     }
@@ -348,7 +308,7 @@ export default function BookingDetailPage({
             <Button
               variant="ghost"
               onClick={() => router.back()}
-              className="p-2 hover:bg-white/50 rounded-xl"
+              className="p-2 hover:bg-white/50 rounded-[12px]"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -607,35 +567,51 @@ export default function BookingDetailPage({
                   </div>
                 </div>
 
-                {booking.attachments && booking.attachments.length > 0 && (
+                {booking.attachments && (
                   <div>
                     <Label className="text-sm font-semibold text-slate-700">
                       Attachments
                     </Label>
                     <div className="mt-1">
-                      <div className="flex items-center gap-2 text-blue-600">
-                        <span>
-                          📎 {booking.attachments.length} attachment
-                          {booking.attachments.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <div className="mt-2 space-y-2">
-                        {booking.attachments.map((attachment, index) => {
-                          const cleanUrl = cleanAttachmentUrl(attachment);
-                          return (
-                            <Link
-                              key={index}
-                              href={cleanUrl}
-                              target="_blank"
-                              className="text-sm text-slate-600 bg-slate-50 p-2 rounded border flex items-center gap-2"
-                            >
-                              {attachment.includes("blob:")
-                                ? "File uploaded"
-                                : cleanUrl}
-                            </Link>
-                          );
-                        })}
-                      </div>
+                      {Array.isArray(booking.attachments) ? (
+                        <>
+                          <div className="flex items-center gap-2 text-blue-600">
+                            <span>
+                              📎 {booking.attachments.length} attachment
+                              {booking.attachments.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-2">
+                            {booking.attachments.map((attachment, index) => {
+                              const cleanUrl = cleanAttachmentUrl(attachment);
+                              return (
+                                <Link
+                                  key={index}
+                                  href={cleanUrl}
+                                  target="_blank"
+                                  className="text-sm text-slate-600 bg-slate-50 p-2 rounded border flex items-center gap-2"
+                                >
+                                  {attachment.includes("blob:")
+                                    ? "File uploaded"
+                                    : cleanUrl}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-2">
+                          <Link
+                            href={cleanAttachmentUrl(booking.attachments)}
+                            target="_blank"
+                            className="text-sm text-slate-600 bg-slate-50 p-2 rounded border flex items-center gap-2"
+                          >
+                            {booking.attachments.includes("blob:")
+                              ? "File uploaded"
+                              : cleanAttachmentUrl(booking.attachments)}
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -643,7 +619,7 @@ export default function BookingDetailPage({
             </Card>
 
             {/* Participant Information */}
-            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            {/* <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-slate-900">
                   <User className="w-5 h-5" />
@@ -666,7 +642,7 @@ export default function BookingDetailPage({
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Participants Information */}
             {booking.participants && booking.participants.length > 0 && (
@@ -683,7 +659,7 @@ export default function BookingDetailPage({
                       (participant: any, index: number) => (
                         <div
                           key={index}
-                          className="bg-slate-50 p-3 rounded-lg border"
+                          className="bg-slate-50 p-3 rounded-[10px] border"
                         >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
@@ -747,7 +723,7 @@ export default function BookingDetailPage({
                         (schedule: any, index: number) => (
                           <div
                             key={index}
-                            className="bg-slate-50 p-3 rounded-lg border"
+                            className="bg-slate-50 p-3 rounded-[10px] border"
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
@@ -790,7 +766,7 @@ export default function BookingDetailPage({
                       <Label className="text-sm font-semibold text-slate-700">
                         User Notes
                       </Label>
-                      <p className="mt-1 text-slate-900 bg-slate-50 p-3 rounded-lg">
+                      <p className="mt-1 text-slate-900 bg-slate-50 p-3 rounded-[10px]">
                         {booking.userNotes}
                       </p>
                     </div>
@@ -800,7 +776,7 @@ export default function BookingDetailPage({
                       <Label className="text-sm font-semibold text-slate-700">
                         Internal Notes
                       </Label>
-                      <p className="mt-1 text-slate-900 bg-slate-50 p-3 rounded-lg">
+                      <p className="mt-1 text-slate-900 bg-slate-50 p-3 rounded-[10px]">
                         {booking.internalNotes}
                       </p>
                     </div>

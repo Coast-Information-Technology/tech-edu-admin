@@ -23,40 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface Classroom {
-  _id: string;
-  bookingId: string;
-  productId: string;
-  productType: string;
-  bookingPurpose: string;
-  instructorId: string;
-  minutesPerSession: number;
-  numberOfExpectedParticipants: number;
-  meetingLink?: string;
-  actualDaysAndTime: Array<{
-    dayOfWeek: string;
-    startTime: string;
-    endTime: string;
-  }>;
-  sessionType: "group" | "1-on-1";
-  participantType: "institution" | "team" | "individual";
-  sessionsCompleted: number;
-  sessionsRemaining: number;
-  avgRating?: number;
-  userNotes?: string;
-  internalNotes?: string;
-  participants: Array<{
-    participantType: string;
-    platformRole: string;
-    profileId?: string;
-    email: string;
-    fullName: string;
-  }>;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Classroom } from "@/lib/classroom";
 
 interface UserRole {
   role: "instructor" | "student" | "admin";
@@ -197,7 +164,7 @@ export default function ClassroomsPage() {
   const getClassroomStatus = (classroom: Classroom): string => {
     if (classroom.sessionsRemaining === 0) {
       return "completed";
-    } else if (classroom.sessionsCompleted > 0) {
+    } else if (classroom.sessionsCompleted && classroom.sessionsCompleted > 0) {
       return "active";
     } else {
       return "upcoming";
@@ -249,7 +216,7 @@ export default function ClassroomsPage() {
                   <button
                     key={role}
                     onClick={() => setUserRole(role as UserRole["role"])}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    className={`px-4 py-2 rounded-[12px] text-sm font-semibold transition-all duration-300 ${
                       userRole === role
                         ? "bg-white text-slate-900 shadow-lg"
                         : "text-slate-600 hover:text-slate-900"
@@ -444,8 +411,9 @@ export default function ClassroomsPage() {
                             )}
                           <div className="text-xs text-slate-500 mt-1">
                             {classroom.sessionsCompleted}/
-                            {classroom.sessionsCompleted +
-                              classroom.sessionsRemaining}{" "}
+                            {classroom.sessionsCompleted &&
+                              classroom.sessionsCompleted +
+                                classroom.sessionsRemaining}{" "}
                             sessions
                           </div>
                         </td>

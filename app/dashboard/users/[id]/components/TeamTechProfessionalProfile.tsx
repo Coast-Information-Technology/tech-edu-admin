@@ -33,7 +33,7 @@ export default function TeamTechProfessionalProfile({
           <CardTitle>Team Tech Professional Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-6 bg-green-50 rounded-lg border-2 border-dashed border-green-300">
+          <div className="text-center p-6 bg-green-50 rounded-[10px] border-2 border-dashed border-green-300">
             <Users className="w-12 h-12 text-green-400 mx-auto mb-3" />
             <h4 className="font-semibold text-green-700 mb-2">
               Team Tech Professional Profile Not Created
@@ -124,7 +124,7 @@ export default function TeamTechProfessionalProfile({
               <Building2 className="w-5 h-5" />
               Company Details
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-[10px]">
               <div>
                 <p className="text-sm font-medium text-gray-700">
                   Company Name
@@ -394,7 +394,7 @@ export default function TeamTechProfessionalProfile({
               <Target className="w-5 h-5" />
               Learning Goals
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-[10px]">
               {profile.learningGoals.goalType && (
                 <div>
                   <p className="text-sm font-medium text-gray-700">Goal Type</p>
@@ -463,7 +463,10 @@ export default function TeamTechProfessionalProfile({
             </h4>
             <div className="space-y-3">
               {profile.members.map((member: any, index: number) => (
-                <div key={index} className="p-3 bg-gray-50 rounded-lg border">
+                <div
+                  key={index}
+                  className="p-3 bg-gray-50 rounded-[10px] border"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">

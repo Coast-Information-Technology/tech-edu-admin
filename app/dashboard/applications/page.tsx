@@ -62,7 +62,7 @@ function ConfirmationModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div className="bg-white rounded-[10px] p-6 max-w-md w-full mx-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
         <p className="text-gray-600 mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
@@ -173,13 +173,25 @@ export default function ApplicationsPage() {
           );
           toast.success(`Application status updated to ${newStatus}`);
         } else {
-          toast.error(res.data?.message || "Failed to update status");
+          toast.error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Failed to update status"
+              : res.data?.message || "Failed to update status"
+          );
         }
       } else {
-        toast.error(res.message || "Failed to update status");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to update status"
+            : res.message || "Failed to update status"
+        );
       }
     } catch (e: any) {
-      toast.error(e.message || "An error occurred while updating status");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : e.message || "An error occurred while updating status"
+      );
     }
   };
 
@@ -201,13 +213,25 @@ export default function ApplicationsPage() {
           setApplications((prev) => prev.filter((app) => app._id !== id));
           toast.success("Application has been deleted");
         } else {
-          toast.error(res.data?.message || "Failed to delete application");
+          toast.error(
+            process.env.NEXT_PUBLIC_NODE_ENV === "production"
+              ? "Failed to delete application"
+              : res.data?.message || "Failed to delete application"
+          );
         }
       } else {
-        toast.error(res.message || "Failed to delete application");
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to delete application"
+            : res.message || "Failed to delete application"
+        );
       }
     } catch (e: any) {
-      toast.error(e.message || "An error occurred while deleting");
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Something went wrong"
+          : e.message || "An error occurred while deleting"
+      );
     }
     setDeleteModal({ isOpen: false, applicationId: null });
   };
@@ -320,7 +344,7 @@ export default function ApplicationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center border rounded-lg p-1">
+          <div className="flex items-center border rounded-[10px] p-1">
             <Button
               variant={viewMode === "table" ? "default" : "ghost"}
               size="sm"

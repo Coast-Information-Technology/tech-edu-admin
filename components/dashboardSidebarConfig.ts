@@ -64,9 +64,14 @@ export const dashboardSidebarConfig = {
             href: "/dashboard/bookings",
           },
           {
-            label: "Booked Services",
+            label: "User Entitlements",
             icon: Calendar,
-            href: "/dashboard/booked-services",
+            href: "/dashboard/entitlements",
+          },
+          {
+            label: "User Subscriptions",
+            icon: Package,
+            href: "/dashboard/subscriptions",
           },
           {
             label: "Onboarding Stuck Users",
@@ -86,7 +91,7 @@ export const dashboardSidebarConfig = {
           {
             label: "Attendance",
             icon: FileText,
-            href: "/dashboard/attendance",
+            href: "/dashboard/attendance-management",
           },
           {
             label: "Live Sessions",
@@ -98,9 +103,9 @@ export const dashboardSidebarConfig = {
       {
         title: "Profiles & CVs",
         items: [
-          { label: "CVs / Profiles", icon: FileText, href: "/dashboard/cvs" },
+          { label: "My Resumes", icon: FileText, href: "/dashboard/cvs" },
           {
-            label: "CV Builder",
+            label: "Resume Builder",
             icon: FileText,
             href: "/dashboard/cv-builder",
           },
@@ -139,32 +144,37 @@ export const dashboardSidebarConfig = {
     displayName: "Instructor Dashboard",
     sections: [
       {
-        title: "Course Management",
+        title: "Services Management",
         items: [
           {
             label: "Dashboard",
             icon: LayoutDashboard,
             href: "/dashboard/instructor",
           },
-          {
-            label: "Instructor Availability",
-            icon: BookOpen,
-            href: "/dashboard/instructor-availability",
-          },
+          // {
+          //   label: "Instructor Availability",
+          //   icon: BookOpen,
+          //   href: "/dashboard/instructor-availability",
+          // },
           {
             label: "Student",
             icon: BookOpen,
             href: "/dashboard/users",
           },
+          // {
+          //   label: "Academic Services",
+          //   icon: BookOpen,
+          //   href: "/dashboard/products",
+          // },
           {
-            label: "Academic Services",
-            icon: BookOpen,
-            href: "/dashboard/products",
+            label: "Enrolled Students",
+            icon: Users,
+            href: "/dashboard/enrolled-students",
           },
           {
             label: "Bookings",
             icon: BookOpen,
-            href: "/dashboard/bookings",
+            href: "/dashboard/bookings/instructor",
           },
           {
             label: "Classrooms",
@@ -176,45 +186,35 @@ export const dashboardSidebarConfig = {
             icon: Video,
             href: "/dashboard/sessions/instructor",
           },
-        ],
-      },
-      {
-        title: "Student Engagement",
-        items: [
-          {
-            label: "Enrolled Students",
-            icon: Users,
-            href: "/dashboard/enrolled-students",
-          },
           {
             label: "Attendance",
             icon: FileText,
             href: "/dashboard/attendance",
           },
-          {
-            label: "Live Sessions",
-            icon: Calendar,
-            href: "/dashboard/sessions",
-          },
         ],
       },
-      {
-        title: "Reports & Insights",
-        items: [
-          {
-            label: "Feedback",
-            icon: MessageCircle,
-            href: "/dashboard/feedback",
-          },
-        ],
-      },
+      // {
+      //   title: "Reports & Insights",
+      //   items: [
+      //     {
+      //       label: "Feedback",
+      //       icon: MessageCircle,
+      //       href: "/dashboard/feedback",
+      //     },
+      //   ],
+      // },
       {
         title: "System",
         items: [
           {
             label: "Notifications",
-            icon: User,
+            icon: Bell,
             href: "/dashboard/notifications",
+          },
+          {
+            label: "Profile",
+            icon: User,
+            href: "/dashboard/profile",
           },
         ],
       },

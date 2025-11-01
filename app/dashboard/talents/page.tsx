@@ -193,7 +193,7 @@ export default function TalentDirectoryPage() {
           {currentData.map((talent, index) => (
             <li
               key={index}
-              className="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center text-center border hover:shadow-md transition"
+              className="bg-white rounded-[12px] shadow-sm p-6 flex flex-col items-center text-center border hover:shadow-md transition"
             >
               <div className="w-16 h-16 rounded-full bg-gray-100 mb-4 flex items-center justify-center">
                 <span className="text-3xl text-gray-400">👤</span>

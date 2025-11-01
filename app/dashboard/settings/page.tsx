@@ -10,6 +10,7 @@ import { patchApiRequest, postApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
 import { Eye, EyeOff } from "lucide-react";
 import ThemeToggle from "@/utils/ThemeToggle";
+import safeConsole from "@/lib/console";
 
 export default function SettingsPage() {
   // State for password change
@@ -144,15 +145,23 @@ export default function SettingsPage() {
           response.message ||
           (response as any).error?.details?.[0] ||
           "Failed to change password.";
-        toast.error(errorMessage);
+        toast.error(
+          process.env.NEXT_PUBLIC_NODE_ENV === "production"
+            ? "Failed to change password."
+            : errorMessage
+        );
       }
     } catch (error: any) {
-      console.error("Password change error:", error);
+      safeConsole.error("Password change error:", error);
       const errorMessage =
         error.message ||
         error.response?.data?.message ||
         "Failed to change password. Please try again.";
-      toast.error(errorMessage);
+      toast.error(
+        process.env.NEXT_PUBLIC_NODE_ENV === "production"
+          ? "Failed to change password."
+          : errorMessage
+      );
     } finally {
       setIsChanging(false);
     }

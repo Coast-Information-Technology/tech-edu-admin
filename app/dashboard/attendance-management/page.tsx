@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { getApiRequest } from "@/lib/apiFetch";
 import { getTokenFromCookies } from "@/lib/cookies";
+import { PRODUCT_TYPE_OPTIONS } from "@/lib/constants/products";
 import {
   Calendar,
   Clock,
@@ -98,15 +99,7 @@ export default function AttendanceManagementPage() {
   const [limit, setLimit] = useState(10);
   const [meta, setMeta] = useState<Meta | null>(null);
 
-  const PRODUCT_TYPE_OPTIONS = [
-    "Training & Certification",
-    "Academic Support Services",
-    "Career Development & Mentorship",
-    "Institutional & Team Services",
-    "AI-Powered or Automation Services",
-    "Career Connect",
-    "Marketing, Consultation & Free Services",
-  ];
+  // Using centralized constants from lib/constants/products.ts
 
   const STATUS_OPTIONS = [
     "upcoming",
