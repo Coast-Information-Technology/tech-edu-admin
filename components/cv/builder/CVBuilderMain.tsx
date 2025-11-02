@@ -30,7 +30,7 @@ import SimplePreviewModal from "@/components/cv/builder/modals/SimplePreviewModa
 import JobMatchScore from "./JobMatchScore";
 import { useCVBuilder } from "@/hooks/cv/useCVBuilder";
 import { CVBuilderProps } from "@/types/cv/cv-builder";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import {
   useOnboardingTour,
   CVBuilderTourSteps,

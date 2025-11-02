@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import {
   UserIcon,
   BriefcaseIcon,

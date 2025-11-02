@@ -17,7 +17,7 @@ import { ClassicTemplatePlaceholder } from "@/components/cv/renderers/ClassicTem
 import { MinimalTemplatePlaceholder } from "@/components/cv/renderers/MinimalTemplatePlaceholder";
 import { ModernTemplatePlaceholder } from "@/components/cv/renderers/ModernTemplatePlaceholder";
 import { TwoColumnTemplatePlaceholder } from "@/components/cv/renderers/TwoColumnTemplatePlaceholder";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import { templateManager } from "@/lib/cv/templates/templateManager";
 
 interface DynamicTemplateRendererProps {

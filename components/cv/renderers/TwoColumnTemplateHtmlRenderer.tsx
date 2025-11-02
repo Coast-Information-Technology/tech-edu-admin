@@ -5,7 +5,7 @@ import Link from "next/link";
 import { sanitizeHtml } from "@/utils/cv/richText";
 import RichHtml from "../RichHtml";
 
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import { ColumnSectionType, TemplateLayout } from "@/types/cv/template";
 import {
   formatSectionContent,

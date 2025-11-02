@@ -11,7 +11,7 @@ import SimpleTemplateConfig from "./SimpleTemplateConfig";
 import { SectionList } from "./SectionList";
 import { SectionModal } from "./modals/SectionModal";
 import { SectionContentRenderer } from "./SectionContentRenderer";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 
 interface BuilderLayoutProps {
   children: ReactNode;

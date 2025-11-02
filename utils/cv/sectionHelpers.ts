@@ -4,7 +4,7 @@
  * Provides consistent data formatting for both HTML preview and PDF rendering
  */
 
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 
 // utils/cv/sectionHelpers.ts
 function scoreToLevel(score: number): string {
