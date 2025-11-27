@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ResumeSection } from "@/types/cv/index";
+import { ResumeSection } from "@/types/cv";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 // import { useAIFeatures } from "@/hooks/useAIFeatures";
 import {

@@ -1,5 +1,5 @@
 // CV Builder API client
-import { ResumeSection } from "@/types/cv/index";
+import { ResumeSection } from "@/types/cv";
 
 // Types for API responses
 export interface CVResponse {

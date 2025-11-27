@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseError } from "firebase/app";
 import {
   getStorage,
   ref,
@@ -127,22 +127,37 @@ export const uploadMaterial = async (
  * @param url - The download URL of the file
  * @returns Promise<void>
  */
-export const deleteFileFromFirebase = async (url: string): Promise<void> => {
-  try {
-    // Extract the path from the URL
-    const urlObj = new URL(url);
-    const path = decodeURIComponent(
-      urlObj.pathname.split("/o/")[1]?.split("?")[0] || ""
-    );
+export const deleteFileFromFirebase = async (filePathOrUrl: string) => {
+  const storage = getStorage(app);
 
-    if (path) {
-      const storageRef = ref(storage, path);
-      await deleteObject(storageRef);
-      safeConsole.log(`File deleted successfully: ${path}`);
+  // If you're already passing a path like "materials/...", keep it.
+  // If it's a full URL, convert to path. Adjust this part to match your setup.
+  let path = filePathOrUrl;
+
+  if (filePathOrUrl.startsWith("http")) {
+    // Extract `/o/...` segment and decode
+    const parts = filePathOrUrl.split("/o/");
+    if (parts[1]) {
+      path = decodeURIComponent(parts[1].split("?")[0]);
     }
-  } catch (error) {
-    safeConsole.error("Error deleting from Firebase:", error);
-    throw new Error(`Failed to delete file from Firebase: ${error}`);
+  }
+
+  const fileRef = ref(storage, path);
+
+  try {
+    await deleteObject(fileRef);
+  } catch (err: any) {
+    if (
+      err instanceof FirebaseError &&
+      err.code === "storage/object-not-found"
+    ) {
+      console.warn("[Firebase] File already deleted, skipping:", path);
+      // don't rethrow – missing object is OK for us
+      return;
+    }
+
+    console.error("[Firebase] Delete failed:", err);
+    throw err; // real error → let caller handle
   }
 };
 

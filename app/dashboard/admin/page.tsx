@@ -472,7 +472,7 @@ export default function AdminDashboard() {
                     Total Revenue
                   </p>
                   <p className="text-2xl font-bold text-orange-600">
-                    £{(paymentStats?.totalAmount || 0).toLocaleString()}
+                    £{((paymentStats?.totalAmount || 0) / 100).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">All time</p>
                 </div>

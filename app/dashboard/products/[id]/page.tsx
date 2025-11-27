@@ -28,6 +28,13 @@ import {
   getPriceLabel,
   formatMoneySafe,
 } from "@/utils/pricingDisplay";
+import type { PriceModel } from "@/lib/constants/pricing";
+
+const priceModelLabels: Record<PriceModel, string> = {
+  one_time: "One Time Payment",
+  subscription: "Subscription Payment",
+  free: "Free",
+};
 
 export default function ProductViewPage() {
   const params = useParams();
@@ -178,6 +185,7 @@ export default function ProductViewPage() {
                     </div>
                   </div>
                   <button
+                    title="button"
                     onClick={() => setDeleteDialogOpen(false)}
                     className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-all duration-300"
                     disabled={deleteLoading}
@@ -389,7 +397,10 @@ export default function ProductViewPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
               <Link href="/dashboard/products">
-                <button className="p-3 rounded-full hover:bg-slate-100 transition-all duration-300">
+                <button
+                  title="button"
+                  className="p-3 rounded-full hover:bg-slate-100 transition-all duration-300"
+                >
                   <ArrowLeft className="w-6 h-6 text-slate-600" />
                 </button>
               </Link>
@@ -398,12 +409,14 @@ export default function ProductViewPage() {
                   {product.service}
                 </h1>
                 <p className="text-slate-600 mt-1">
-                  {product.productType} • {typeof product.productCategoryTitle === 'string' 
-                    ? product.productCategoryTitle 
-                    : (product.productCategoryId as any)?.title || 'N/A'} •{" "}
-                  {typeof product.productSubcategoryName === 'string'
+                  {product.productType} •{" "}
+                  {typeof product.productCategoryTitle === "string"
+                    ? product.productCategoryTitle
+                    : (product.productCategoryId as any)?.title || "N/A"}{" "}
+                  •{" "}
+                  {typeof product.productSubcategoryName === "string"
                     ? product.productSubcategoryName
-                    : (product.productSubCategoryId as any)?.name || 'N/A'}
+                    : (product.productSubCategoryId as any)?.name || "N/A"}
                 </p>
               </div>
             </div>
@@ -649,59 +662,87 @@ export default function ProductViewPage() {
 
               {/* Pricing breakdown */}
               {product.pricing && (
-                <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Pricing Breakdown</h4>
+                <div className="my-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                    Pricing Breakdown
+                  </h4>
                   <div className="text-sm text-slate-700 space-y-1">
                     <div>
-                      <span className="text-slate-500">Model:</span> {product.pricing.model}
+                      <span className="text-slate-500">Price Model:</span>{" "}
+                      {product.pricing?.model
+                        ? priceModelLabels[product.pricing.model as PriceModel]
+                        : "N/A"}
                     </div>
+
                     <div>
-                      <span className="text-slate-500">Currency:</span> {String(product.pricing.currency || product.currency).toUpperCase()}
+                      <span className="text-slate-500">Currency:</span>{" "}
+                      {String(
+                        product.pricing.currency || product.currency
+                      ).toUpperCase()}
                     </div>
                     {product.pricing.priceBasis === "per_unit" && (
                       <>
                         <div>
-                          <span className="text-slate-500">Unit:</span> {product.pricing.unitName || "team"}
+                          <span className="text-slate-500">Unit:</span>{" "}
+                          {product.pricing.unitName || "team"}
                         </div>
                         <div>
-                          <span className="text-slate-500">Tier type:</span> {product.pricing.tierType || "none"}
+                          <span className="text-slate-500">Tier type:</span>{" "}
+                          {product.pricing.tierType || "none"}
                         </div>
-                        {Array.isArray(product.pricing.tiers) && product.pricing.tiers.length > 0 && (
-                          <div className="mt-1">
-                            <span className="text-slate-500">Tiers:</span>
-                            <ul className="mt-1 list-disc list-inside text-slate-700">
-                              {product.pricing.tiers.map((t, idx) => (
-                                <li key={idx}>
-                                  up to {t.upTo}: {formatMoneySafe(t.unitPrice, product.pricing?.currency as any)}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {Array.isArray(product.pricing.tiers) &&
+                          product.pricing.tiers.length > 0 && (
+                            <div className="mt-1">
+                              <span className="text-slate-500">Tiers:</span>
+                              <ul className="mt-1 list-disc list-inside text-slate-700">
+                                {product.pricing.tiers.map((t, idx) => (
+                                  <li key={idx}>
+                                    up to {t.upTo}:{" "}
+                                    {formatMoneySafe(
+                                      t.unitPrice,
+                                      product.pricing?.currency as any
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                       </>
                     )}
                     {product.pricing.model === "subscription" && (
                       <>
                         <div>
-                          <span className="text-slate-500">Interval:</span> {product.pricing.intervalCount || 1} {product.pricing.interval || "month"}
+                          <span className="text-slate-500">Interval:</span>{" "}
+                          {product.pricing.intervalCount || 1}{" "}
+                          {product.pricing.interval || "month"}
                         </div>
                       </>
                     )}
                     {product.pricing.model === "one_time" && (
                       <div>
-                        <span className="text-slate-500">Base price:</span> {formatMoneySafe(product.pricing.basePrice, product.pricing?.currency as any)}
+                        <span className="text-slate-500">Base price:</span>{" "}
+                        {formatMoneySafe(
+                          product.pricing.basePrice,
+                          product.pricing?.currency as any
+                        )}
                       </div>
                     )}
                     {typeof product.pricing.vatPercentage === "number" && (
                       <div>
-                        <span className="text-slate-500">VAT:</span> {product.pricing.vatPercentage}% {product.pricing.taxInclusive ? "(tax inclusive)" : "(tax exclusive)"}
+                        <span className="text-slate-500">VAT:</span>{" "}
+                        {product.pricing.vatPercentage}%{" "}
+                        {product.pricing.taxInclusive
+                          ? "(tax inclusive)"
+                          : "(tax exclusive)"}
                       </div>
                     )}
-                    {typeof product.discountPercentage === "number" && product.discountPercentage > 0 && (
-                      <div>
-                        <span className="text-slate-500">Discount:</span> {product.discountPercentage}%
-                      </div>
-                    )}
+                    {typeof product.discountPercentage === "number" &&
+                      product.discountPercentage > 0 && (
+                        <div>
+                          <span className="text-slate-500">Discount:</span>{" "}
+                          {product.discountPercentage}%
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
@@ -717,7 +758,8 @@ export default function ProductViewPage() {
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-slate-500" />
                     <span className="text-slate-700">
-                      {(product.durationInMinutes || product.durationMinutes)} minutes total
+                      {product.durationInMinutes || product.durationMinutes}{" "}
+                      minutes total
                     </span>
                   </div>
                 )}
@@ -747,17 +789,17 @@ export default function ProductViewPage() {
                 <div>
                   <span className="text-sm text-slate-500">Category</span>
                   <p className="font-medium text-slate-900">
-                    {typeof product.productCategoryTitle === 'string' 
-                      ? product.productCategoryTitle 
-                      : (product.productCategoryId as any)?.title || 'N/A'}
+                    {typeof product.productCategoryTitle === "string"
+                      ? product.productCategoryTitle
+                      : (product.productCategoryId as any)?.title || "N/A"}
                   </p>
                 </div>
                 <div>
                   <span className="text-sm text-slate-500">Subcategory</span>
                   <p className="font-medium text-slate-900">
-                    {typeof product.productSubcategoryName === 'string'
+                    {typeof product.productSubcategoryName === "string"
                       ? product.productSubcategoryName
-                      : (product.productSubCategoryId as any)?.name || 'N/A'}
+                      : (product.productSubCategoryId as any)?.name || "N/A"}
                   </p>
                 </div>
                 <div>

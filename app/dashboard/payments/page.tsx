@@ -358,7 +358,7 @@ export default function AdminPaymentsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap font-semibold">
-                      {getCurrencySymbol(payment.currency)} {payment.amount}
+                      {getCurrencySymbol(payment.currency)} {payment.amount / 100}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span

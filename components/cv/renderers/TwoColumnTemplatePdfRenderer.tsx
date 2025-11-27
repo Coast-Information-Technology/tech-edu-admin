@@ -10,7 +10,7 @@ import {
   Path,
   Font,
 } from "@react-pdf/renderer";
-import { ResumeSection } from "@/types/cv/index";
+import { ResumeSection } from "@/types/cv";
 import { ColumnSectionType, TemplateLayout } from "@/types/cv/template";
 import {
   formatSectionContent,

@@ -134,50 +134,52 @@ export function normalizePricingForApi(p: Pricing): Pricing {
   if (out.model === "free") {
     return {
       model: "free",
-      priceBasis: "flat", // Required by interface but won't be sent to API
+      priceBasis: "flat", // just to satisfy the type; not important for backend
       currency: out.currency,
     } as Pricing;
   }
 
-  // Never send installments for subscriptions
+  // Subscriptions NEVER have installments
   if (out.model === "subscription") {
-    delete out.allowInstallments;
-    delete out.installments;
+    out.allowInstallments = false;
+    delete (out as any).installments;
   } else {
-    // Only send installments if allowInstallments is true and installments is configured
+    // one_time (and any non-subscription)
     if (!out.allowInstallments || !out.installments) {
-      delete out.allowInstallments;
-      delete out.installments;
+      // No installments: force a clean state
+      out.allowInstallments = false;
+      delete (out as any).installments;
     } else {
-      // Ensure installments has required fields
+      // Installments explicitly enabled and configured
+      const inst = out.installments; // <-- now guaranteed non-undefined here
+
+      out.allowInstallments = true;
       out.installments = {
         enabled: true,
-        count: Math.max(2, Number(out.installments.count || 2)),
-        interval: out.installments.interval || "month",
-        intervalCount: out.installments.intervalCount || 1,
-        downPaymentType: out.installments.downPaymentType,
+        count: Math.max(2, Number(inst.count || 2)),
+        interval: inst.interval || "month",
+        intervalCount: inst.intervalCount || 1,
+        downPaymentType: inst.downPaymentType,
         downPaymentValue: Math.max(
           0,
-          Number(out.installments.downPaymentValue || 0)
+          Number(inst.downPaymentValue || 0)
         ),
-        allowEarlyPayoff: out.installments.allowEarlyPayoff,
-        provider: out.installments.provider || "in_house",
+        allowEarlyPayoff: !!inst.allowEarlyPayoff,
+        provider: inst.provider || "in_house",
       };
-      // DO NOT include allowInstallments - backend rejects it when installments is present
-      delete out.allowInstallments;
     }
   }
 
   // Clean up fields based on priceBasis
   if (out.priceBasis === "flat") {
     // Remove per_unit specific fields
-    delete out.unitName;
-    delete out.tierType;
-    delete out.tiers;
+    delete (out as any).unitName;
+    delete (out as any).tierType;
+    delete (out as any).tiers;
   } else if (out.priceBasis === "per_unit") {
     // Remove flat-specific basePrice if empty
     if (!out.basePrice) {
-      delete out.basePrice;
+      delete (out as any).basePrice;
     }
     // Ensure tierType and tiers are present
     if (!out.tierType) {
@@ -190,3 +192,4 @@ export function normalizePricingForApi(p: Pricing): Pricing {
 
   return out;
 }
+

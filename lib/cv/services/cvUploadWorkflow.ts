@@ -2,7 +2,7 @@
 import { uploadCV, UploadResult } from "@/lib/firebase/uploadService";
 import { parseCV, ParsedCVData } from "./cvParserService";
 import { cvApi } from "@/lib/cv/cvApi";
-import { ResumeSection } from "@/types/cv/index";
+import { ResumeSection } from "@/types/cv";
 import { mapResumePropsToSections } from "@/utils/cv/resumeSectionMapper";
 
 export interface CVUploadWorkflowResult {

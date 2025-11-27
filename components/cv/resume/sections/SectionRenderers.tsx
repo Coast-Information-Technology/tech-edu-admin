@@ -1,6 +1,6 @@
 // components/resume/sections/SectionRenderers.tsx
 import React from "react";
-import { ResumeSection } from "@/types/cv/index";
+import { ResumeSection } from "@/types/cv";
 
 import ExperienceSection from "./ExperienceSection";
 import EducationSection from "./EducationSection";

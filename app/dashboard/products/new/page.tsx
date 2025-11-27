@@ -26,7 +26,11 @@ import {
   SESSION_TYPE_OPTIONS,
   MODE_OPTIONS,
 } from "@/lib/constants/products";
-import { normalizePricingForApi, Pricing, Currency } from "@/lib/constants/pricing";
+import {
+  normalizePricingForApi,
+  Pricing,
+  Currency,
+} from "@/lib/constants/pricing";
 import PricingForm, {
   computePrice,
   formatMoney,
@@ -265,6 +269,23 @@ export default function CreateProductPage() {
     fetchSubcategories();
   }, [form.category, categoryOptions]);
 
+  React.useEffect(() => {
+    if (
+      form.productType === "Marketing, Consultation & Free Services" &&
+      form.category === "Consultation" &&
+      form.subcategory === "Booking"
+    ) {
+      // Only override if empty, so the admin can still type their own name
+      setForm((prev: any) => ({
+        ...prev,
+        service:
+          prev.service && prev.service.trim().length > 0
+            ? prev.service
+            : "Free Booking",
+      }));
+    }
+  }, [form.productType, form.category, form.subcategory]);
+
   const nextStep = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const prevStep = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -444,9 +465,8 @@ export default function CreateProductPage() {
   const validatePricing = (): string | null => {
     // Validate flat pricing
     if (pricing.priceBasis === "flat") {
-      if ((pricing.basePrice ?? 0) < 0)
-        return "Price cannot be negative.";
-      
+      if ((pricing.basePrice ?? 0) < 0) return "Price cannot be negative.";
+
       // Subscription requires interval
       if (pricing.model === "subscription") {
         if (!pricing.interval) return "Subscription interval is required.";
@@ -454,17 +474,18 @@ export default function CreateProductPage() {
           return "Subscription interval count must be at least 1.";
       }
     }
-    
+
     // Validate per_unit pricing
     if (pricing.priceBasis === "per_unit") {
-      if (!pricing.tierType) return "Tier type is required for per-unit pricing.";
+      if (!pricing.tierType)
+        return "Tier type is required for per-unit pricing.";
       if (!pricing.tiers || pricing.tiers.length === 0)
         return "Please add at least one tier for per-unit pricing.";
       if ((pricing.minQty ?? 1) < 1)
         return "Minimum quantity must be at least 1.";
       if ((pricing.maxQty ?? 1) < (pricing.minQty ?? 1))
         return "Max quantity must be >= min quantity.";
-      
+
       // Subscription per_unit also requires interval
       if (pricing.model === "subscription") {
         if (!pricing.interval) return "Subscription interval is required.";
@@ -475,9 +496,23 @@ export default function CreateProductPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Prevent form submission unless explicitly clicking the submit button
+    // On earlier steps, Enter key will just move to next step
+    if (step !== steps.length - 1) {
+      nextStep();
+      return;
+    }
+    // On final step, do nothing - wait for explicit button click
+  };
+
+  const handleCreateProduct = async () => {
+    // Explicit handler for create button - only callable from step 4
     if (step !== steps.length - 1) return;
+
+    // Prevent double submission
+    if (loading) return;
 
     // Required fields (baseline)
     const requiredFields = [
@@ -489,7 +524,11 @@ export default function CreateProductPage() {
     ];
 
     // Media type and file required for Tools + nonBookableService + mediaType selected
-    if (form.productType === "Tools" && !form.isBookableService && form.mediaType) {
+    if (
+      form.productType === "Tools" &&
+      !form.isBookableService &&
+      form.mediaType
+    ) {
       requiredFields.push(
         { field: "mediaType", label: "Media Type" },
         { field: "materialUrl", label: "Media File" }
@@ -516,30 +555,22 @@ export default function CreateProductPage() {
 
     // Duration guards
     if (isBookable) {
-      if (form.durationInMinutes < 1 || form.durationInMinutes > 120) {
-        setError("Duration must be between 1 and 120 minutes.");
+      if (form.durationInMinutes < 1) {
+        setError("Duration must be greater than 1 minutes.");
         return;
       }
-      if (form.minutesPerSession < 1 || form.minutesPerSession > 120) {
-        setError("Minutes per session must be between 1 and 120 minutes.");
+      if (form.minutesPerSession < 1) {
+        setError("Minutes per session must be greater than 1 minutes.");
         return;
       }
     } else {
-      // Optional: only warn if the user entered a non-zero value out of range
-      if (
-        form.durationInMinutes > 0 &&
-        (form.durationInMinutes < 1 || form.durationInMinutes > 120)
-      ) {
-        setError("Duration must be between 1 and 120 minutes (if provided).");
+      // Optional: only warn if the user entered a non-zero value less than 1
+      if (form.durationInMinutes > 0 && form.durationInMinutes < 1) {
+        setError("Duration must be greater than 1 minutes (if provided).");
         return;
       }
-      if (
-        form.minutesPerSession > 0 &&
-        (form.minutesPerSession < 1 || form.minutesPerSession > 120)
-      ) {
-        setError(
-          "Minutes per session must be between 1 and 120 (if provided)."
-        );
+      if (form.minutesPerSession > 0 && form.minutesPerSession < 1) {
+        setError("Minutes per session must be greater than 1 (if provided).");
         return;
       }
     }
@@ -586,11 +617,20 @@ export default function CreateProductPage() {
 
       // Map Pricing -> backend pricing schema
       const normalizedPricing = normalizePricingForApi(pricing);
-      const allowedCurrencies = ["usd", "eur", "gbp", "cad", "aud", "jpy", "inr", "ngn"] as const;
+      const allowedCurrencies = [
+        "usd",
+        "eur",
+        "gbp",
+        "cad",
+        "aud",
+        "jpy",
+        "inr",
+        "ngn",
+      ] as const;
       const currency = (normalizedPricing.currency || "gbp").toLowerCase();
-      const safeCurrency = (allowedCurrencies.includes(currency as any)
-        ? currency
-        : "gbp") as typeof allowedCurrencies[number];
+      const safeCurrency = (
+        allowedCurrencies.includes(currency as any) ? currency : "gbp"
+      ) as (typeof allowedCurrencies)[number];
 
       // Debug: show normalized pricing before toBackendPricing
       console.log("[Create Product] Raw pricing:", pricing);
@@ -614,20 +654,28 @@ export default function CreateProductPage() {
           if (p.priceBasis === "flat") {
             payload.basePrice = Number(p.basePrice ?? p.subscriptionPrice ?? 0);
           } else if (p.priceBasis === "per_unit") {
-            const unitName = p.unitName === "person" ? "participant" : p.unitName || "participant";
+            const unitName =
+              p.unitName === "person"
+                ? "participant"
+                : p.unitName || "participant";
             payload.unitName = unitName;
             payload.allowQuantity = true;
             payload.minQty = p.minQty ?? 1;
             payload.maxQty = p.maxQty ?? Math.max(payload.minQty, 1000);
             payload.tierType = p.tierType || "volume";
-            payload.tiers = (p.tiers || []).map((t) => ({ upTo: Number(t.upTo), unitPrice: Number(t.unitPrice) }));
+            payload.tiers = (p.tiers || []).map((t) => ({
+              upTo: Number(t.upTo),
+              unitPrice: Number(t.unitPrice),
+            }));
           }
           // Add tax fields if present
-          if (p.taxInclusive !== undefined) payload.taxInclusive = p.taxInclusive;
-          if (p.vatPercentage !== undefined) payload.vatPercentage = p.vatPercentage ?? 0;
+          if (p.taxInclusive !== undefined)
+            payload.taxInclusive = p.taxInclusive;
+          if (p.vatPercentage !== undefined)
+            payload.vatPercentage = p.vatPercentage ?? 0;
           return payload;
         }
-        
+
         if (p.model === "free") {
           return {
             model: "free",
@@ -635,7 +683,8 @@ export default function CreateProductPage() {
           };
         }
 
-        const unitName = p.unitName === "person" ? "participant" : p.unitName || "participant";
+        const unitName =
+          p.unitName === "person" ? "participant" : p.unitName || "participant";
         const payload: any = {
           model: "one_time",
           priceBasis: p.priceBasis ?? "flat", // Default to flat only if missing (preserves "per_unit" if set)
@@ -651,7 +700,10 @@ export default function CreateProductPage() {
           payload.minQty = p.minQty ?? 1;
           payload.maxQty = p.maxQty ?? Math.max(payload.minQty, 1000);
           payload.tierType = p.tierType || "volume";
-          payload.tiers = (p.tiers || []).map((t) => ({ upTo: Number(t.upTo), unitPrice: Number(t.unitPrice) }));
+          payload.tiers = (p.tiers || []).map((t) => ({
+            upTo: Number(t.upTo),
+            unitPrice: Number(t.unitPrice),
+          }));
         }
         // Only include installments if explicitly enabled
         // Note: p is normalized which deletes installments if allowInstallments is false
@@ -664,7 +716,10 @@ export default function CreateProductPage() {
             interval: pricing.installments.interval || "month",
             intervalCount: pricing.installments.intervalCount || 1,
             downPaymentType: pricing.installments.downPaymentType,
-            downPaymentValue: Math.max(0, Number(pricing.installments.downPaymentValue || 0)),
+            downPaymentValue: Math.max(
+              0,
+              Number(pricing.installments.downPaymentValue || 0)
+            ),
             allowEarlyPayoff: pricing.installments.allowEarlyPayoff ?? false,
             provider: pricing.installments.provider || "in_house",
           };
@@ -732,7 +787,11 @@ export default function CreateProductPage() {
       };
 
       // Add mediaType for Tools + nonBookableService
-      if (form.productType === "Tools" && !form.isBookableService && form.mediaType) {
+      if (
+        form.productType === "Tools" &&
+        !form.isBookableService &&
+        form.mediaType
+      ) {
         payload.mediaType = form.mediaType;
       }
 
@@ -843,7 +902,7 @@ export default function CreateProductPage() {
 
         {/* Form */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
-          <form onSubmit={handleSubmit} className="p-8">
+          <form onSubmit={handleFormSubmit} className="p-8">
             {step === 0 && (
               <div className="space-y-6">
                 <div className="text-center mb-8">
@@ -862,6 +921,7 @@ export default function CreateProductPage() {
                     </label>
                     <select
                       name="productType"
+                      title="productType"
                       value={form.productType}
                       onChange={handleChange}
                       className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -879,6 +939,7 @@ export default function CreateProductPage() {
                       ))}
                     </select>
 
+                    {/* Product Types */}
                     {form.productType && (
                       <div
                         className={`p-4 rounded-2xl border-2 ${
@@ -960,103 +1021,115 @@ export default function CreateProductPage() {
                     />
 
                     {/* Media Type - only for Tools + nonBookableService */}
-                    {form.productType === "Tools" && !form.isBookableService && (
-                      <>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Media Type *
-                        </label>
-                        <select
-                          name="mediaType"
-                          value={form.mediaType}
-                          onChange={handleChange}
-                          className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                          required
-                        >
-                          <option value="">Select Media Type</option>
-                          <option value="file">File</option>
-                          <option value="audio">Audio</option>
-                          <option value="video">Video</option>
-                        </select>
+                    {form.productType === "Tools" &&
+                      !form.isBookableService && (
+                        <>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Media Type *
+                          </label>
+                          <select
+                            name="mediaType"
+                            title="mediaType"
+                            value={form.mediaType}
+                            onChange={handleChange}
+                            className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                            required
+                          >
+                            <option value="">Select Media Type</option>
+                            <option value="file">File</option>
+                            <option value="audio">Audio</option>
+                            <option value="video">Video</option>
+                          </select>
 
-                        {/* Media upload for Tools */}
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Media File * ({form.mediaType || "Select type first"})
-                        </label>
-                        {form.materialUrl && (
-                          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-[12px]">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-green-700 text-sm font-medium">
-                                  Current Media File
-                                </span>
+                          {/* Media upload for Tools */}
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Media File * (
+                            {form.mediaType || "Select type first"})
+                          </label>
+                          {form.materialUrl && (
+                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-[12px]">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-green-700 text-sm font-medium">
+                                    Current Media File
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleDeleteMaterial}
+                                  disabled={loading}
+                                  className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-[10px] transition-colors duration-200 disabled:opacity-50"
+                                >
+                                  {loading ? "Deleting..." : "Delete"}
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={handleDeleteMaterial}
-                                disabled={loading}
-                                className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-[10px] transition-colors duration-200 disabled:opacity-50"
+                              <a
+                                href={form.materialUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 text-sm underline"
                               >
-                                {loading ? "Deleting..." : "Delete"}
-                              </button>
+                                Preview uploaded media
+                              </a>
                             </div>
-                            <a
-                              href={form.materialUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm underline"
-                            >
-                              Preview uploaded media
-                            </a>
-                          </div>
-                        )}
-                        <input
-                          type="file"
-                          accept={
-                            form.mediaType === "file"
-                              ? ".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar,.xlsx,.csv"
-                              : form.mediaType === "audio"
-                              ? "audio/*"
-                              : form.mediaType === "video"
-                              ? "video/*"
-                              : "*"
-                          }
-                          className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setLoading(true);
-                              try {
-                                if (form.materialUrl) {
-                                  try {
-                                    await deleteFileFromFirebase(form.materialUrl);
-                                  } catch (deleteErr) {
-                                    console.warn("Failed to delete old media:", deleteErr);
-                                  }
-                                }
-                                const url = await uploadMaterial(file, "tool-media");
-                                setForm((prev: any) => ({
-                                  ...prev,
-                                  materialUrl: url,
-                                }));
-                                toast.success("Media uploaded successfully!");
-                              } catch {
-                                setError("Media upload failed");
-                              } finally {
-                                setLoading(false);
-                              }
+                          )}
+                          <input
+                            type="file"
+                            title="file"
+                            accept={
+                              form.mediaType === "file"
+                                ? ".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar,.xlsx,.csv"
+                                : form.mediaType === "audio"
+                                ? "audio/*"
+                                : form.mediaType === "video"
+                                ? "video/*"
+                                : "*"
                             }
-                          }}
-                          required
-                          disabled={!form.mediaType}
-                        />
-                        {!form.mediaType && (
-                          <p className="text-slate-500 text-xs mt-1">
-                            Please select a media type first
-                          </p>
-                        )}
-                      </>
-                    )}
+                            className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setLoading(true);
+                                try {
+                                  if (form.materialUrl) {
+                                    try {
+                                      await deleteFileFromFirebase(
+                                        form.materialUrl
+                                      );
+                                    } catch (deleteErr) {
+                                      console.warn(
+                                        "Failed to delete old media:",
+                                        deleteErr
+                                      );
+                                    }
+                                  }
+                                  const url = await uploadMaterial(
+                                    file,
+                                    "tool-media"
+                                  );
+                                  setForm((prev: any) => ({
+                                    ...prev,
+                                    materialUrl: url,
+                                  }));
+                                  toast.success("Media uploaded successfully!");
+                                } catch {
+                                  setError("Media upload failed");
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }}
+                            required
+                            disabled={!form.mediaType}
+                          />
+                          {!form.mediaType && (
+                            <p className="text-slate-500 text-xs mt-1">
+                              Please select a media type first
+                            </p>
+                          )}
+                        </>
+                      )}
 
                     {/* Training materials */}
                     {requiresTrainingMaterials(form.productType) && (
@@ -1100,6 +1173,7 @@ export default function CreateProductPage() {
 
                         <input
                           type="file"
+                          title="file"
                           accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar,.xlsx,.csv"
                           className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                           onChange={async (e) => {
@@ -1206,12 +1280,14 @@ export default function CreateProductPage() {
                     )}
                   </div>
 
+                  {/* Product Category */}
                   <div className="space-y-4">
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                       Category *
                     </label>
                     <select
                       name="category"
+                      title="category"
                       value={form.category}
                       onChange={handleChange}
                       className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -1312,6 +1388,7 @@ export default function CreateProductPage() {
                     </label>
                     <select
                       name="subcategory"
+                      title="subcategory"
                       value={form.subcategory}
                       onChange={handleChange}
                       className="w-full px-4 py-6 bg-white/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -1369,6 +1446,7 @@ export default function CreateProductPage() {
                     </label>
                     <select
                       name="instructorId"
+                      title="instructorId"
                       value={form.instructorId}
                       onChange={handleChange}
                       className={`w-full px-4 py-6 bg-white/50 border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ${
@@ -1489,6 +1567,7 @@ export default function CreateProductPage() {
                 </label>
                 <select
                   name="deliveryMode"
+                  title="deliveryMode"
                   value={form.deliveryMode}
                   onChange={handleChange}
                   className="w-full border rounded-[10px] p-2"
@@ -1506,6 +1585,7 @@ export default function CreateProductPage() {
                 </label>
                 <select
                   name="sessionType"
+                  title="sessionType"
                   value={form.sessionType}
                   onChange={handleChange}
                   className="w-full border rounded-[10px] p-2"
@@ -1547,6 +1627,7 @@ export default function CreateProductPage() {
                   <label className="block text-sm font-medium mb-1">Mode</label>
                   <select
                     name="mode"
+                    title="mode"
                     value={form.mode}
                     onChange={handleChange}
                     className="w-full border rounded-[10px] p-2"
@@ -1594,19 +1675,16 @@ export default function CreateProductPage() {
                       name="durationInMinutes"
                       value={form.durationInMinutes}
                       onChange={handleChange}
-                      placeholder="Enter total duration in minutes (1-120)"
+                      placeholder="Enter total duration in minutes"
                       type="number"
                       min={1}
-                      max={120}
                       className="rounded-[10px]"
                     />
-                    {form.durationInMinutes &&
-                      (form.durationInMinutes < 1 ||
-                        form.durationInMinutes > 120) && (
-                        <p className="text-red-500 text-sm mt-1">
-                          Duration must be between 1 and 120 minutes.
-                        </p>
-                      )}
+                    {form.durationInMinutes && form.durationInMinutes < 1 && (
+                      <p className="text-red-500 text-sm mt-1">
+                        Duration must be greater than 1 minutes.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1617,19 +1695,16 @@ export default function CreateProductPage() {
                       name="minutesPerSession"
                       value={form.minutesPerSession}
                       onChange={handleChange}
-                      placeholder="Enter minutes per individual session (1-120)"
+                      placeholder="Enter minutes per individual session"
                       type="number"
                       min={1}
-                      max={120}
                       className="rounded-[10px]"
                     />
-                    {form.minutesPerSession &&
-                      (form.minutesPerSession < 1 ||
-                        form.minutesPerSession > 120) && (
-                        <p className="text-red-500 text-sm mt-1">
-                          Minutes per session must be between 1 and 120 minutes.
-                        </p>
-                      )}
+                    {form.minutesPerSession && form.minutesPerSession < 1 && (
+                      <p className="text-red-500 text-sm mt-1">
+                        Minutes per session must be greater than 1 minutes.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1757,6 +1832,7 @@ export default function CreateProductPage() {
                 </label>
                 <input
                   type="file"
+                  title="file"
                   accept="image/*"
                   className="rounded-[10px] border p-2"
                   onChange={async (e) => {
@@ -1790,6 +1866,7 @@ export default function CreateProductPage() {
                 </label>
                 <input
                   type="file"
+                  title="file"
                   accept="image/*"
                   className="rounded-[10px] border p-2"
                   onChange={async (e) => {
@@ -1826,6 +1903,7 @@ export default function CreateProductPage() {
                 </label>
                 <input
                   type="checkbox"
+                  title="checkbox"
                   name="enabled"
                   checked={!!form.enabled}
                   onChange={handleChange}
@@ -2168,7 +2246,8 @@ export default function CreateProductPage() {
 
                 {step === steps.length - 1 ? (
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleCreateProduct}
                     className="px-12 py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
                     disabled={loading}
                   >

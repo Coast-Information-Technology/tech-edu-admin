@@ -76,6 +76,7 @@ export interface Product {
   materialUrl?: string;
   videoUrl?: string;
   syllabus?: string;
+  mediaType?: string; // For Tools + nonBookableService: "file" | "audio" | "video"
 
   // Status & Availability
   enabled: boolean;

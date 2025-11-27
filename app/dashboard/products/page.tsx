@@ -509,33 +509,29 @@ export default function ProductsPage() {
                               <>
                                 <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                                   <span className="text-sm font-medium text-blue-600">
-                                    {(
-                                      instructors.find(
+                                    {instructors
+                                      .find(
                                         (i) =>
                                           i.userId === product.instructorId ||
                                           i._id === product.instructorId
-                                      )?.fullName?.charAt(0) || "I"
-                                    )}
+                                      )
+                                      ?.fullName?.charAt(0) || "I"}
                                   </span>
                                 </div>
                                 <div>
                                   <div className="text-sm font-medium text-slate-900">
-                                    {(
-                                      instructors.find(
-                                        (i) =>
-                                          i.userId === product.instructorId ||
-                                          i._id === product.instructorId
-                                      )?.fullName || "Unknown Instructor"
-                                    )}
+                                    {instructors.find(
+                                      (i) =>
+                                        i.userId === product.instructorId ||
+                                        i._id === product.instructorId
+                                    )?.fullName || "Unknown Instructor"}
                                   </div>
                                   <div className="text-xs text-slate-500">
-                                    {(
-                                      instructors.find(
-                                        (i) =>
-                                          i.userId === product.instructorId ||
-                                          i._id === product.instructorId
-                                      )?.title || "Instructor"
-                                    )}
+                                    {instructors.find(
+                                      (i) =>
+                                        i.userId === product.instructorId ||
+                                        i._id === product.instructorId
+                                    )?.title || "Instructor"}
                                   </div>
                                 </div>
                               </>
@@ -549,24 +545,33 @@ export default function ProductsPage() {
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm text-slate-700">
-                            {typeof product.productCategoryTitle === 'string' 
-                              ? product.productCategoryTitle 
-                              : (product.productCategoryId as any)?.title || 'N/A'}
+                            {typeof product.productCategoryTitle === "string"
+                              ? product.productCategoryTitle
+                              : (product.productCategoryId as any)?.title ||
+                                "N/A"}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm text-slate-700">
-                            {typeof product.productSubcategoryName === 'string'
+                            {typeof product.productSubcategoryName === "string"
                               ? product.productSubcategoryName
-                              : (product.productSubCategoryId as any)?.name || 'N/A'}
+                              : (product.productSubCategoryId as any)?.name ||
+                                "N/A"}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm font-semibold text-slate-900">
                             {product.pricing?.model ? (
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200">
-                                {product.pricing.model === "one_time" && "One-time"}
-                                {product.pricing.model === "subscription" && "Subscription"}
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200">
+                                {product.pricing.model === "one_time" &&
+                                  (product.pricing.allowInstallments ||
+                                  product.pricing.installments?.enabled
+                                    ? "One-Time / Installment Allowed"
+                                    : "One-Time Payment")}
+
+                                {product.pricing.model === "subscription" &&
+                                  "Subscription Payment"}
+
                                 {product.pricing.model === "free" && "Free"}
                               </span>
                             ) : (
@@ -574,6 +579,7 @@ export default function ProductsPage() {
                             )}
                           </div>
                         </td>
+
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="text-sm font-bold text-green-600">
                             {getDiscountPercent(product) > 0 ? (
@@ -600,13 +606,24 @@ export default function ProductsPage() {
                                   {Array.isArray(product.pricing.tiers) &&
                                     product.pricing.tiers.length > 0 && (
                                       <span className="block truncate max-w-[280px]">
-                                        {(product.pricing.tiers as Array<{ upTo: number; unitPrice: number }> | undefined)?.
-                                          slice(0, 3)
-                                          .map((t: { upTo: number; unitPrice: number }): string =>
-                                            `${t.upTo}: ${formatMoneySafe(
-                                              t.unitPrice,
-                                              product.pricing?.currency as any
-                                            )}`
+                                        {(
+                                          product.pricing.tiers as
+                                            | Array<{
+                                                upTo: number;
+                                                unitPrice: number;
+                                              }>
+                                            | undefined
+                                        )
+                                          ?.slice(0, 3)
+                                          .map(
+                                            (t: {
+                                              upTo: number;
+                                              unitPrice: number;
+                                            }): string =>
+                                              `${t.upTo}: ${formatMoneySafe(
+                                                t.unitPrice,
+                                                product.pricing?.currency as any
+                                              )}`
                                           )
                                           .join(", ")}
                                         {product.pricing.tiers.length > 3
@@ -617,7 +634,8 @@ export default function ProductsPage() {
                                 </>
                               ) : product.pricing.model === "subscription" ? (
                                 <span>
-                                  {product.pricing.intervalCount || 1} {product.pricing.interval || "month"}
+                                  {product.pricing.intervalCount || 1}{" "}
+                                  {product.pricing.interval || "month"}
                                   {product.pricing.trialDays
                                     ? ` • trial ${product.pricing.trialDays}d`
                                     : ""}
