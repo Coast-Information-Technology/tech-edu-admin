@@ -344,7 +344,7 @@ export default function TemplateBuilderPage({
     switch (sectionType) {
       case "professional-summary":
         if (suggestion.content) {
-          templateBuilder.setProfessionalSummary((prev) => ({
+          templateBuilder.setProfessionalSummary((prev: any) => ({
             ...prev,
             summary: suggestion.content,
           }));

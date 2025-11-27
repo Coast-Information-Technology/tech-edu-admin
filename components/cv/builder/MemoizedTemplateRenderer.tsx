@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo } from "react";
 import TemplateRenderer from "@/components/cv/dynamic/TemplateRenderer";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import { MemoizedComponentProps } from "@/types/cv/cv-builder";
 
 interface MemoizedTemplateRendererProps extends MemoizedComponentProps {

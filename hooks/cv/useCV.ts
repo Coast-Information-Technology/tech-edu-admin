@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import { mapResumePropsToSections } from "@/utils/cv/resumeSectionMapper";
 import {
   cvService,

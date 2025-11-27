@@ -1,4 +1,4 @@
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import { TemplateLayout } from "@/types/cv/template";
 
 /** Unique ID helper for sections (fallbacks to a stable-ish id if crypto is unavailable) */

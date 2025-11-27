@@ -16,7 +16,7 @@ import { ClassicTemplatePdfRenderer } from "@/components/cv/renderers/ClassicTem
 import { MinimalTemplatePdfRenderer } from "@/components/cv/renderers/MinimalTemplatePdfRenderer";
 import { ModernTemplatePdfRenderer } from "@/components/cv/renderers/ModernTemplatePdfRenderer";
 import { TwoColumnTemplatePdfRenderer } from "@/components/cv/renderers/TwoColumnTemplatePdfRenderer";
-import { ResumeSection } from "@/types/cv";
+import { ResumeSection } from "@/types/cv/index";
 import { templateManager } from "@/lib/cv/templates/templateManager";
 
 interface DynamicPdfRendererProps {
